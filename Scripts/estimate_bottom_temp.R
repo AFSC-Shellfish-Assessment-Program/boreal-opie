@@ -105,10 +105,7 @@ unique(c.dat$count) # looks good
 
 # here is our workflow going forwards:
 
-# 1) make data into table of year rows x station columns
-
-# row = year, columns = station-day and station-temp
-
+# 1) make data into df with row = year, columns = station-day and station-temp
 
 # 2) impute 100 times
 
@@ -116,8 +113,8 @@ unique(c.dat$count) # looks good
 
 # 4) feed this list of imputed data frames into a brms model to estimate year and sst:station effects
 
-# 
-# now set up for multiple imputation
+
+# set up for multiple imputation
 
 # first, clean up dat
 dat <- dat %>%
@@ -135,8 +132,8 @@ for(i in 1:length(stations)){
     filter(station == stations[i]) %>%
     select(-station)
   
-  names(station.dat)[1] <- paste(stations[i], "_julian", sep = "")
-  names(station.dat)[2] <- paste(stations[i], "_bottom.temp", sep = "")
+  names(station.dat)[1] <- paste("j", i, sep = "")
+  names(station.dat)[2] <- paste("t", i, sep = "")
   
   
   impute.this <- left_join(impute.this, station.dat)
@@ -144,3 +141,53 @@ for(i in 1:length(stations)){
 }
 
 View(impute.this)
+
+# remove year!
+impute.this <- impute.this %>%
+  select(-year)
+
+
+# examine correlations
+cors <- cor(impute.this, use = "p")
+View(cors)
+
+# limit to columns with missing cases!
+ff <- function(x) sum(!is.na(x))
+
+check <- apply(impute.this, 2, ff)
+
+max(check) # that's right!
+
+keep <- check[check < 46]
+
+keep
+
+missing.cors <- cors[,colnames(cors) %in% names(keep)]
+
+# figure out how many examples would be included for each correlation cutoff
+
+# remove cor = 1
+change <- missing.cors == 1 
+
+missing.cors[change] <- NA
+
+ff <- function(x) sum(abs(x) > 0.65, na.rm = T)
+
+count <- apply(missing.cors, 2, ff)
+
+range(count)
+
+# big ranges!
+
+# let's figure out the mincor that will produce 15 predictors for each
+plyr::round_any(18.129, 0.01, f = floor)
+ff <- function(x) plyr::round_any(sort(abs(x), decreasing = T)[15], 0.001, f = floor)
+
+mincors <- apply(cors, 2, ff)
+
+
+# impute 100 times - using 15 predictors for each
+pred <- quickpred(impute.this, mincor = as.vector(mincors))
+
+# and impute
+imp <- mice(impute.this, m = 100, pred = pred)
