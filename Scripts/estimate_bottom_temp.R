@@ -1,5 +1,6 @@
 library(tidyverse)
 library(lubridate)
+library(mice)
 
 dat <- read.csv("./data/haul.csv")
 
@@ -100,4 +101,46 @@ c.dat <- dat %>%
 
 unique(c.dat$count) # looks good
 
+## imput missing values --------------------------
+
+# here is our workflow going forwards:
+
+# 1) make data into table of year rows x station columns
+
+# row = year, columns = station-day and station-temp
+
+
+# 2) impute 100 times
+
+# 3) combine these 100 imputed data frames back into full versions of the data (including julian day)
+
+# 4) feed this list of imputed data frames into a brms model to estimate year and sst:station effects
+
+# 
 # now set up for multiple imputation
+
+# first, clean up dat
+dat <- dat %>%
+  select(julian, bottom.temp, year, station)
+
+stations <- unique(dat$station) 
+
+impute.this <- data.frame(year = c(1975:2019, 2021))
+
+for(i in 1:length(stations)){
+  
+  # i <- 1
+  
+  station.dat <- dat %>%
+    filter(station == stations[i]) %>%
+    select(-station)
+  
+  names(station.dat)[1] <- paste(stations[i], "_julian", sep = "")
+  names(station.dat)[2] <- paste(stations[i], "_bottom.temp", sep = "")
+  
+  
+  impute.this <- left_join(impute.this, station.dat)
+  
+}
+
+View(impute.this)
