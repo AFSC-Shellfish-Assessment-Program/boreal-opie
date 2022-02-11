@@ -50,6 +50,9 @@ check <- dat %>%
 
 View(check)
 
+# make sure there are a max of 2 tows per station/year combo
+max(check$count) # yes
+
 # aha - I think these are the BBRKC retows!
 
 # easiest/best not to use these for temperature
@@ -57,3 +60,44 @@ View(check)
 # so might be too complicated to try to analyze (in addition to the difficulties in mice)
 
 # need to go through the situations where 2 tows are made and use the first
+
+# set up an index for the ones we want to drop
+dat$station_year = paste(dat$station, dat$year, sep = "_")
+
+check$station_year = paste(check$station, check$year, sep = "_")
+
+# now pick these out of dat
+
+doubles <- dat %>%
+  filter(station_year %in% check$station_year)
+
+# confirm this has the double sample events
+
+check.double <- doubles %>%
+  group_by(station_year) %>%
+  summarise(count = n())
+
+unique(check.double$count) # good...
+
+# now select the maximum date for each station-year
+# these are the ones to drop from dat
+
+drop.check <- doubles %>%
+  group_by(station_year) %>%
+  summarise(julian = max(julian)) %>% # picks the second day in each station-year combo
+  mutate(station_year_julian = paste(station_year, julian, sep = "_")) 
+
+# and drop these from dat
+dat$station_year_julian <- paste(dat$station_year, dat$julian, sep = "_")
+  
+dat <- dat %>%
+  filter(!station_year_julian %in% drop.check$station_year_julian)
+
+# check
+c.dat <- dat %>%
+  group_by(year, station) %>%
+  summarise(count = n())
+
+unique(c.dat$count) # looks good
+
+# now set up for multiple imputation
