@@ -191,3 +191,39 @@ pred <- quickpred(impute.this, mincor = as.vector(mincors))
 
 # and impute
 imp <- mice(impute.this, m = 100, pred = pred)
+
+head(imp$loggedEvents)
+unique(imp$loggedEvents$meth)
+sum(imp$loggedEvents$meth == "pmm")
+
+# so we're dealing with 1 collinear variable and all the rest are pmm
+
+str_count((imp$loggedEvents$out[2]), pattern = ",")
+
+dropped <- data.frame(dropped = 1 + str_count((imp$loggedEvents$out), pattern = ","))
+
+str(dropped)
+
+ggplot(dropped, aes(dropped)) +
+  geom_histogram(bins = 6, fill = "grey", color = "black")
+
+# so not lots of variables dropped - enough for prediction! 
+# will need to look into the pmm warning (haven't found much immediately), but proceeding for now
+
+# now need to put imp into correct form for analysis
+
+str(imp$imp)
+
+View(complete(imp))
+
+# this looks great....
+
+# save!
+saveRDS(imp, "./output/imputed_julian_temp")
+
+# need to replace index values from "stations" with station name, then put into long form 
+# with year, station, julian, and temperature columns
+
+# then add to list of data frames
+
+
