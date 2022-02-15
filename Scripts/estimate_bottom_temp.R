@@ -363,9 +363,12 @@ theme_set(theme_bw())
 
 ## brms: setup ---------------------------------------------
 
-## Define model formulas
+## Define model formula
 
-brms_formula <-  bf(temperature ~ as.factor(year) + s(julian, k = 3, by = name))
+# year as population-level effect
+# and random intercept and date slope for stations 
+
+brms_formula <-  bf(temperature ~ as.factor(year) + (1 + julian | name))
 
 ## fit --------------------------------------
 bottom_temp_brm <- brm_multiple(brms_formula,
