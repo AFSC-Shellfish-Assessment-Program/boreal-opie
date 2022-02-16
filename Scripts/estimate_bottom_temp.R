@@ -237,6 +237,8 @@ complete
 # save!
 saveRDS(imp, "./output/imputed_julian_temp")
 
+# imp <- readRDS("./output/imputed_julian_temp")
+
 # need to replace index values from "stations" with station name, then put into long form 
 # with year, station, julian, and temperature columns
 
@@ -365,10 +367,10 @@ theme_set(theme_bw())
 
 ## Define model formula
 
-# year as population-level effect
-# and random intercept and date slope for stations 
+# year and station as population-level effect
+# and random date slope for stations 
 
-brms_formula <-  bf(temperature ~ as.factor(year) + (1 + julian | name))
+brms_formula <-  bf(temperature ~ as.factor(year) + name + (julian | name))
 
 ## fit --------------------------------------
 bottom_temp_brm <- brm_multiple(brms_formula,
@@ -380,8 +382,11 @@ bottom_temp_brm <- brm_multiple(brms_formula,
 
 
 
-codR_dfa_brm  <- add_criterion(codR_dfa_brm, c("loo", "bayes_R2"), moment_match = TRUE)
-saveRDS(codR_dfa_brm, file = "output/codR_dfa_brm.rds")
+# bottom_temp_brm  <- add_criterion(codR_dfa_brm, c("loo", "bayes_R2"), moment_match = TRUE)
+saveRDS(bottom_temp_brm, file = "output/bottom_temp_brm.rds")
+
+### SEEMS TO BE CRASHING AT THE END OF MODEL FITTING <OR> RESTARTING...TRY WITH CmdStan??
+
 
 codR_dfa_brm <- readRDS("./output/codR_dfa_brm.rds")
 check_hmc_diagnostics(codR_dfa_brm$fit)
