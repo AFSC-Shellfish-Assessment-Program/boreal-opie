@@ -88,7 +88,7 @@ bcs %>%
 #Write csv for BCS snow crab indicator
 bcs %>%
   pivot_wider(names_from = size_sex, values_from = Prevalance) %>%
-  write.csv(file="./output/bcs_prev.csv")
+  write.csv(file="./Data/bcs_prev.csv")
   
 
  
