@@ -44,7 +44,24 @@ d4 <- read.csv("./Data/chl_a.csv")
 d4 <- d4 %>%
   pivot_longer(cols = -year)
 
-dat <- rbind(d1, d2, d3, d4)
+d5 <- read.csv("./Data/bcs_prev.csv", row.names = 1)
+
+plot <- d5 %>%
+  pivot_longer(cols = -year)
+
+ggplot(plot, aes(year, value, color = name)) +
+  geom_line() +
+  geom_point()
+
+
+d5$immature_bcs <- rowMeans(d5[,2:3], na.rm = T)
+
+d5 <- d5 %>% 
+  select(year, immature_bcs) %>%
+  pivot_longer(cols = -year)
+  
+
+dat <- rbind(d1, d2, d3, d4, d5)
 
 ggplot(dat, aes(year, value)) +
   geom_line() +
@@ -53,7 +70,7 @@ ggplot(dat, aes(year, value)) +
 
 dfa.dat <- dat %>%
   pivot_wider(names_from = name, values_from = value) %>% 
-  arrange(desc(year))
+  arrange(year) %>%
   select(-year) %>%
   t()
   
@@ -71,10 +88,13 @@ cntl.list = list(minit=200, maxit=20000, allow.degen=FALSE, conv.test.slope.tol=
 
 # fit models & store results
 for(R in levels.R) {
-  for(m in 1:3) {  # allowing up to 3 trends
+  for(m in 1:1) {  # find best single-trend model
+    
     dfa.model = list(A="zero", R=R, m=m)
+    
     kemz = MARSS(dfa.dat, model=dfa.model,
                  form="dfa", z.score=TRUE, control=cntl.list)
+    
     model.data = rbind(model.data,
                        data.frame(R=R,
                                   m=m,
@@ -82,6 +102,7 @@ for(R in levels.R) {
                                   K=kemz$num.params,
                                   AICc=kemz$AICc,
                                   stringsAsFactors=FALSE))
+    
     assign(paste("kemz", m, R, sep="."), kemz)
   } # end m loop
 } # end R loop
@@ -93,66 +114,34 @@ model.data <- model.data %>%
 model.data
 
 # save model selection table
-write.csv(model.data, "./Results/legacy catch dfa model selection table 1956-1990.csv",
+write.csv(model.data, "./output/dfa_model_selection_table.csv",
           row.names = F)
 
 ## fit the best model --------------------------------------------------
-model.list = list(A="zero", m=2, R="diagonal and unequal") # best model for early era
+model.list = list(A="zero", m=2, R="diagonal and equal") # best model 
 
 # not sure that these changes to control list are needed for this best model, but using them again!
 cntl.list = list(minit=200, maxit=20000, allow.degen=FALSE, conv.test.slope.tol=0.1, abstol=0.0001)
 
 mod = MARSS(dfa.dat, model=model.list, z.score=TRUE, form="dfa", control=cntl.list)
 
-# and rotate the loadings
-Z.est = coef(mod, type="matrix")$Z
-H.inv = varimax(coef(mod, type="matrix")$Z)$rotmat
-Z.rot = as.data.frame(Z.est %*% H.inv)
+# plot
+CI <- MARSSparamCIs(mod)
+
+plot.CI <- data.frame(names=rownames(dfa.dat),
+                          mean=CI$par$Z[1:12],
+                          upCI=CI$par.upCI$Z[1:12],
+                          lowCI=CI$par.lowCI$Z[1:12])
+
+dodge <- position_dodge(width=0.9)
 
 
-Z.rot$names <- rownames(dfa.dat)
-Z.rot <- arrange(Z.rot, V1)
-Z.rot <- gather(Z.rot[,c(1,2)])
-Z.rot$names <- rownames(dfa.dat)
-Z.rot$plot.names <- reorder(Z.rot$names, 1:length(Z.rot$names))
+plot.CI$names <- reorder(plot.CI$names, CI$par$Z[1:11])
 
-loadings <- ggplot(Z.rot, aes(plot.names, value, fill=key)) + geom_bar(stat="identity", position="dodge") +
-  ylab("Loading") + xlab("") + ggtitle("1956-1990 legacy catch - diagonal and unequal") + 
-  scale_fill_manual(values=cb[2:3]) +
-  theme(legend.position = c(0.8,0.2), legend.title=element_blank()) + geom_hline(yintercept = 0) +
-  theme(axis.text.x  = element_text(angle=45, hjust=1, size=12)) 
-
-loadings
-
-
-# plot trends
-# first rotate the trends!
-H.inv = varimax(coef(mod, type="matrix")$Z)$rotmat
-trends.rot = solve(H.inv) %*% mod$states
-
-trends.plot <- data.frame(year = 1956:1990,
-                          trend1 = trends.rot[1,],
-                          trend2 = trends.rot[2,]) %>%
-  pivot_longer(cols = -year)
-
-trend <- ggplot(trends.plot, aes(year, value, color = name)) +
-  geom_line() +
-  scale_color_manual(values = cb[2:3]) +
-  ggtitle("1956-1990 legacy catch - diagonal and unequal") +
-  theme(axis.title.x = element_blank(),
-        legend.title = element_blank(),
-        legend.position = c(0.2, 0.8)) +
+loadings.plot <- ggplot(plot.CI, aes(x=names, y=mean)) +
+  geom_bar(position=dodge, stat="identity", fill=cb[2]) +
+  geom_errorbar(aes(ymax=upCI, ymin=lowCI), position=dodge, width=0.5) +
+  ylab("Loading") +
+  xlab("") +
+  theme(axis.text.x  = element_text(angle=45, hjust=1,  size=12), legend.title = element_blank(), legend.position = 'top') +
   geom_hline(yintercept = 0)
-
-trend
-
-# combine in one saved plot
-png("./Figs/legacy_dfa_loadings_and_trend.png", 
-    width=5, height=8, units='in', res=300)
-
-ggpubr::ggarrange(loadings, trend, nrow = 2, ncol = 1,
-                  heights = c(0.6, 0.4))
-
-dev.off()
-
-ggsave("./Figs/legacy_catch_trend_plot_diagonal_unequal.png", width = 5.5, height = 3, units = 'in')
