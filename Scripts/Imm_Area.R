@@ -63,12 +63,28 @@ sc_catch %>%
   
 #1) Determine stations that compose average core habitat across the long-term timeseries 
 
+#Histogram with percentiles 
+cpue %>%
+  group_by(GIS_STATION) %>%
+  summarise(AVG_CPUE = mean(CPUE)) -> data
+p10 <- quantile(data$AVG_CPUE, 0.10)
+p20 <- quantile(data$AVG_CPUE, 0.20)
+p50 <- quantile(data$AVG_CPUE, 0.50)
+
+ggplot(data=data, aes(x=AVG_CPUE)) +
+  geom_histogram(bins=15) +
+  geom_vline(aes(xintercept=p10), linetype="dashed", size=1) +
+  geom_vline(aes(xintercept=p20), linetype="dashed", size=1) +
+  geom_vline(aes(xintercept=p50), linetype="dashed", size=1) +
+  theme_bw()
+
+
 #stations in 10-100 CPUE percentile range
 cpue %>%
   group_by(GIS_STATION) %>%
   summarise(AVG_CPUE = mean(CPUE)) %>%
   filter(AVG_CPUE > quantile(AVG_CPUE, 0.10)) -> perc10 #331 stations 
-  
+
 #stations in 20-100 CPUE percentile range
 cpue %>%
   group_by(GIS_STATION) %>%
