@@ -5,7 +5,6 @@
 #NOTE: There are no pre-1980 stratum tables on akfin so abundances were only 
   #calculated for 1980+
 
-
 # Author: Erin Fedewa
 
 # load ----
@@ -22,12 +21,12 @@ sc_strata <- read_csv("./Data/crabstrata_opilio.csv")
 
 ###################################################
 
-#Calculate CPUE by station for all immature snow crab 
+#Calculate CPUE by station for immature snow crab 
 sc_catch %>%
   filter(HAUL_TYPE == 3, 
          SEX %in% 1:2,
          AKFIN_SURVEY_YEAR > 1979) %>%
-  mutate(MAT_SEX = case_when((SEX == 1 & WIDTH < 95 & SHELL_CONDITION <= 2) ~ "Immature Male",
+  mutate(MAT_SEX = case_when((SEX == 1 & WIDTH < 95) ~ "Immature Male",
                              (SEX == 2 & CLUTCH_SIZE == 0) ~ "Immature Female")) %>%
   filter(MAT_SEX %in% c("Immature Male", "Immature Female")) %>%
   group_by(AKFIN_SURVEY_YEAR, GIS_STATION, AREA_SWEPT,MID_LATITUDE, MID_LONGITUDE) %>%

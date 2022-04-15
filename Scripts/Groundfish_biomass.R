@@ -5,11 +5,20 @@
 
 # Author: Erin Fedewa
 
+#NOTES: 
+#Looks like there's some missing station data prior to 1993, may be 
+  #worth imputing CPUE's
+#This dataset only includes 1982+, data request in for earlier yrs, and CPUE's
+  #for missing stations will need to be imputed 
+#Need to follow up on median CPUE approach and instead calculate station-level 
+  #cod biomass...though maybe our approach for defining cod-snow crab habitat  
+  #overlap needs some rethinking 
+
 # load ----
 library(tidyverse)
 
 ###################################################
-# Generate groundfish master csv ----
+# Generate groundfish master csv
 
 #Function to import data and filter for only fish 
 import <- function(filename) {
@@ -46,31 +55,61 @@ imm_area <- read.csv("./Data/imm_area_50perc.csv")
 imm_stations <- pull(imm_area, GIS_STATION)
 
 ##################
-
 #Biomass of pacific cod within imm snow crab 50th percentile home range 
+
+#Num of stations with catch data each yr within 187 station core region
 gf_catch %>%
-  filter(SID %in% c(21720, 21721, 21722),
-         STATION %in% imm_stations)
+  filter(STATION %in% imm_stations) %>%
+  group_by(YEAR) %>%
+  summarise(station = length(unique(STATION))) %>%
+  print(n=50)
+#Looks like pre-1993 we've got missing stations 
 
-#How to get from wtcpue to biomass?
-#Where is strata table with areas of strata? 
+#Plot CPUE distribution of cod by year 
+gf_catch %>%
+  filter(SID %in% c(21720),
+         STATION %in% imm_stations) %>%
+  ggplot(aes(x=WTCPUE)) +
+  geom_histogram() +
+  facet_wrap(~YEAR) +
+  geom_vline(aes(xintercept=median(WTCPUE)), linetype="dashed", size=1) 
 
+#Timseries of median cod CPUE within immature core region
+gf_catch %>%
+  filter(SID %in% c(21720),
+         STATION %in% imm_stations) %>%
+  group_by(YEAR) %>%
+  summarise(med_cod_CPUE = median(WTCPUE)) -> med_cod_cpue
 
-
-
-#NOTE: Need to append pre-1982 data and impute missing station CPUEs, then re-run 
-
-
-
-
-
+###################################################################
 #Biomass of subarctic fish complex within imm snow crab 50th percentile home range
 
-#Arctic Species- may be worthwhile to re-evaluate this complex 
+#Plot CPUE distribution of arctic fish by year 
 gf_catch %>%
   #alaska plaice, arctic cod, bering flounder, butterfly sculpin, greenland turbot
   #marbled eelpout, wattled eelpout 
-  filter(SID %in% c(10285,21725,10140,21348,10115,66045,24185,10212)) %>%
+  filter(SID %in% c(10285,21725,10140,21348,10115,66045,24185,10212),
+         STATION %in% imm_stations) %>%
+  group_by(YEAR, STATION) %>% 
+  summarise(sum_CPUE = sum(WTCPUE)) %>%
+  ggplot(aes(x=sum_CPUE)) +
+  geom_histogram() +
+  facet_wrap(~YEAR) +
+  xlim(0, 100) +
+  geom_vline(aes(xintercept=median(sum_CPUE)), linetype="dashed", size=1)
+
+#Timseries of median arctic fish CPUE within immature core region
+gf_catch %>%
+  filter(SID %in% c(10285,21725,10140,21348,10115,66045,24185,10212),
+         STATION %in% imm_stations) %>%
+  group_by(YEAR, STATION) %>% 
+  summarise(sum_CPUE = sum(WTCPUE)) %>%
+  group_by(YEAR) %>%
+  summarise(med_arctic_CPUE = median(sum_CPUE)) -> med_arctic_cpue
+
+#Join cod and arctic fish datasets
+med_cod_cpue %>%
+  left_join(med_arctic_cpue) -> final
   
-
-
+#Write csv for median pcod and arctic fish CPUE within imm snow crab core habitat 
+write.csv(final, file = "./Data/groundfish_med_cpue.csv")
