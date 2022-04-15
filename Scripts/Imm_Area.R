@@ -6,6 +6,11 @@
   
 # Author: Erin Fedewa
 
+#NOTES:
+#Given that stations differed pre 1980, only 1980+ dataset was used to calculate 
+  #avg core habitat across timeseries
+#Bottom temps need to be data corrected and imputed for final timeseries dataset
+
 # load ----
 library(tidyverse)
 library(ggmap)
@@ -78,7 +83,6 @@ ggplot(data=data, aes(x=AVG_CPUE)) +
   geom_vline(aes(xintercept=p50), linetype="dashed", size=1) +
   theme_bw()
 
-
 #stations in 10-100 CPUE percentile range
 cpue %>%
   group_by(GIS_STATION) %>%
@@ -96,9 +100,24 @@ cpue %>%
   group_by(GIS_STATION) %>%
   summarise(AVG_CPUE = mean(CPUE)) %>%
   filter(AVG_CPUE > quantile(AVG_CPUE, 0.50)) -> perc50 #187 stations
+#Lets go with the 50th percentile for defining core immature area 
+
+#Join lat/long back in to perc50 dataset and plot
+sc_strata %>%
+      filter(SURVEY_YEAR == 2021) %>% #Just selecting a yr when all stations were sampled
+      select(STATION_ID, LATITUDE, LONGITUDE) %>%
+      dplyr::rename(GIS_STATION = STATION_ID) %>%
+      right_join(perc50) -> perc50_core
+
+#Plot....this takes awhile to generate a stamen map FYI!!
+get_stamenmap(bbox=c(-180, 54, -157, 63),
+  maptype="toner-lite") %>%
+  ggmap() +
+  geom_point(data= perc50_core, aes(x = LONGITUDE, y = LATITUDE, size=AVG_CPUE)) +
+  labs(x = "Longitude", y = "Latitude") 
   
 #Write csv for stations in 50th percentile of avg CPUE  
-write.csv(perc50, file="./Data/imm_area_50perc.csv")
+write.csv(perc50_core, file="./Data/imm_area_50perc.csv")
 
 ######
 
