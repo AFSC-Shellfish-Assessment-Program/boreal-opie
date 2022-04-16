@@ -14,34 +14,37 @@ cb <- c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E
 d1 <- read.csv("./Data/bloom_timing.csv")
 
 d1 <- d1 %>%
-  mutate(name = paste(sub_6domain, "_bloom_timing", sep = "")) %>%
+  filter(sub_6domain == "south_middle") %>%
   rename(value = peak_mean) %>%
+  mutate(name = "south_bloom_timing") %>%
   select(year, name, value)
   
 d2 <- read.csv("./Data/bloom_type.csv")
 
 d2 <- d2 %>%
-  filter(!is.na(bloom_type))
+  filter(!is.na(bloom_type),
+         sub_6domain == "south_middle")
+
 
 ggplot(d2, aes(year, count, color = bloom_type)) +
   geom_line() +
-  geom_point() +
-  facet_wrap(~sub_6domain)
+  geom_point() 
 
 d2 <- d2 %>%
-  mutate(name = paste(sub_6domain, bloom_type, "bloom", sep = "_")) %>%
+  mutate(name = paste("south", bloom_type, "bloom", sep = "_")) %>%
   rename(value = count) %>%
   select(year, name, value)
 
-d3 <- read.csv("./Data/march_ice_cover.csv")
-  
+d3 <- read.csv("./Data/ice.csv")
+
 d3 <- d3 %>%
-  mutate(name = "March_ice_cover") %>%
-  rename(value = sic_average)
+  filter(year >= 1972) %>%
+  pivot_longer(cols = -year)
 
 d4 <- read.csv("./Data/chl_a.csv")
 
 d4 <- d4 %>%
+  select(-north_int_chla, -north_fract_chla) %>%
   pivot_longer(cols = -year)
 
 d5 <- read.csv("./Data/bcs_prev.csv", row.names = 1)
@@ -53,15 +56,24 @@ ggplot(plot, aes(year, value, color = name)) +
   geom_line() +
   geom_point()
 
-
-d5$immature_bcs <- rowMeans(d5[,2:3], na.rm = T)
-
 d5 <- d5 %>% 
-  select(year, immature_bcs) %>%
+  select(year, Population) %>%
+  rename(population_bcs = Population) %>%
   pivot_longer(cols = -year)
   
+d6 <- read.csv("./Data/date_corrected_bottom_temp.csv")
 
-dat <- rbind(d1, d2, d3, d4, d5)
+d6 <- d6 %>%
+  rename(value = bottom.temp) %>%
+  mutate(name = "bottom_temp")
+
+d7 <- read.csv("./Data/groundfish_med_cpue.csv", row.names = 1)
+
+d7 <- d7 %>%
+  rename(year = YEAR) %>%
+  pivot_longer(cols = -year)
+
+dat <- rbind(d1, d2, d3, d4, d5, d6, d7)
 
 ggplot(dat, aes(year, value)) +
   geom_line() +
@@ -74,7 +86,7 @@ dfa.dat <- dat %>%
   select(-year) %>%
   t()
   
-colnames(dfa.dat) <- d3$year
+colnames(dfa.dat) <- unique(d3$year)
 
 # set up forms of R matrices
 levels.R = c("diagonal and equal",
@@ -111,14 +123,14 @@ for(R in levels.R) {
 model.data$dAICc <- model.data$AICc-min(model.data$AICc)
 model.data <- model.data %>%
   arrange(dAICc)
-model.data
+model.data # diagonal and unequal is the best model but doesn't converge
 
 # save model selection table
 write.csv(model.data, "./output/dfa_model_selection_table.csv",
           row.names = F)
 
 ## fit the best model --------------------------------------------------
-model.list = list(A="zero", m=2, R="diagonal and equal") # best model 
+model.list = list(A="zero", m=1, R="diagonal and unequal") # best model 
 
 # not sure that these changes to control list are needed for this best model, but using them again!
 cntl.list = list(minit=200, maxit=20000, allow.degen=FALSE, conv.test.slope.tol=0.1, abstol=0.0001)
@@ -129,9 +141,9 @@ mod = MARSS(dfa.dat, model=model.list, z.score=TRUE, form="dfa", control=cntl.li
 CI <- MARSSparamCIs(mod)
 
 plot.CI <- data.frame(names=rownames(dfa.dat),
-                          mean=CI$par$Z[1:12],
-                          upCI=CI$par.upCI$Z[1:12],
-                          lowCI=CI$par.lowCI$Z[1:12])
+                          mean=CI$par$Z[1:11],
+                          upCI=CI$par.upCI$Z[1:11],
+                          lowCI=CI$par.lowCI$Z[1:11])
 
 dodge <- position_dodge(width=0.9)
 
@@ -145,3 +157,32 @@ loadings.plot <- ggplot(plot.CI, aes(x=names, y=mean)) +
   xlab("") +
   theme(axis.text.x  = element_text(angle=45, hjust=1,  size=12), legend.title = element_blank(), legend.position = 'top') +
   geom_hline(yintercept = 0)
+
+# plot trend
+trend <- data.frame(t=1972:2021,
+                        estimate=as.vector(mod$states),
+                        conf.low=as.vector(mod$states)-1.96*as.vector(mod$states.se),
+                        conf.high=as.vector(mod$states)+1.96*as.vector(mod$states.se))
+
+
+trend.plot <- ggplot(trend, aes(t, estimate)) +
+  theme_bw() +
+  geom_line(color=cb[2]) +
+  geom_hline(yintercept = 0) +
+  geom_ribbon(aes(x=t, ymin=conf.low, ymax=conf.high), linetype=2, alpha=0.1, fill=cb[2]) + xlab("") + ylab("Trend")
+
+
+# save
+png("./Figs/borealization_DFA_loadings_trend.png", width = 7, height = 3.5, units = 'in', res = 300)
+
+ggpubr::ggarrange(loadings.plot,
+                  trend.plot,
+                  ncol = 2,
+                  widths = c(0.5, 0.5),
+                  labels = "auto")
+
+dev.off()
+
+# and save loadings and trend
+write.csv(plot.CI, "./Output/dfa_loadings.csv", row.names = F)
+write.csv(trend, "./Output/dfa_trend.csv", row.names = F)
