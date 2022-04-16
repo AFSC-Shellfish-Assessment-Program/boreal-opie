@@ -69,17 +69,21 @@ gf_catch %>%
 gf_catch %>%
   filter(SID %in% c(21720),
          STATION %in% imm_stations) %>%
-  ggplot(aes(x=WTCPUE)) +
+  ggplot(aes(x=WTCPUE^0.25)) +
   geom_histogram() +
   facet_wrap(~YEAR) +
   geom_vline(aes(xintercept=median(WTCPUE)), linetype="dashed", size=1) 
 
-#Timseries of median cod CPUE within immature core region
+#Time series of median cod CPUE within immature core region
 gf_catch %>%
   filter(SID %in% c(21720),
          STATION %in% imm_stations) %>%
   group_by(YEAR) %>%
-  summarise(med_cod_CPUE = median(WTCPUE)) -> med_cod_cpue
+  summarise(med_cod_CPUE = median(WTCPUE^0.25)) -> med_cod_cpue
+
+ggplot(med_cod_cpue, aes(YEAR, med_cod_CPUE)) +
+  geom_line() +
+  geom_point()
 
 ###################################################################
 #Biomass of subarctic fish complex within imm snow crab 50th percentile home range
@@ -92,11 +96,11 @@ gf_catch %>%
          STATION %in% imm_stations) %>%
   group_by(YEAR, STATION) %>% 
   summarise(sum_CPUE = sum(WTCPUE)) %>%
-  ggplot(aes(x=sum_CPUE)) +
+  ggplot(aes(x=sum_CPUE^0.25)) +
   geom_histogram() +
   facet_wrap(~YEAR) +
-  xlim(0, 100) +
-  geom_vline(aes(xintercept=median(sum_CPUE)), linetype="dashed", size=1)
+  # xlim(0, 100) +
+  geom_vline(aes(xintercept=median(sum_CPUE^0.25)), linetype="dashed", size=1)
 
 #Timseries of median arctic fish CPUE within immature core region
 gf_catch %>%
@@ -105,7 +109,11 @@ gf_catch %>%
   group_by(YEAR, STATION) %>% 
   summarise(sum_CPUE = sum(WTCPUE)) %>%
   group_by(YEAR) %>%
-  summarise(med_arctic_CPUE = median(sum_CPUE)) -> med_arctic_cpue
+  summarise(med_arctic_CPUE = median(sum_CPUE^0.25)) -> med_arctic_cpue
+
+ggplot(med_arctic_cpue, aes(YEAR, med_arctic_CPUE)) +
+  geom_line() +
+  geom_point()
 
 #Join cod and arctic fish datasets
 med_cod_cpue %>%
