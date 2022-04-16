@@ -1,225 +1,127 @@
 library(tidyverse)
 library(lubridate)
 library(mice)
+library(Hmisc)
 
 dat <- read.csv("./data/haul.csv")
 
 head(dat)
+
+# load immature opilio core habitat
+imm_area <- read.csv("./Data/imm_area_50perc.csv")
+
+# plot what we have
+plot.dat <- dat %>%
+  select(SURVEY_YEAR, GIS_STATION, MID_LATITUDE, MID_LONGITUDE) %>%
+  rename(LATITUDE = MID_LATITUDE,
+         LONGITUDE = MID_LONGITUDE)
+
+# add imm_area
+add_area <- imm_area %>%
+  select(GIS_STATION) %>%
+  mutate(core = "core")
+
+plot.dat <- left_join(plot.dat, add_area)
+
+change <- is.na(plot.dat$core)
+plot.dat$core[change] <- "non-core"
+
+ggplot(filter(plot.dat, SURVEY_YEAR <= 1982), aes(LONGITUDE, LATITUDE, color = core)) +
+  geom_point() +
+  facet_wrap(~SURVEY_YEAR)
+
+# different names in different years??
+check79 <- plot.dat %>%
+  filter(SURVEY_YEAR == 1979,
+         core == "non-core")
+
+check80 <- plot.dat %>%
+  filter(SURVEY_YEAR == 1980,
+         core == "core")
+
+whats.this <- intersect(unique(check79$GIS_STATION), unique(check80$GIS_STATION)) # none
+
+# let's use a list of core stations sampled in 1977 to generate our bottom temp index
+use <- plot.dat %>%
+  filter(SURVEY_YEAR == 1975,
+          core == "core")
+  
+use.stations <- use$GIS_STATION
+
+plot.dat <- plot.dat %>%
+  filter(GIS_STATION %in% use.stations)
+
+ggplot(filter(plot.dat, SURVEY_YEAR <= 1982), aes(LONGITUDE, LATITUDE, color = core)) +
+  geom_point() +
+  facet_wrap(~SURVEY_YEAR)
+
+check <- plot.dat %>%
+  group_by(SURVEY_YEAR) %>%
+  summarise(missing = length(use.stations)-n())
+
+check
 
 # extract gear temp, date, year, gis_station
 
 dat <- dat %>%
   mutate(julian=yday(parse_date_time(START_TIME, "d-m-y", "US/Alaska"))) %>%
   select(julian, GEAR_TEMPERATURE, SURVEY_YEAR, GIS_STATION) %>%
-  rename(bottom.temp = GEAR_TEMPERATURE, year = SURVEY_YEAR, station = GIS_STATION)
+  rename(bottom.temp = GEAR_TEMPERATURE, year = SURVEY_YEAR, station = GIS_STATION) %>%
+  filter(station %in% use.stations)
 
-# check for  which stations are sampled each year
-ff <- function(x) sum(!is.na(x))
 
-check <- tapply(dat$julian, list(dat$year, dat$station), ff)
-View(check)
-
-# quite a few are sampled only once!
-
-check <- dat %>%
-  group_by(station) %>%
-  summarise(count = ff(julian)) %>% 
-  arrange(count)
-
-check            
-
-ggplot(check, aes(count)) +
-  geom_histogram(bins = 30, fill = "grey", color = "black")
-
-# so we can cut off above 20...
-# but it also looks like we have some that were sampled > once in a year (> 46 samples in 46-year time series)
-# might make the multiple imputation more complicated (i.e., if we want to use a year x station table for imputation!)
-
-# first, cut off all the n < 20 sets
-
-keep <- check$station[check$count > 20]
-
-dat <- dat %>%
-  filter(station %in% keep)
 
 # look at these stations sampled more than once a year 
 
 check <- dat %>%
   group_by(year, station) %>%
-  summarize(count = n()) %>%
+  dplyr::summarize(count = n()) %>%
   filter(count > 1)
 
-View(check)
+check # none!
 
-# make sure there are a max of 2 tows per station/year combo
-max(check$count) # yes
 
-# aha - I think these are the BBRKC retows!
-
-# easiest/best not to use these for temperature
-# bad to throw away information, but these are out of the norm re julian:station combinations,
-# so might be too complicated to try to analyze (in addition to the difficulties in mice)
-
-# need to go through the situations where 2 tows are made and use the first
-
-# set up an index for the ones we want to drop
-dat$station_year = paste(dat$station, dat$year, sep = "_")
-
-check$station_year = paste(check$station, check$year, sep = "_")
-
-# now pick these out of dat
-
-doubles <- dat %>%
-  filter(station_year %in% check$station_year)
-
-# confirm this has the double sample events
-
-check.double <- doubles %>%
-  group_by(station_year) %>%
-  summarise(count = n())
-
-unique(check.double$count) # good...
-
-# now select the maximum date for each station-year
-# these are the ones to drop from dat
-
-drop.check <- doubles %>%
-  group_by(station_year) %>%
-  summarise(julian = max(julian)) %>% # picks the second day in each station-year combo
-  mutate(station_year_julian = paste(station_year, julian, sep = "_")) 
-
-# and drop these from dat
-dat$station_year_julian <- paste(dat$station_year, dat$julian, sep = "_")
-  
-dat <- dat %>%
-  filter(!station_year_julian %in% drop.check$station_year_julian)
-
-# check
-c.dat <- dat %>%
-  group_by(year, station) %>%
-  summarise(count = n())
-
-unique(c.dat$count) # looks good
-
-## input missing values --------------------------
+## impute missing values --------------------------
 
 # here is our workflow going forwards:
 
-# 1) make data into df with row = year, columns = station-day and station-temp
+# 1) make data into tow df with row = year, columns = station, and data = either day or temp
 
-# 2) impute 100 times
+# 2) impute each 100 times
 
-# 3) combine these 100 imputed data frames back into full versions of the data (including julian day)
-
-# 4) feed this list of imputed data frames into a brms model to estimate year and sst:station effects
+# 3) use mean temps / dates from imputed data frames in a model to estimate year and sst:station effects
+# (for core opilio area only!)
 
 
 # set up for multiple imputation
 
 # first, clean up dat
-dat <- dat %>%
-  select(julian, bottom.temp, year, station)
-
-stations <- unique(dat$station) 
-
-impute.this <- data.frame(year = c(1975:2019, 2021))
-
-for(i in 1:length(stations)){
-  
-  # i <- 1
-  
-  station.dat <- dat %>%
-    filter(station == stations[i]) %>%
-    select(-station)
-  
-  names(station.dat)[1] <- paste("j", i, sep = "")
-  names(station.dat)[2] <- paste("t", i, sep = "")
-  
-  
-  impute.this <- left_join(impute.this, station.dat)
-  
-}
-
-View(impute.this)
-
-# check station that is returning NA for imputed date!
-check <- which(stations == "GF2120")
-
-index.check <- grep("248", names(impute.this))
-impute.this[,index.check]
-
-# remove year!
-impute.this <- impute.this %>%
+dat.julian <- dat %>%
+  select(julian, year, station) %>%
+  pivot_wider(names_from = station, values_from = julian) %>%
+  arrange(year) %>%
   select(-year)
 
+# check number missing
+f <- function(x) sum(is.na(x))
+
+check <- apply(dat.julian, 1, f)
+check
+
 # examine correlations
-cors <- cor(impute.this, use = "p")
-View(cors)
-
-# limit to columns with missing cases!
-ff <- function(x) sum(!is.na(x))
-
-check <- apply(impute.this, 2, ff)
-
-max(check) # that's right!
-
-keep <- check[check < 46]
-
-keep
-
-missing.cors <- cors[,colnames(cors) %in% names(keep)]
-
-# figure out how many examples would be included for each correlation cutoff
-
-# remove cor = 1
-change <- missing.cors == 1 
-
-missing.cors[change] <- NA
-
-ff <- function(x) sum(abs(x) > 0.65, na.rm = T)
-
-count <- apply(missing.cors, 2, ff)
-
-range(count)
-
-# big ranges!
-
-# let's figure out the mincor that will produce 15 predictors for each
-plyr::round_any(18.129, 0.01, f = floor)
-ff <- function(x) plyr::round_any(sort(abs(x), decreasing = T)[20], 0.001, f = floor)
-
-mincors <- apply(cors, 2, ff)
+r <- rcorr(as.matrix(dat.julian))$r 
+r #Cross-year correlations between each station combination
 
 
-# impute 100 times - using 15 predictors for each
-pred <- quickpred(impute.this, mincor = as.vector(mincors))
+# choose 30 variables with highest absolute correlation (van Buuren & Oudshoorn recommend 15-25)
+pred <- t(apply(r,1, function(x) rank(1-abs(x))<=30))# T for the 30 strongest correlations for each time series
+diag(pred) <- FALSE # and of course, drop self-correlations - make the diagonal FALSE
 
-table(rowSums(pred)) 
-# perfect - at least 19 predictors for each, and vast majority are in 15-25 range
-# so we have some buffer for dropped predictors in logged events
+colnames(pred) <- colnames(dat.julian) <- str_remove_all(colnames(pred), "-")
 
-# and impute
-imp <- mice(impute.this, m = 100, pred = pred)
-
-head(imp$loggedEvents)
-unique(imp$loggedEvents$meth)
-sum(imp$loggedEvents$meth == "pmm")
-
-# so we're dealing with 1 collinear variable and all the rest are pmm
-
-str_count((imp$loggedEvents$out[2]), pattern = ",")
-
-dropped <- data.frame(dropped = 1 + str_count((imp$loggedEvents$out), pattern = ","))
-
-str(dropped)
-
-ggplot(dropped, aes(dropped)) +
-  geom_histogram(bins = 6, fill = "grey", color = "black")
-
-# so not lots of variables dropped - enough remaining for prediction! 
-# will need to look into the pmm warning (haven't found much immediately), but proceeding for now
-
-# now need to put imp into correct form for analysis
+imp <- mice(data = dat.julian, method = "norm.predict", m=100)#, pred = pred) #Using Bayesian linear regression method
+saveRDS(imp, "./output/station_julian_day_imputations.RDS")
+imp <- readRDS("./output/station_julian_day_imputations.RDS")
 
 str(imp$imp)
 
@@ -231,24 +133,13 @@ check <- is.na(complete(imp))
 
 sum(check)
 check <- which(is.na(complete(imp)))
-complete
+check
 # this looks great....
 
-# save!
-saveRDS(imp, "./output/imputed_julian_temp")
-
-# imp <- readRDS("./output/imputed_julian_temp")
-
-# need to replace index values from "stations" with station name, then put into long form 
-# with year, station, julian, and temperature columns
-
-# then add to list of data frames
-
-imputed.data <- list()
 
 # also create df to save mean annual temp and sampling day for each imputed temperature data set
 
-imputed.means <- data.frame()
+imputed.day <- data.frame()
 
 # this is clunky but should work!
 
@@ -257,71 +148,228 @@ for(i in 1:100){
   # i <- 1
   temp <- complete(imp, action = i)
   
-  # split colname
-  split1 <- str_sub(colnames(temp), 1L, 1L) 
+  imputed.day <- rbind(imputed.day,
+                         data.frame(imputation = i,
+                                    year = c(1975:2019, 2021),
+                                    mean.day = rowMeans(temp)))
+}
   
-  # change to "julian" and "temperature"
-  change <- split1 == "j"
-  split1[change] <- "julian"
+imputed.day <- imputed.day %>%
+  pivot_wider(names_from = imputation,
+              values_from = mean.day)
+
+# all are identical!
+
+plot.dat <- data.frame(year = c(1975:2019, 2021),
+                       imputed.mean.day = rowMeans(imputed.day[,2:101]))
   
-  change <- split1 == "t"
-  split1[change] <- "temperature" 
+add.dat <- dat %>%
+  group_by(year) %>%
+  dplyr::summarize(observed.mean.day = mean(julian, na.rm = T))
+
+
+plot.dat <- left_join(plot.dat, add.dat) %>%
+  pivot_longer(cols = -year)
+
+ggplot(plot.dat, aes(year, value, color = name)) +
+  geom_line() +
+  geom_point()
+
+## now impute temperature ----------------------
+# first, clean up dat
+dat.temp <- dat %>%
+  select(bottom.temp, year, station) %>%
+  pivot_wider(names_from = station, values_from = bottom.temp) %>%
+  arrange(year) %>%
+  select(-year)
+
+# check number missing
+f <- function(x) sum(is.na(x))
+
+check <- apply(dat.julian, 1, f)
+check
+
+colnames(dat.temp) <- str_remove_all(colnames(dat.temp), "-")
+
+imp <- mice(data = dat.temp, method = "norm.predict", m=100)#, pred = pred) #Using Bayesian linear regression method
+saveRDS(imp, "./output/station_bottom_temp_imputations.RDS")
+imp <- readRDS("./output/station_bottom_temp_imputations.RDS")
+
+imputed.temp <- data.frame()
+
+# this is clunky but should work!
+
+for(i in 1:100){
   
-  # combine with stations
-  colnames(temp) <- str_c(split1, stations, sep = "_")
+  # i <- 1
+  temp <- complete(imp, action = i)
   
-  # split into temp and day then recombine
-  t1 <- grep("temp", colnames(temp))
-  temperature.dat <- temp[,t1]  
+  imputed.temp <- rbind(imputed.temp,
+                       data.frame(imputation = i,
+                                  year = c(1975:2019, 2021),
+                                  mean.temp = rowMeans(temp)))
+}
+
+imputed.temp <- imputed.temp %>%
+  pivot_wider(names_from = imputation,
+              values_from = mean.temp)
+
+# all are identical!
+
+plot.dat <- data.frame(year = c(1975:2019, 2021),
+                       imputed.mean.temp = rowMeans(imputed.temp[,2:101]))
+
+add.temp <- dat %>%
+  group_by(year) %>%
+  dplyr::summarize(observed.mean.temp = mean(bottom.temp, na.rm = T))
+
+
+plot.dat <- left_join(plot.dat, add.temp) %>%
+  pivot_longer(cols = -year)
+
+ggplot(plot.dat, aes(year, value, color = name)) +
+  geom_line() +
+  geom_point()
+
+
+imputed.dat <- data.frame(year_fac = as.factor(c(1975:2019, 2021)),
+                          mean.day = rowMeans(imputed.day[,2:101]),
+                       mean.temp = rowMeans(imputed.temp[,2:101]))
+
+
+# get station-level data for GAM
+station.imputed.temp <- data.frame()
+
+
+for(i in 1:100){
   
-  t2 <- grep("julian", colnames(temp))
-  julian.dat <- temp[,t2]   
+  # i <- 1
+  temp <- complete(imp, action = i) %>%
+    mutate(year = c(1975:2019, 2021)) %>%
+    pivot_longer(cols = -year) 
   
-  temperature.dat$year <- julian.dat$year <- c(1975:2019, 2021)
+  station.imputed.temp <- rbind(station.imputed.temp,
+                        temp)
+}
+
+station.imputed.temp <- station.imputed.temp %>%
+  group_by(year, name) %>%
+  summarise(bottom.temp = mean(value)) %>%
+  rename(station = name)
+
+# now dat
+imp <- readRDS("./output/station_julian_day_imputations.RDS")
+
+
+station.imputed.day <- data.frame()
+
+
+
+for(i in 1:100){
   
-  #cool - pivot both longer, split out leading text (julian/temperature) and join by year / station!
+  # i <- 1
+  temp <- complete(imp, action = i) %>%
+    mutate(year = c(1975:2019, 2021)) %>%
+    pivot_longer(cols = -year) 
   
-  temperature.dat <- temperature.dat %>%
-    pivot_longer(cols = -year) %>%
-    mutate(name = str_sub(name, 13L, -1L)) %>%
-    rename(temperature = value)
+  station.imputed.day <- rbind(station.imputed.day,
+                                temp)
+}
+
+station.imputed.day <- station.imputed.day %>%
+  group_by(year, name) %>%
+  summarise(day = mean(value)) %>%
+  rename(station = name)
+
+gam.dat <- left_join(station.imputed.day, station.imputed.temp) %>%
+  mutate(year_fac = as.factor(year),
+         station_fac = as.factor(station))
+
+
+mod <- mgcv::gamm(bottom.temp ~ year_fac + s(day, k = 5), random = list(station=  ~ 1), data = gam.dat)
+summary(mod$gam)
+plot(mod$gam)
+
+newdat <- data.frame(year_fac = as.factor(c(1975:2019, 2021)),
+                     day = mean(gam.dat$day))
+
+annual.temp <- predict(mod$gam, newdata = newdat)
+
+
+estimated.temp <- data.frame(year = c(1975:2021),
+                   bottom.temp = c(annual.temp[1:45], NA, annual.temp[46]))
+
+ggplot(estimated.temp, aes(year, bottom.temp)) +
+  geom_point() + 
+  geom_line()
+
+write.csv(estimated.temp, "./Data/date_corrected_bottom_temp.csv", row.names = F)
+
+
+
+# 
+  # # change to "julian" and "temperature"
+  # change <- split1 == "j"
+  # split1[change] <- "julian"
+  # 
+  # change <- split1 == "t"
+  # split1[change] <- "temperature" 
+  # 
+  # # combine with stations
+  # colnames(temp) <- str_c(split1, stations, sep = "_")
   
-  julian.dat <- julian.dat %>%
-    pivot_longer(cols = -year) %>%
-    mutate(name = str_sub(name, 8L, -1L)) %>%
-    rename(julian = value)
+  # # split into temp and day then recombine
+  # t1 <- grep("temp", colnames(temp))
+  # temperature.dat <- temp[,t1]  
+  # 
+  # t2 <- grep("julian", colnames(temp))
+  # julian.dat <- temp[,t2]   
+  # 
+  # temperature.dat$year <- julian.dat$year <- c(1975:2019, 2021)
+  # 
+  # #cool - pivot both longer, split out leading text (julian/temperature) and join by year / station!
+  # 
+  # temperature.dat <- temperature.dat %>%
+  #   pivot_longer(cols = -year) %>%
+  #   mutate(name = str_sub(name, 13L, -1L)) %>%
+  #   rename(temperature = value)
   
-  find <- is.na(julian.dat$julian)
-  sum(find)
-  julian.dat[find,]
-  #join into single df
-  imputed <- as.data.frame(left_join(temperature.dat, julian.dat))
-  
-  ff <- function(x) sum(!is.na())
-  
-  temp.imputed <- imputed %>%
-    select(year, temperature) %>%
-    na.omit() %>%
-    group_by(year) %>%
-    summarise(mean.temp = mean(temperature),
-              n.temp = n())
-  
-  temp.day <- imputed %>%
-    select(year, julian) %>%
-    na.omit() %>%
-    group_by(year) %>%
-    summarise(mean.day= mean(julian),
-              n.day = n())
-  
-  temp.temp <- left_join(temp.imputed, temp.day)
-  
-  temp.temp$imputation = i
-    
-  # add to summary of each imputation
-  imputed.means <- rbind(imputed.means, temp.temp)
-    
-  # and add to list of dfs for analysis in brms
-  imputed.data[[i]] <- imputed 
+  # julian.dat <- julian.dat %>%
+  #   pivot_longer(cols = -year) %>%
+  #   mutate(name = str_sub(name, 8L, -1L)) %>%
+  #   rename(julian = value)
+  # 
+  # find <- is.na(julian.dat$julian)
+  # sum(find)
+  # julian.dat[find,]
+  # #join into single df
+  # imputed <- as.data.frame(left_join(temperature.dat, julian.dat))
+  # 
+  # ff <- function(x) sum(!is.na())
+  # 
+  # temp.imputed <- imputed %>%
+  #   select(year, temperature) %>%
+  #   na.omit() %>%
+  #   group_by(year) %>%
+  #   summarise(mean.temp = mean(temperature),
+  #             n.temp = n())
+  # 
+  # temp.day <- imputed %>%
+  #   select(year, julian) %>%
+  #   na.omit() %>%
+  #   group_by(year) %>%
+  #   summarise(mean.day= mean(julian),
+  #             n.day = n())
+  # 
+  # temp.temp <- left_join(temp.imputed, temp.day)
+  # 
+  # temp.temp$imputation = i
+  #   
+  # # add to summary of each imputation
+  # imputed.means <- rbind(imputed.means, temp.temp)
+  #   
+  # # and add to list of dfs for analysis in brms
+  # imputed.data[[i]] <- imputed 
   
   }
   
