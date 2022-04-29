@@ -52,6 +52,12 @@ rhat_highest(sst_boreal_brm$fit)
 summary(sst_boreal_brm)
 bayes_R2(sst_boreal_brm)
 
+# save high-resolution predicted values for expected return time
+ce1s_1 <- conditional_effects(sst_boreal_brm, effect = "sst.anomaly", re_formula = NA,
+                              probs = c(0.025, 0.975), resolution = 5000)
+
+write.csv(ce1s_1$sst.anomaly, "./output/sst_borealization_predicted_relationship.csv", row.names = F)
+
 # plot
 ## 95% CI
 ce1s_1 <- conditional_effects(sst_boreal_brm, effect = "sst.anomaly", re_formula = NA,
@@ -78,7 +84,7 @@ g1 <- ggplot(dat_ce) +
   geom_ribbon(aes(ymin = lower_95, ymax = upper_95), fill = "grey90") +
   geom_ribbon(aes(ymin = lower_90, ymax = upper_90), fill = "grey85") +
   geom_ribbon(aes(ymin = lower_80, ymax = upper_80), fill = "grey80") +
-  geom_line(size = 1, color = "red3") +
+  geom_line(size = 0.5, color = "red3") +
   labs(x = "SST anomaly wrt 1950-1999", y = "Borealization trend") +
   geom_rug(aes(x=rug.anom, y=NULL)) 
 
@@ -131,9 +137,20 @@ far_pred <- rbind(far_pred,
 
 g2 <- ggplot(far_pred) +
   geom_hline(yintercept = 0, color = "grey50", linetype = 2) +
-  geom_line(aes(x = year, y = far), size = 0.2) +
-  geom_ribbon(aes(x = year, ymin = lower, ymax = upper), alpha = 0.15)
+  geom_line(aes(x = year, y = far), size = 0.2, color = "red3") +
+  geom_ribbon(aes(x = year, ymin = lower, ymax = upper), alpha = 0.15) +
+  ylab("Fraction of attributable risk") +
+  xlab("Year")
+
 print(g2)
+
+
+# aside - calculate risk ratio
+
+RR <- far_pred %>%
+  filter(year >= 2014) %>%
+  mutate(RR = 1/(1-far))
+
 
 
 ## fit attribution model in brms----------------------
@@ -155,7 +172,7 @@ attribution_boreal_brm <- brm(attribution_boreal_formula,
                       data = filter(dat, year >= 1994), # limit to positive far
                       cores = 4, chains = 4, iter = 3000,
                       save_pars = save_pars(all = TRUE),
-                      control = list(adapt_delta = 0.99, max_treedepth = 10))
+                      control = list(adapt_delta = 0.999, max_treedepth = 10))
 
 saveRDS(attribution_boreal_brm, file = "output/attribution_boreal_brm.rds")
 
@@ -193,8 +210,21 @@ g3 <- ggplot(dat_ce) +
   geom_ribbon(aes(ymin = lower_95, ymax = upper_95), fill = "grey90") +
   geom_ribbon(aes(ymin = lower_90, ymax = upper_90), fill = "grey85") +
   geom_ribbon(aes(ymin = lower_80, ymax = upper_80), fill = "grey80") +
-  geom_line(size = 1, color = "red3") +
+  geom_line(size = 0.5, color = "red3") +
   labs(x = "Fraction of attributable risk", y = "Borealization trend") +
   geom_rug(aes(x=rug.anom, y=NULL)) 
 
 print(g3)
+
+
+# save
+png("./Figs/borealization_attribution.png", width = 4, height = 8, units = 'in', res = 300)
+
+ggpubr::ggarrange(g1,
+                  g2,
+                  g3,
+                  ncol = 1,
+                  labels = "auto")
+
+dev.off()
+
