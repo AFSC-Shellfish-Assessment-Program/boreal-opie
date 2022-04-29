@@ -90,15 +90,26 @@ ggplot(abundance.plot, aes(year, log_abundance)) +
 # estimate with mice
 library(mice)
 
+# load prediction time series 
+pred_dat <- read.csv("./Data/imputation_data.csv")
+
+# clean up and remove survey data - can consider these in a lagged application if needed
+pred_dat <- pred_dat[1:42,1:8] %>%
+  select(-survey_female_mat_biomass, -survey_male_mat_biomass) 
+  
+# and log transform
+
+pred_dat[,2:6] <- log(pred_dat[,2:6])
+
 dat <- abundance %>%
   rbind(., 
         data.frame(year = 2020,
                    log_abundance = NA)) %>%
   arrange(year) %>%
-  mutate(log_abundance_lag1 = lag(log_abundance),
-         log_abundance_lag2 = lag(log_abundance, n = 2L),
-         log_abundance_lead1 = lead(log_abundance),
-         diff2 = log_abundance_lag1 - log_abundance_lag2)
+  left_join(., pred_dat)
+
+# examine correlations!
+cor(dat[,-1], use = "p")
 
 imp <- mice(data = dat, method = "norm", m = 100)
 
@@ -139,13 +150,15 @@ imputed.data <- list()
 y <- data.frame()
 
 for(i in 1:100){
-  
-  temp <- complete(imp, i)[1:41,] # limit to 1980-2020 b/c we are predicting one year ahead
+
+  temp <- complete(imp, i)[,1:2] %>% 
+    mutate(log_abundance_lead1 = lead(log_abundance))
   
   y <- rbind(y, data.frame(
-    year = temp$year,
-    log_abundance_lead1 = temp$log_abundance_lead1
+    year = temp$year[1:41],
+    log_abundance_lead1 = lead(temp$log_abundance_lead1[1:41])
   ))
+  
   # add borealization trend
   temp <- left_join(temp, trend)
 
