@@ -73,12 +73,22 @@ d7 <- d7 %>%
   rename(year = YEAR) %>%
   pivot_longer(cols = -year)
 
-dat <- rbind(d1, d2, d3, d4, d5, d6, d7)
+d8 <- read.csv("./Data/summarized_zooplankton.csv")
+
+d8 <- d8 %>%
+  select(-LCI, -UCI) %>%
+  rename(name = group, 
+         value = log_abundance)
+
+dat <- rbind(d1, d2, d3, d4, d5, d6, d7, d8)
 
 ggplot(dat, aes(year, value)) +
   geom_line() +
   geom_point() +
-  facet_wrap(~name, scales = "free_y")
+  facet_wrap(~name, scales = "free_y", ncol = 5) +
+  theme(axis.title.x = element_blank())
+
+ggsave("./Figs/borealization_time_series.png", width = 12, height = 5, units = 'in')
 
 dfa.dat <- dat %>%
   pivot_wider(names_from = name, values_from = value) %>% 
@@ -100,7 +110,7 @@ cntl.list = list(minit=200, maxit=20000, allow.degen=FALSE, conv.test.slope.tol=
 
 # fit models & store results
 for(R in levels.R) {
-  for(m in 1:1) {  # find best single-trend model
+  for(m in 1:2) {  # find best single-trend model
     
     dfa.model = list(A="zero", R=R, m=m)
     
@@ -130,25 +140,60 @@ write.csv(model.data, "./output/dfa_model_selection_table.csv",
           row.names = F)
 
 ## fit the best model --------------------------------------------------
-model.list = list(A="zero", m=1, R="diagonal and unequal") # best model 
+model.list = list(A="zero", m=2, R="diagonal and unequal") # best model 
 
 # not sure that these changes to control list are needed for this best model, but using them again!
 cntl.list = list(minit=200, maxit=20000, allow.degen=FALSE, conv.test.slope.tol=0.1, abstol=0.0001)
 
 mod = MARSS(dfa.dat, model=model.list, z.score=TRUE, form="dfa", control=cntl.list)
 
-# plot
+# rotate
+# get the inverse of the rotation matrix
+Z.est <- coef(mod, type = "matrix")$Z
+
+H.inv <- varimax(coef(mod, type = "matrix")$Z)$rotmat
+
+# rotate factor loadings
+Z.rot <- Z.est %*% H.inv
+
+# rotate trends
+trends.rot <- solve(H.inv) %*% mod$states
+
+# Add CIs to marssMLE object
+mod <- MARSSparamCIs(mod)
+
+# Use coef() to get the upper and lower CIs
+Z.low <- coef(mod, type = "Z", what = "par.lowCI")
+Z.up <- coef(mod, type = "Z", what = "par.upCI")
+Z.rot.up <- Z.up %*% H.inv
+Z.rot.low <- Z.low %*% H.inv
+
+plot.CI <- data.frame(names=rownames(dfa.dat),
+  mean = as.vector(Z.rot),
+  upCI = as.vector(Z.rot.up),
+  lowCI = as.vector(Z.rot.low)
+)
+plot.CI
+
+# none of the loadings can be distinguished from 0! 
+
+# fit the second-best model (1 trend diagonal and unequal)
+
+model.list = list(A="zero", m=1, R="diagonal and unequal") # second-best model 
+
+mod = MARSS(dfa.dat, model=model.list, z.score=TRUE, form="dfa", control=cntl.list)
+
 CI <- MARSSparamCIs(mod)
 
 plot.CI <- data.frame(names=rownames(dfa.dat),
-                          mean=CI$par$Z[1:11],
-                          upCI=CI$par.upCI$Z[1:11],
-                          lowCI=CI$par.lowCI$Z[1:11])
+                          mean=CI$par$Z[1:13],
+                          upCI=CI$par.upCI$Z[1:13],
+                          lowCI=CI$par.lowCI$Z[1:13])
 
 dodge <- position_dodge(width=0.9)
 
 
-plot.CI$names <- reorder(plot.CI$names, CI$par$Z[1:11])
+plot.CI$names <- reorder(plot.CI$names, CI$par$Z[1:13])
 
 loadings.plot <- ggplot(plot.CI, aes(x=names, y=mean)) +
   geom_bar(position=dodge, stat="identity", fill=cb[2]) +
