@@ -41,51 +41,51 @@ dat <- dat %>%
 ggplot(dat, aes(abundance_change)) +
   geom_histogram(fill = "grey", color = "black")
 
-# set up model with mi
-
-form <- bf(log_abundance_lag1 | mi() ~ mi(log_abundance) + s(trend)) + 
-     bf(log_abundance | mi() ~ 1) + set_rescor(FALSE)
-
-## fit
-mi_brm <- brm(form,
-                 data = dat,
-                 cores = 4, chains = 4, iter = 2000,
-                 save_pars = save_pars(all = TRUE),
-                 control = list(adapt_delta = 0.999, max_treedepth = 10))
-
-saveRDS(mi_brm, file = "output/mi_brm.rds")
-
-summary(mi_brm)
-
-## plot s(z)
-cs = conditional_smooths(mi_brm)
-plot(cs, ask = FALSE)
-
-## plot estimated missing values
-post = as.matrix(mi_brm)
-hist(post[ , "Ymi_logabundancelag1[40]"])
-hist(post[ , "Ymi_logabundance[41]"]) 
-
-# seems that there is added uncertainty because the same value is estimated twice? (once at lag0 and once at lag1)?
-
-# plot estimate value compared with observed time series
-estimated <- data.frame(year = 2020, 
-                        log_abundance = mean(post[ , "Ymi_logabundance[41]"]),
-                        LCI = quantile(post[ , "Ymi_logabundance[41]"], 0.025),
-                        UCI = quantile(post[ , "Ymi_logabundance[41]"], 0.975))
-
-
-abundance.plot <- abundance %>%
-  mutate(LCI = NA,
-         UCI = NA)
-
-abundance.plot <- rbind(abundance.plot, estimated)
-
-ggplot(abundance.plot, aes(year, log_abundance)) +
-  geom_line() +
-  geom_point() +
-  geom_errorbar(aes(ymin = LCI, ymax = UCI))
-
+# # set up model with mi
+# 
+# form <- bf(log_abundance_lag1 | mi() ~ mi(log_abundance) + s(trend)) + 
+#      bf(log_abundance | mi() ~ 1) + set_rescor(FALSE)
+# 
+# ## fit
+# mi_brm <- brm(form,
+#                  data = dat,
+#                  cores = 4, chains = 4, iter = 2000,
+#                  save_pars = save_pars(all = TRUE),
+#                  control = list(adapt_delta = 0.999, max_treedepth = 10))
+# 
+# saveRDS(mi_brm, file = "output/mi_brm.rds")
+# 
+# summary(mi_brm)
+# 
+# ## plot s(z)
+# cs = conditional_smooths(mi_brm)
+# plot(cs, ask = FALSE)
+# 
+# ## plot estimated missing values
+# post = as.matrix(mi_brm)
+# hist(post[ , "Ymi_logabundancelag1[40]"])
+# hist(post[ , "Ymi_logabundance[41]"]) 
+# 
+# # seems that there is added uncertainty because the same value is estimated twice? (once at lag0 and once at lag1)?
+# 
+# # plot estimate value compared with observed time series
+# estimated <- data.frame(year = 2020, 
+#                         log_abundance = mean(post[ , "Ymi_logabundance[41]"]),
+#                         LCI = quantile(post[ , "Ymi_logabundance[41]"], 0.025),
+#                         UCI = quantile(post[ , "Ymi_logabundance[41]"], 0.975))
+# 
+# 
+# abundance.plot <- abundance %>%
+#   mutate(LCI = NA,
+#          UCI = NA)
+# 
+# abundance.plot <- rbind(abundance.plot, estimated)
+# 
+# ggplot(abundance.plot, aes(year, log_abundance)) +
+#   geom_line() +
+#   geom_point() +
+#   geom_errorbar(aes(ymin = LCI, ymax = UCI))
+# 
 
 # estimate with mice
 library(mice)
@@ -156,8 +156,8 @@ for(i in 1:100){
   
   y <- rbind(y, data.frame(
     year = temp$year[1:41],
-    log_abundance_lead1 = lead(temp$log_abundance_lead1[1:41])
-  ))
+    log_abundance_lead1 = temp$log_abundance_lead1[1:41])
+  )
   
   # add borealization trend
   temp <- left_join(temp, trend)
@@ -171,7 +171,7 @@ for(i in 1:100){
 form <- bf(log_abundance_lead1 ~ log_abundance + s(trend)) 
 
 ## fit
-mice_brm <- brm(form,
+mice_brm <- brm_multiple(form,
               data = imputed.data,
               cores = 4, chains = 4, iter = 2000,
               save_pars = save_pars(all = TRUE),
@@ -200,6 +200,8 @@ y <- y$log_abundance_lead1
 yrep_mice_brm  <- fitted(mice_brm, scale = "response", summary = FALSE)
 ppc_dens_overlay(y = y, yrep = yrep_mice_brm[sample(nrow(yrep_mice_brm), 25), ]) +
   ggtitle("mice_brm")
+
+ggsave("./Figs/mice_brms_ppc.png", width = 6, height = 4, units = 'in')
 
 trace_plot(mice_brm$fit)
 
