@@ -18,7 +18,7 @@ library(ggmap)
 ##############################################
 
 ## EBS haul data ----
-sc_catch <- read.csv("./Data/crabhaul_opilio.csv", skip=5)
+sc_catch <- read.csv("./Data/crabhaul_opilio.csv")
 
 #EBS strata data ----
 sc_strata <- read_csv("./Data/crabstrata_opilio.csv")
@@ -27,6 +27,9 @@ sc_strata <- read_csv("./Data/crabstrata_opilio.csv")
 # data exploration ----
 
 #Stations sampled in each year
+sc_catch <- sc_catch %>%
+  mutate(AKFIN_SURVEY_YEAR = lubridate::year(lubridate::parse_date_time(START_DATE, orders = "mdy"))) 
+
 sc_catch %>%
   group_by(AKFIN_SURVEY_YEAR) %>%
   summarise(num_stations = length(unique(GIS_STATION)))
@@ -116,6 +119,7 @@ get_stamenmap(bbox=c(-180, 54, -157, 63),
   geom_point(data= perc50_core, aes(x = LONGITUDE, y = LATITUDE, size=AVG_CPUE)) +
   labs(x = "Longitude", y = "Latitude") 
   
+ggsave("./Figs/core_range_map.png", width = 6, height = 4, units = 'in')
 #Write csv for stations in 50th percentile of avg CPUE  
 write.csv(perc50_core, file="./Data/imm_area_50perc.csv")
 
