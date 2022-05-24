@@ -334,7 +334,7 @@ plot.dat <- left_join(plot.dat, period.order) %>%
 ggplot(plot.dat, aes(period, prob)) +
   geom_errorbar(aes(x = period, ymin = lower, ymax = upper), width = 0.3) +
   geom_point(color = "red", size = 4) +
-  scale_y_continuous(breaks=c( 1,2,5,10,20,50,100,200,500,1000,2000,5000),
+  scale_y_continuous(breaks=c( 1,2,5,10,20,50,100,200,500,1000,2000,5000,10000),
                      minor_breaks = c(2:9, 
                                       seq(20, 90, by = 10),
                                       seq(200, 900, by = 100),
