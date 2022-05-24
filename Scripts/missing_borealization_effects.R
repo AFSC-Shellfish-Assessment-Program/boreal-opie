@@ -12,7 +12,7 @@ theme_set(theme_bw())
 
 # reload data
 
-# load borealization DFA trend 
+# load borealization DFA trend
 
 trend <- read.csv("./output/dfa_trend.csv")
 
@@ -49,70 +49,109 @@ dat <- dat %>%
 
 
 ggplot(dat, aes(abundance_change)) +
-  geom_histogram(fill = "grey", color = "black") 
+  geom_histogram(fill = "grey", color = "black")
 
-# # set up model with mi
-# 
-# form <- bf(log_abundance_lag1 | mi() ~ mi(log_abundance) + s(trend)) + 
-#      bf(log_abundance | mi() ~ 1) + set_rescor(FALSE)
-# 
-# ## fit
-# mi_brm <- brm(form,
-#                  data = dat,
-#                  cores = 4, chains = 4, iter = 2000,
-#                  save_pars = save_pars(all = TRUE),
-#                  control = list(adapt_delta = 0.999, max_treedepth = 10))
-# 
-# saveRDS(mi_brm, file = "output/mi_brm.rds")
-# 
-# summary(mi_brm)
-# 
-# ## plot s(z)
-# cs = conditional_smooths(mi_brm)
-# plot(cs, ask = FALSE)
-# 
-# ## plot estimated missing values
-# post = as.matrix(mi_brm)
-# hist(post[ , "Ymi_logabundancelag1[40]"])
-# hist(post[ , "Ymi_logabundance[41]"]) 
-# 
-# # seems that there is added uncertainty because the same value is estimated twice? (once at lag0 and once at lag1)?
-# 
-# # plot estimate value compared with observed time series
-# estimated <- data.frame(year = 2020, 
-#                         log_abundance = mean(post[ , "Ymi_logabundance[41]"]),
-#                         LCI = quantile(post[ , "Ymi_logabundance[41]"], 0.025),
-#                         UCI = quantile(post[ , "Ymi_logabundance[41]"], 0.975))
-# 
-# 
-# abundance.plot <- abundance %>%
-#   mutate(LCI = NA,
-#          UCI = NA)
-# 
-# abundance.plot <- rbind(abundance.plot, estimated)
-# 
-# ggplot(abundance.plot, aes(year, log_abundance)) +
-#   geom_line() +
-#   geom_point() +
-#   geom_errorbar(aes(ymin = LCI, ymax = UCI))
-# 
 
-# estimate with mice
-library(mice)
 
-# load prediction time series 
+
+## brms imputation -----------------------------------------
+
+# load prediction time series
 pred_dat <- read.csv("./Data/imputation_data.csv")
 
 # clean up and remove survey data - can consider these in a lagged application if needed
 pred_dat <- pred_dat[1:42,1:8] %>%
-  select(-survey_female_mat_biomass, -survey_male_mat_biomass) 
-  
+  select(-survey_female_mat_biomass, -survey_male_mat_biomass)
+
+# and log transform
+pred_dat[,2:6] <- log(pred_dat[,2:6])
+
+## combine all data sources
+mi_dat <- rbind(abundance, data.frame(year = 2020, log_abundance = NA))
+mi_dat <- mi_dat[order(mi_dat$year), ]
+mi_dat <- left_join(mi_dat, trend, by = "year")
+mi_dat$log_abundance_lead1 = lead(mi_dat$log_abundance)
+
+## we don't want to include 2022 abundance (log_abundance_lead1 for 2021)
+## the fitted value for 2020 gives us our predicted 2021 log abundance
+mi_dat <- mi_dat[mi_dat$year %in% 1980:2020, ]
+
+# imputed.data[[1]]
+
+
+mi_dat_pred <- left_join(mi_dat, pred_dat, by = "year")
+
+
+## set up model with mi
+mi_form <- bf(log_abundance_lead1 | mi() ~ mi(log_abundance) + s(trend)) +
+     bf(log_abundance | mi() ~ model_female_mat_biomass +
+                               model_male_mat_biomass +
+                               model_3plus_pollock_biomass +
+                               model_female_plaice_biomass +
+                               model_2plus_yellowfin_biomass) + set_rescor(FALSE)
+
+## fit
+mi_brm <- brm(mi_form,
+              data = mi_dat_pred,
+              cores = 4, chains = 4, iter = 2000,
+              save_pars = save_pars(all = TRUE),
+              control = list(adapt_delta = 0.999, max_treedepth = 10))
+
+saveRDS(mi_brm, file = "output/mi_brm.rds")
+
+summary(mi_brm)
+
+## plot s(z)
+cs <- conditional_effects(mi_brm, effects = "trend")
+cs[[2]] <- NULL
+plot(cs, ask = FALSE)
+
+
+## plot estimated missing values
+post = as.matrix(mi_brm)
+hist(post[ , "Ymi_logabundancelead1[38]"])
+hist(post[ , "Ymi_logabundance[39]"])
+
+# seems that there is added uncertainty because the same value is estimated twice? (once at lag0 and once at lag1)?
+
+# plot estimate value compared with observed time series
+estimated <- data.frame(year = 2020,
+                        log_abundance = mean(post[ , "Ymi_logabundance[39]"]),
+                        LCI = quantile(post[ , "Ymi_logabundance[39]"], 0.025),
+                        UCI = quantile(post[ , "Ymi_logabundance[39]"], 0.975))
+
+
+abundance.plot <- abundance %>%
+  mutate(LCI = NA,
+         UCI = NA)
+
+abundance.plot <- rbind(abundance.plot, estimated)
+
+g <- ggplot(abundance.plot, aes(year, log_abundance)) +
+  geom_line() +
+  geom_point() +
+  geom_errorbar(aes(ymin = LCI, ymax = UCI))
+print(g)
+ggsave("./Figs/brms_imputed_survey_abundance.png", width = 5, height = 3, units = 'in')
+
+
+
+# estimate with mice ---------------------------------------
+library(mice)
+
+# load prediction time series
+pred_dat <- read.csv("./Data/imputation_data.csv")
+
+# clean up and remove survey data - can consider these in a lagged application if needed
+pred_dat <- pred_dat[1:42,1:8] %>%
+  select(-survey_female_mat_biomass, -survey_male_mat_biomass)
+
 # and log transform
 
 pred_dat[,2:6] <- log(pred_dat[,2:6])
 
 dat <- abundance %>%
-  rbind(., 
+  rbind(.,
         data.frame(year = 2020,
                    log_abundance = NA)) %>%
   arrange(year) %>%
@@ -128,14 +167,14 @@ estimated_2020 <- NA
 
 
 for(i in 1:100){
-  
-estimated_2020[i] <- complete(imp, i)$log_abundance[41]  
-  
+
+estimated_2020[i] <- complete(imp, i)$log_abundance[41]
+
 }
 
 
 # plot estimate value compared with observed time series
-estimated <- data.frame(year = 2020, 
+estimated <- data.frame(year = 2020,
                         log_abundance = mean(estimated_2020),
                         LCI = quantile(estimated_2020, 0.025),
                         UCI = quantile(estimated_2020, 0.975))
@@ -166,24 +205,24 @@ y <- data.frame()
 
 for(i in 1:100){
 
-  temp <- complete(imp, i)[,1:2] %>% 
+  temp <- complete(imp, i)[,1:2] %>%
     mutate(log_abundance_lead1 = lead(log_abundance))
-  
+
   y <- rbind(y, data.frame(
     year = temp$year[1:41],
     log_abundance_lead1 = temp$log_abundance_lead1[1:41])
   )
-  
+
   # add borealization trend
   temp <- left_join(temp, trend)
 
   imputed.data[[i]] <- temp
-  
+
   }
 
 # set up and run brms
 
-form <- bf(log_abundance_lead1 ~ log_abundance + s(trend)) 
+form <- bf(log_abundance_lead1 ~ log_abundance + s(trend))
 
 ## fit
 mice_brm <- brm_multiple(form,
@@ -249,7 +288,7 @@ g1 <- ggplot(dat_ce) +
   geom_ribbon(aes(ymin = lower_80, ymax = upper_80), fill = "grey80") +
   geom_line(size = 1, color = "red3") +
   labs(x = "Borealization trend", y = "Log abundance") +
-  geom_rug(aes(x=rug.anom, y=NULL)) 
+  geom_rug(aes(x=rug.anom, y=NULL))
 
 print(g1)
 
@@ -307,7 +346,7 @@ ggsave("./Figs/imputed_and_predicted_survey_abundance.png", width = 5, height = 
 
 ## alternate model ---------------------------
 
-form2 <- bf(log_abundance_lead1 ~ s(log_abundance) + s(trend)) 
+form2 <- bf(log_abundance_lead1 ~ s(log_abundance) + s(trend))
 
 ## fit
 mice_brm2 <- brm_multiple(form2,
