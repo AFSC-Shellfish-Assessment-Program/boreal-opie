@@ -190,7 +190,7 @@ mice_brm <- brm_multiple(form,
               data = imputed.data,
               cores = 4, chains = 4, iter = 2000,
               save_pars = save_pars(all = TRUE),
-              control = list(adapt_delta = 0.9999, max_treedepth = 10))
+              control = list(adapt_delta = 0.99999, max_treedepth = 10))
 
 saveRDS(mice_brm, file = "output/mice_brm.rds")
 
