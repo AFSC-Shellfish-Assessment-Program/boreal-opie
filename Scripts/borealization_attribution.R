@@ -17,9 +17,10 @@ trend <- trend %>%
   select(t, estimate) %>%
   rename(year = t, trend = estimate)
 
-sst <- read.csv("./Data/ersst_anomaly_time_series.csv")
+sst <- read.csv("./Data/regional_north_pacific_ersst_anomaly_time_series.csv")
 
 sst <- sst %>%
+  filter(region == "Eastern_Bering_Sea") %>%
   select(year, annual.anomaly.unsmoothed) %>%
   rename(sst.anomaly = annual.anomaly.unsmoothed)
 
@@ -40,7 +41,7 @@ sst_boreal_brm <- brm(sst_boreal_formula,
                     data = dat,
                     cores = 4, chains = 4, iter = 3000,
                     save_pars = save_pars(all = TRUE),
-                    control = list(adapt_delta = 0.99, max_treedepth = 10))
+                    control = list(adapt_delta = 0.9999, max_treedepth = 10))
 
 saveRDS(sst_boreal_brm, file = "output/sst_boreal_brm.rds")
 
@@ -100,7 +101,8 @@ far_pred <- data.frame()
   
 # set up sst anomalies
 ersst.temp <- sst %>%
-  rename(annual.anomaly.1yr = sst.anomaly)
+  rename(annual.anomaly.1yr = sst.anomaly) %>%
+  filter(year %in% 1950:2021)
   
 ## setup new data
 nd <- data.frame(period = c("historical", "preindustrial"),
@@ -169,7 +171,7 @@ get_prior(attribution_boreal_formula, dat)
 
 ## fit 
 attribution_boreal_brm <- brm(attribution_boreal_formula,
-                      data = filter(dat, year >= 1994), # limit to positive far
+                      data = dat, 
                       cores = 4, chains = 4, iter = 3000,
                       save_pars = save_pars(all = TRUE),
                       control = list(adapt_delta = 0.999, max_treedepth = 10))
@@ -201,8 +203,8 @@ dat_ce[["upper_90"]] <- ce1s_2$far[["upper__"]]
 dat_ce[["lower_90"]] <- ce1s_2$far[["lower__"]]
 dat_ce[["upper_80"]] <- ce1s_3$far[["upper__"]]
 dat_ce[["lower_80"]] <- ce1s_3$far[["lower__"]]
-dat_ce[["rug.anom"]] <- c(jitter(unique(dat$far[dat$year >= 1994]), amount = 0.01),
-                          rep(NA, 100-length(unique(dat$far[dat$year >= 1994]))))
+dat_ce[["rug.anom"]] <- c(jitter(unique(dat$far), amount = 0.01),
+                          rep(NA, 100-length(unique(dat$far))))
 
 
 g3 <- ggplot(dat_ce) +
