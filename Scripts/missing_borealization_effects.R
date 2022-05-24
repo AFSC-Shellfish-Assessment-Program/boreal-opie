@@ -1,4 +1,14 @@
 ## modify model to estimate missing abundance in 2020 ----------------------------
+library(tidyverse)
+library(mice)
+library(rstan)
+library(brms)
+library(bayesplot)
+
+source("./scripts/stan_utils.R")
+
+theme_set(theme_bw())
+
 
 # reload data
 
@@ -39,7 +49,7 @@ dat <- dat %>%
 
 
 ggplot(dat, aes(abundance_change)) +
-  geom_histogram(fill = "grey", color = "black")
+  geom_histogram(fill = "grey", color = "black") 
 
 # # set up model with mi
 # 
@@ -140,7 +150,12 @@ abundance.plot <- rbind(abundance.plot, estimated)
 ggplot(abundance.plot, aes(year, log_abundance)) +
   geom_line() +
   geom_point() +
-  geom_errorbar(aes(ymin = LCI, ymax = UCI))
+  geom_errorbar(aes(ymin = LCI, ymax = UCI)) +
+  ylab("log(immature snow crab abundance)") +
+  theme(axis.title.x = element_blank())
+
+# save plot
+ggsave("./Figs/imputed_survey_abundance.png", width = 5, height = 3, units = 'in')
 
 ## process imp and pass mice imputations to brms ------------------
 
@@ -239,3 +254,77 @@ g1 <- ggplot(dat_ce) +
 print(g1)
 
 ggsave("./Figs/mice_borealization_abundance_regression.png", width = 6, height = 4, units = 'in')
+
+
+# now predict for 2022 survey
+new.dat <- data.frame(log_abundance = abundance$log_abundance[abundance$year == 2021],
+                      trend = trend$trend[trend$year == 2021])
+
+
+pred.2022 <- posterior_epred(mice_brm, newdata = new.dat)
+
+
+mean(pred.2022)
+LCI.80 <- exp(quantile(pred.2022, 0.1))
+UCI.80 <- exp(quantile(pred.2022, 0.9))
+
+LCI.95 <- exp(quantile(pred.2022, 0.025))
+UCI.95 <- exp(quantile(pred.2022, 0.975))
+
+overall.mean <- exp(mean(abundance$log_abundance[abundance$year %in% 1980:2019]))
+
+LCI.80 / overall.mean
+UCI.80 / overall.mean
+
+LCI.95 / overall.mean
+UCI.95 / overall.mean
+
+# add 80% prediction range to abundance.plot
+xtra <- data.frame(year = 2022,
+                   log_abundance = NA,
+                   LCI = quantile(pred.2022, 0.1),
+                   UCI = quantile(pred.2022, 0.9))
+
+abundance.plot <- rbind(abundance.plot, xtra)
+
+# create data frame for 95% CI
+xtra.95 <- data.frame(year = 2022,
+                      log_abundance = 5.5, # dummy value to make plot work
+                      LCI = quantile(pred.2022, 0.025),
+                      UCI = quantile(pred.2022, 0.975))
+
+ggplot(abundance.plot, aes(year, log_abundance)) +
+  geom_line() +
+  geom_point(size = 2) +
+  geom_errorbar(data = xtra.95, aes(x = year, ymin = LCI, ymax = UCI), color = "dark grey") +
+  geom_errorbar(aes(ymin = LCI, ymax = UCI)) +
+  ylab("log(abundance)") +
+  theme(axis.title.x = element_blank())
+
+# save plot
+ggsave("./Figs/imputed_and_predicted_survey_abundance.png", width = 5, height = 3, units = 'in')
+
+
+## alternate model ---------------------------
+
+form2 <- bf(log_abundance_lead1 ~ s(log_abundance) + s(trend)) 
+
+## fit
+mice_brm2 <- brm_multiple(form2,
+                         data = imputed.data,
+                         cores = 4, chains = 4, iter = 2000,
+                         save_pars = save_pars(all = TRUE),
+                         control = list(adapt_delta = 0.99999, max_treedepth = 16))
+
+saveRDS(mice_brm2, file = "output/mice_brm2.rds")
+
+
+# diagnostics
+mice_brm2 <- readRDS("./output/mice_brm2.rds")
+check_hmc_diagnostics(mice_brm2$fit)
+neff_lowest(mice_brm2$fit)
+rhat_highest(mice_brm2$fit)
+
+bayes_R2(mice_brm2)
+
+plot(conditional_effects(mice_brm2), ask = FALSE)
