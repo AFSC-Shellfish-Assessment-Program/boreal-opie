@@ -16,7 +16,7 @@ d1 <- read.csv("./Data/bloom_timing.csv")
 d1 <- d1 %>%
   filter(sub_6domain == "south_middle") %>%
   rename(value = peak_mean) %>%
-  mutate(name = "south_bloom_timing") %>%
+  mutate(name = "Bloom timing") %>%
   select(year, name, value)
   
 d2 <- read.csv("./Data/bloom_type.csv")
@@ -25,19 +25,23 @@ d2 <- d2 %>%
   filter(!is.na(bloom_type),
          sub_6domain == "south_middle")
 
-
 ggplot(d2, aes(year, count, color = bloom_type)) +
   geom_line() +
   geom_point() 
 
 d2 <- d2 %>%
-  mutate(name = paste("south", bloom_type, "bloom", sep = "_")) %>%
-  rename(value = count) %>%
+  pivot_wider(names_from = bloom_type,
+              values_from = count) %>%
+  rename(`Ice-edge bloom` = ice_full,
+         `Open water bloom` = ice_free) %>%
+  pivot_longer(cols = c(-year, -sub_6domain)) %>%
   select(year, name, value)
 
 d3 <- read.csv("./Data/ice.csv")
 
 d3 <- d3 %>%
+  rename(`Jan-Feb ice cover` = JanFeb_ice,
+         `Mar-Apr ice cover` = MarApr_ice) %>%
   filter(year >= 1972) %>%
   pivot_longer(cols = -year)
 
@@ -45,6 +49,8 @@ d4 <- read.csv("./Data/chl_a.csv")
 
 d4 <- d4 %>%
   select(-north_int_chla, -north_fract_chla) %>%
+  rename(`Bloom size` = south_int_chla,
+         `Phytoplankton size` = south_fract_chla) %>%
   pivot_longer(cols = -year)
 
 d5 <- read.csv("./Data/bcs_prev.csv", row.names = 1)
@@ -58,19 +64,21 @@ ggplot(plot, aes(year, value, color = name)) +
 
 d5 <- d5 %>% 
   select(year, Population) %>%
-  rename(population_bcs = Population) %>%
+  rename(`Hematodinium` = Population) %>%
   pivot_longer(cols = -year)
   
 d6 <- read.csv("./Data/date_corrected_bottom_temp.csv")
 
 d6 <- d6 %>%
   rename(value = bottom.temp) %>%
-  mutate(name = "bottom_temp")
+  mutate(name = 'Bottom temperature')
 
 d7 <- read.csv("./Data/groundfish_med_cpue.csv", row.names = 1)
 
 d7 <- d7 %>%
-  rename(year = YEAR) %>%
+  rename(year = YEAR,
+         `Pacific cod` = med_cod_CPUE,
+         `Arctic groundfish` = med_arctic_CPUE) %>%
   pivot_longer(cols = -year)
 
 d8 <- read.csv("./Data/summarized_zooplankton.csv")
@@ -82,6 +90,14 @@ d8 <- d8 %>%
 
 dat <- rbind(d1, d2, d3, d4, d5, d6, d7, d8)
 
+# reorder for plot
+plot.order <- data.frame(name = unique(dat$name),
+                         order = c(6,5,4,1,2,7,8,11,3,12,13,9,10))
+
+dat <- left_join(dat, plot.order)
+
+dat$name <- reorder(dat$name, dat$order)
+
 ggplot(dat, aes(year, value)) +
   geom_line() +
   geom_point() +
@@ -91,6 +107,7 @@ ggplot(dat, aes(year, value)) +
 ggsave("./Figs/borealization_time_series.png", width = 12, height = 5, units = 'in')
 
 dfa.dat <- dat %>%
+  select(-order) %>%
   pivot_wider(names_from = name, values_from = value) %>% 
   arrange(year) %>%
   select(-year) %>%
@@ -200,7 +217,7 @@ loadings.plot <- ggplot(plot.CI, aes(x=names, y=mean)) +
   geom_errorbar(aes(ymax=upCI, ymin=lowCI), position=dodge, width=0.5) +
   ylab("Loading") +
   xlab("") +
-  theme(axis.text.x  = element_text(angle=45, hjust=1,  size=12), legend.title = element_blank(), legend.position = 'top') +
+  theme(axis.text.x  = element_text(angle=60, hjust=1,  size=9), legend.title = element_blank(), legend.position = 'top') +
   geom_hline(yintercept = 0)
 
 # plot trend
@@ -218,12 +235,12 @@ trend.plot <- ggplot(trend, aes(t, estimate)) +
 
 
 # save
-png("./Figs/borealization_DFA_loadings_trend.png", width = 7, height = 3.5, units = 'in', res = 300)
+png("./Figs/borealization_DFA_loadings_trend.png", width = 9, height = 3.5, units = 'in', res = 300)
 
 ggpubr::ggarrange(loadings.plot,
                   trend.plot,
                   ncol = 2,
-                  widths = c(0.5, 0.5),
+                  widths = c(0.45, 0.55),
                   labels = "auto")
 
 dev.off()
