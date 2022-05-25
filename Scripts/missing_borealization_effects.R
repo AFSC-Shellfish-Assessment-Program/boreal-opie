@@ -287,7 +287,7 @@ g1 <- ggplot(dat_ce) +
   geom_ribbon(aes(ymin = lower_90, ymax = upper_90), fill = "grey85") +
   geom_ribbon(aes(ymin = lower_80, ymax = upper_80), fill = "grey80") +
   geom_line(size = 1, color = "red3") +
-  labs(x = "Borealization trend", y = "Log abundance") +
+  labs(x = "Borealization index", y = "Log abundance") +
   geom_rug(aes(x=rug.anom, y=NULL))
 
 print(g1)
