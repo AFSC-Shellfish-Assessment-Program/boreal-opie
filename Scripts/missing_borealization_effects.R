@@ -320,13 +320,13 @@ UCI.80 / overall.mean
 LCI.95 / overall.mean
 UCI.95 / overall.mean
 
-# add 80% prediction range to abundance.plot
-xtra <- data.frame(year = 2022,
-                   log_abundance = NA,
+# add blank year to abundance.plot
+xtra.80 <- data.frame(year = 2022,
+                   log_abundance = 5.5, # dummy value to make plot work
                    LCI = quantile(pred.2022, 0.1),
                    UCI = quantile(pred.2022, 0.9))
 
-abundance.plot <- rbind(abundance.plot, xtra)
+# abundance.plot <- rbind(abundance.plot, xtra)
 
 # create data frame for 95% CI
 xtra.95 <- data.frame(year = 2022,
@@ -336,10 +336,12 @@ xtra.95 <- data.frame(year = 2022,
 
 ggplot(abundance.plot, aes(year, log_abundance)) +
   geom_line() +
+  geom_errorbar(aes(ymin = LCI, ymax = UCI), color = "dark grey") +
   geom_point(size = 2) +
-  geom_errorbar(data = xtra.95, aes(x = year, ymin = LCI, ymax = UCI), color = "dark grey") +
-  geom_errorbar(aes(ymin = LCI, ymax = UCI)) +
-  ylab("log(abundance)") +
+  geom_errorbar(data = xtra.95, aes(x = year, ymin = LCI, ymax = UCI), color = "gold") +
+  geom_errorbar(data = xtra.80, aes(x = year, ymin = LCI, ymax = UCI), color = "firebrick") +
+
+  ylab("Log abundance") +
   theme(axis.title.x = element_blank())
 
 # save plot
