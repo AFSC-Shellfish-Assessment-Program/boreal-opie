@@ -99,6 +99,8 @@ mi_brm <- brm(mi_form,
 
 saveRDS(mi_brm, file = "output/mi_brm.rds")
 
+mi_brm <- readRDS("output/mi_brm.rds")
+
 summary(mi_brm)
 
 ## plot s(z)
