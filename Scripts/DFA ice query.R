@@ -72,8 +72,8 @@
     x2 <- ncvar_get(nc2, "longitude")
     y2 <- ncvar_get(nc2, "latitude")
     
-    expver <-  ncvar_get(nc2, "expver", verbose = F)
-    expver # 1 and 5??
+    # expver <-  ncvar_get(nc2, "expver", verbose = F)
+    # expver # 1 and 5??
     
    
     ice2 <- ncvar_get(nc2, "siconc", verbose = F)
@@ -81,7 +81,7 @@
     
     # expver1 - this is ERA5
     
-    ice2 <- ice2[,,1,]
+    # ice2 <- ice2[,,1,]
     
     # reverse lat for plotting
     ice2 <- ice2[,37:1,]
@@ -172,7 +172,8 @@
       pivot_longer(cols = -year)
     
     ggplot(plot, aes(year, value, color = name)) +
-      geom_line()
+      geom_line() +
+      geom_point()
       
       
 # save 
