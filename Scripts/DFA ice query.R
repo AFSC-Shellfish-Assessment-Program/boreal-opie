@@ -168,6 +168,9 @@
     means <- means %>%
       select(year, JanFeb_ice, MarApr_ice)
     
+    # save ERA5
+    write.csv(means, "./Data/ice.csv", row.names = F)
+    
     plot <- means %>%
       pivot_longer(cols = -year)
     
@@ -213,5 +216,4 @@ ggplot(compare, aes(year, value, color = data)) +
          
 # pretty similar!!
 
-# save 
-    write.csv(means, "./Data/ice.csv", row.names = F)
+
