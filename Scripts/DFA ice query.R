@@ -114,8 +114,8 @@
     
     ice <- rbind(ice1, ice2)
     
-    # drop E of 165 and N of 63
-    drop <- lon > -165 | lat > 63
+    # drop E of 165 and N of 63.75 
+    drop <- lon > -165 | lat > 63.75
     ice[,drop] <- NA
     
     # plot to check
@@ -174,7 +174,44 @@
     ggplot(plot, aes(year, value, color = name)) +
       geom_line() +
       geom_point()
-      
-      
-# save 
+
+    
+# compare with ORAS5
+oras <- read.csv("./Data/ORAS5_summarized_ice.csv")
+oras$data = "ORAS5"
+          
+means$data <- "ERA5"
+
+oras <- oras %>%
+  pivot_longer(cols = c(-year, -data))
+
+
+means <- means %>%
+  pivot_longer(cols = c(-year, -data))
+
+
+compare <- rbind(oras, filter(means, year %in% oras$year))
+
+compare <- compare %>%
+  pivot_wider(names_from = c(data, name), values_from = value) %>%
+  mutate(era = if_else(year < 1979, "1972-1978", "1979-2018"))
+
+ggplot(compare, aes(ORAS5_JanFeb_ice, ERA5_JanFeb_ice)) +
+  geom_point() +
+  facet_wrap(~era)
+
+ggplot(compare, aes(ORAS5_MarApr_ice, ERA5_MarApr_ice)) +
+  geom_point() +
+  facet_wrap(~era)
+
+compare <- rbind(oras, filter(means, year %in% oras$year))
+          
+ggplot(compare, aes(year, value, color = data)) +
+  geom_point() +
+  geom_line() +
+  facet_wrap(~name, ncol = 1)
+         
+# pretty similar!!
+
+# save ERA5
     write.csv(means, "./Data/ice.csv", row.names = F)
