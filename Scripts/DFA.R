@@ -3,7 +3,8 @@
 
 library(tidyverse)
 library(MARSS)
-
+library(corrplot)
+library(oce)
 theme_set(theme_bw())
 
 # set colors
@@ -115,6 +116,17 @@ dfa.dat <- dat %>%
   
 colnames(dfa.dat) <- unique(d3$year)
 
+# and plot correlations
+cors <- cor(t(dfa.dat), use = "p")
+diag(cors) <- 0
+
+max(cors)
+min(cors)
+
+png("./Figs/time_series_corrplot.png", width = 5, height = 5, units = 'in', res = 300)
+corrplot(cors, method = "sq", col.lim = c(-0.94, 0.94), col = oceColorsPalette(64), tl.col = "black")
+dev.off()
+
 # set up forms of R matrices
 levels.R = c("diagonal and equal",
              "diagonal and unequal",
@@ -152,7 +164,7 @@ model.data <- model.data %>%
   arrange(dAICc)
 model.data # diagonal and unequal is the best model but doesn't converge
 
-# save model selection table
+# save model selection table--note that unconstrained models did not converge!
 write.csv(model.data, "./output/dfa_model_selection_table.csv",
           row.names = F)
 
@@ -192,7 +204,47 @@ plot.CI <- data.frame(names=rownames(dfa.dat),
 )
 plot.CI
 
-# none of the loadings can be distinguished from 0! 
+dodge <- position_dodge(width=0.9)
+
+
+plot.CI$names <- reorder(plot.CI$names, CI$par$Z[1:26])
+
+plot.CI$trend <- rep(c("T1", "T2"), each = 13)
+
+loadings.plot <- ggplot(plot.CI, aes(x=names, y=mean, fill = trend)) +
+  geom_bar(position=dodge, stat="identity") +
+  geom_errorbar(aes(ymax=upCI, ymin=lowCI), position=dodge, width=0.5) +
+  ylab("Loading") +
+  xlab("") +
+  theme(axis.text.x  = element_text(angle=60, hjust=1,  size=9), legend.title = element_blank(), legend.position = 'top') +
+  geom_hline(yintercept = 0)
+
+# plot trend
+trend <- data.frame(trend = rep(c("T1", "T2"), each = length(1972:2022)),
+                    t=1972:2022,
+                    estimate=as.vector(mod$states),
+                    conf.low=as.vector(mod$states)-1.96*as.vector(mod$states.se),
+                    conf.high=as.vector(mod$states)+1.96*as.vector(mod$states.se))
+
+
+trend.plot <- ggplot(trend, aes(t, estimate, color = trend, fill = trend)) +
+  theme_bw() +
+  geom_line() +
+  geom_hline(yintercept = 0) +
+  geom_point() +
+  geom_ribbon(aes(x=t, ymin=conf.low, ymax=conf.high), linetype=0, alpha=0.1) + xlab("") + ylab("Trend")
+
+# save
+png("./Figs/best_two_trend_DFA_loadings_trend.png", width = 9, height = 3.5, units = 'in', res = 300)
+
+ggpubr::ggarrange(loadings.plot,
+                  trend.plot,
+                  ncol = 2,
+                  widths = c(0.45, 0.55),
+                  labels = "auto")
+
+dev.off()
+# only two loadings can be distinguished from 0! 
 
 # fit the second-best model (1 trend diagonal and unequal)
 
@@ -221,7 +273,7 @@ loadings.plot <- ggplot(plot.CI, aes(x=names, y=mean)) +
   geom_hline(yintercept = 0)
 
 # plot trend
-trend <- data.frame(t=1972:2021,
+trend <- data.frame(t=1972:2022,
                         estimate=as.vector(mod$states),
                         conf.low=as.vector(mod$states)-1.96*as.vector(mod$states.se),
                         conf.high=as.vector(mod$states)+1.96*as.vector(mod$states.se))
@@ -231,7 +283,8 @@ trend.plot <- ggplot(trend, aes(t, estimate)) +
   theme_bw() +
   geom_line(color=cb[2]) +
   geom_hline(yintercept = 0) +
-  geom_ribbon(aes(x=t, ymin=conf.low, ymax=conf.high), linetype=2, alpha=0.1, fill=cb[2]) + xlab("") + ylab("Trend")
+  geom_point(color=cb[2]) +
+  geom_ribbon(aes(x=t, ymin=conf.low, ymax=conf.high), linetype=2, alpha=0.1, fill=cb[2]) + xlab("") + ylab("Borealization index")
 
 
 # save
