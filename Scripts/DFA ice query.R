@@ -114,8 +114,8 @@
     
     ice <- rbind(ice1, ice2)
     
-    # drop E of 165 and N of 63.75 
-    drop <- lon > -165 | lat > 63.75
+    # drop E of 165 and N of 63
+    drop <- lon > -165 | lat > 63
     ice[,drop] <- NA
     
     # plot to check
@@ -213,5 +213,5 @@ ggplot(compare, aes(year, value, color = data)) +
          
 # pretty similar!!
 
-# save ERA5
+# save 
     write.csv(means, "./Data/ice.csv", row.names = F)
