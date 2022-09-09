@@ -53,7 +53,12 @@ sc_catch %>%
             ABUNDANCE = (MEAN_CPUE * mean(TOTAL_AREA_SQ_NM))) %>%
   group_by(YEAR) %>%
   #Sum across strata
-  summarise(ABUNDANCE_MIL = sum(ABUNDANCE)/1e6) -> imm_abundance
+  summarise(ABUNDANCE = sum(ABUNDANCE)) -> imm_abundance
+
+
+ggplot(imm_abundance, aes(YEAR, log(ABUNDANCE))) +
+  geom_point() +
+  geom_line()
 
 #Write csv as output 
 write.csv(imm_abundance, file = "./Data/imm_abun.csv")
