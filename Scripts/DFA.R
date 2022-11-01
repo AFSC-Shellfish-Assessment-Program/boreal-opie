@@ -123,8 +123,8 @@ diag(cors) <- 0
 max(cors)
 min(cors)
 
-png("./Figs/time_series_corrplot.png", width = 5, height = 5, units = 'in', res = 300)
-corrplot(cors, method = "sq", col.lim = c(-0.94, 0.94), col = oceColorsPalette(64), tl.col = "black")
+png("./Figs/time_series_corrplot.png", width = 6, height = 5.5, units = 'in', res = 300)
+corrplot(cors, method = "sq", col.lim = c(-0.94, 0.94), col = oceColorsPalette(64), tl.col = "black", cl.cex = 0.7, order = "FPC")
 dev.off()
 
 # set up forms of R matrices
