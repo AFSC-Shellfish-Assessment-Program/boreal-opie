@@ -331,10 +331,11 @@ plot.dat <- left_join(plot.dat, period.order) %>%
   mutate(period = reorder(period, period.order))
 
 
-ggplot(plot.dat, aes(period, prob)) +
+return.time <- ggplot(plot.dat, aes(period, prob)) +
   geom_errorbar(aes(x = period, ymin = lower, ymax = upper), width = 0.3) +
   geom_point(color = "red", size = 4) +
   scale_y_continuous(breaks=c( 1,2,5,10,20,50,100,200,500,1000,2000,5000,10000),
+                     labels=c( "1","2","5","10","20","50","100","200","500","1000","2000","5000",">10000"),
                      minor_breaks = c(2:9, 
                                       seq(20, 90, by = 10),
                                       seq(200, 900, by = 100),
@@ -345,4 +346,361 @@ ggplot(plot.dat, aes(period, prob)) +
   theme(axis.text.x = element_text(angle = 45,
                                    hjust = 1))
 
-ggsave("./figs/extreme_return_time.png", width = 3, height = 6, units = 'in')        
+# ggsave("./figs/extreme_return_time.png", width = 3, height = 6, units = 'in')    
+
+## alternate approach: plot temperature pdfs for warming eras --------------------------------------
+
+## different approach - plot hindcast and projected pdfs for sst anomalies --------------------------
+# create df to catch outcomes for extreme runs
+anomaly.pdfs <- data.frame()
+
+# loop through each model
+for(i in 1:length(models)){ # start i loop (models)
+  # i <- 1
+  
+  # separate model and region of interest
+  pre.temp <- cmip.anom %>% 
+    filter(experiment == "piControl",
+           model == models[i],
+           region == "Eastern_Bering_Sea")
+  
+  
+  
+  # record anomalies
+  anomaly.pdfs <- rbind(anomaly.pdfs,
+                        data.frame(model = models[i],
+                                   period = "preindustrial",
+                                   anomaly = na.omit(pre.temp$annual.unsmoothed)))
+  
+  
+  
+} # close i loop (models)
+
+
+## record outcomes using different warming levels from hist.585 ----------------
+
+
+# loop through each model
+for(i in 1:length(models)){ # start i loop (models)
+  # i <- 1
+  
+  # separate model and region of interest
+  hist.temp <- cmip.anom %>% 
+    filter(experiment == "hist_ssp585",
+           model == models[i],
+           region == "Eastern_Bering_Sea")
+  
+  # # separate this region from ersst.max
+  # ersst.temp <- ersst.max %>%
+  #   filter(region == regions[j])
+  
+  ## pull 1950 - 0.5 degrees warming
+  
+  use = 1950:timing$year[timing$model == models[i] & timing$level == 0.5]
+  
+  # and limit hist.temp to these years
+  hist.temp.use <- hist.temp %>%
+    filter(year %in% use)
+  
+  # record anomalies
+  anomaly.pdfs <- rbind(anomaly.pdfs,
+                        data.frame(model = models[i],
+                                   period = "1950_to_0.5",
+                                   anomaly = na.omit(hist.temp.use$annual.unsmoothed)))
+  
+  
+  ## pull 0.5 - 1.0 degrees warming
+  
+  use = timing$year[timing$model == models[i] & timing$level == 0.5]:timing$year[timing$model == models[i] & timing$level == 1.0]
+  
+  # and limit hist.temp to these years
+  hist.temp.use <- hist.temp %>%
+    filter(year %in% use)
+  
+  # record anomalies
+  anomaly.pdfs <- rbind(anomaly.pdfs,
+                        data.frame(model = models[i],
+                                   period = "0.5_to_1.0",
+                                   anomaly = na.omit(hist.temp.use$annual.unsmoothed)))
+  
+  
+  ## pull 1.0 - 1.5 degrees warming
+  
+  use = timing$year[timing$model == models[i] & timing$level == 1.0]:timing$year[timing$model == models[i] & timing$level == 1.5]
+  
+  # and limit hist.temp to these years
+  hist.temp.use <- hist.temp %>%
+    filter(year %in% use)
+  
+  # record anomalies
+  anomaly.pdfs <- rbind(anomaly.pdfs,
+                        data.frame(model = models[i],
+                                   period = "1.0_to_1.5",
+                                   anomaly = na.omit(hist.temp.use$annual.unsmoothed)))
+  
+  
+  ## pull 1.5 - 2.0 degrees warming
+  
+  use = timing$year[timing$model == models[i] & timing$level == 1.5]:timing$year[timing$model == models[i] & timing$level == 2.0]
+  
+  # and limit hist.temp to these years
+  hist.temp.use <- hist.temp %>%
+    filter(year %in% use)
+  
+  # record anomalies
+  anomaly.pdfs <- rbind(anomaly.pdfs,
+                        data.frame(model = models[i],
+                                   period = "1.5_to_2.0",
+                                   anomaly = na.omit(hist.temp.use$annual.unsmoothed)))
+  
+  
+  
+} # close i loop (models)
+
+
+# model weights for anomalies in different periods - 
+# product of regional weighting (based on ar(1), correlation, bias) and 
+# prediction of observed regional warming
+
+# load CMIP6 model weights
+model.weights <- read.csv("./CMIP6/summaries/CMIP6_model_weights_by_region_window.csv") 
+
+# clean up model weights 
+model.weights <- model.weights %>%
+  filter(window == "annual",
+         region == "Gulf_of_Alaska") %>%
+  select(model, scaled.total.weight) 
+
+# calculate EBS-specific model warming weights (based on prediction of experienced warming)
+
+ersst <- read.csv("./Data/regional_north_pacific_ersst_time_series.csv")
+
+ersst <- ersst %>%
+  select(year, annual.unsmoothed) %>%
+  mutate(model = "ersst")
+
+models <- read.csv("./Data/CMIP6.sst.time.series.csv")
+
+# combine models and ersst observations into "data"
+data <- models %>% 
+  filter(experiment == "hist_ssp585",
+         region == "Eastern_Bering_Sea",
+         year %in% 1850:2021) %>% # note that for regional warming we will calculate anomalies wrt 1950-1999 (beginning of trustworthy ERSST)
+  select(year, annual.unsmoothed, model)
+
+data <- rbind(data, ersst) 
+
+# calculate 1850:1949 climatology for each model and ersst
+climatology <- data %>%
+  filter(year %in% 1850:1949) %>%
+  group_by(model) %>%
+  summarize(climatology.mean = mean(annual.unsmoothed), climatology.sd = sd(annual.unsmoothed))
+
+# combine climatology and data, calculate anomalies
+data <- left_join(data, climatology) %>%
+  mutate(anomaly = (annual.unsmoothed - climatology.mean) / climatology.sd)
+
+# and pivot longer (ersst vs models)
+ersst <- data %>%
+  filter(model == "ersst") %>%
+  select(year, anomaly) %>%
+  rename(ersst.anomaly = anomaly)
+
+data <- data %>%
+  filter(model != "ersst") %>%
+  left_join(., ersst)
+
+# loop through and fit linear ersst - model regressions to get weights
+regional_warming_weights <- data.frame()
+
+models <- unique(data$model)
+
+
+for(m in 1:length(models)){ # loop through models
+  # m <- 1
+  
+  temp.dat <- data %>%
+    filter(model == models[m],
+           year %in% 1972:2021)
+  
+  
+  mod <- lm(ersst.anomaly ~ anomaly, data = temp.dat)
+  
+  regional_warming_weights <- rbind(regional_warming_weights,
+                                    data.frame(model = models[m],
+                                               regional_warming_weight = 1 / abs(1-coefficients(mod)[2]))) # inverse of difference from 1!
+}
+
+
+
+
+weights <- left_join(model.weights, regional_warming_weights) %>%
+  mutate(total_weight = scaled.total.weight * regional_warming_weight)
+
+
+# plot to examine
+ggplot(weights, aes(scaled.total.weight, regional_warming_weight)) +
+  geom_point() 
+
+ggplot(weights, aes(total_weight)) +
+  geom_histogram(fill = "grey", color = "black", bins = 20) 
+
+anomaly.pdfs <- left_join(anomaly.pdfs, weights) 
+
+
+# resample to weight models
+resample.pdf <- data.frame()
+
+periods <- unique(anomaly.pdfs$period)
+
+for(i in 1:length(periods)){
+  # i <- 1
+  
+  temp <- anomaly.pdfs[anomaly.pdfs$period == periods[i],]
+  
+  resample.pdf <- rbind(resample.pdf,
+                        data.frame(period = periods[i],
+                                   anomaly = sample(temp$anomaly, 1000, replace = T, prob = temp$total_weight)))
+  
+  
+  
+}
+
+# reorder
+plot.order <- data.frame(period = unique(resample.pdf$period),
+                         order = 1:5)
+
+
+
+resample.pdf <- left_join(resample.pdf, plot.order) %>%
+  mutate(period =  reorder(period, order))
+
+# and plot
+
+cb <- c("#000000", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
+
+sst.pdfs <- ggplot(resample.pdf, aes(period, anomaly)) +
+  geom_violin(fill = cb[6], lty = 0, alpha = 0.5) +
+  coord_flip() +
+  xlab("North Pacific warming") +
+  ylab("SST anomaly wrt 1850-1949 (SD)") +
+  geom_hline(yintercept = ersst.max, lty = 2) 
+
+
+# ggsave("./CMIP6/figs/sockeye_anomaly_pdfs.png", width = 3, height = 3, units = 'in')    
+
+## finally, plot hindcast / observed / projected warming rates
+
+# load model objects
+
+warming.245 <- readRDS("./Data/inverse_warming_brm_ssp245.rds")
+
+warming.585 <- readRDS("./Data/inverse_warming_brm.rds")
+
+warming.ersst<- readRDS("./Data/inverse_warming_brm_ersst.rds")
+
+
+# plot
+
+new.dat <- data.frame(warming = c(0.5, 1.0, 1.5, 2.0),
+                      model_fac = NA, weight = 1)
+
+pred.245 <- posterior_epred(warming.245, newdata = new.dat)
+
+pred.585 <- posterior_epred(warming.585, newdata = new.dat)
+
+new.dat <- data.frame(ersst.warming = c(0.5, 1.0))
+
+pred.ersst <- posterior_epred(warming.ersst, newdata = new.dat) 
+
+
+## SST anomaly predictions #### 95% CI
+
+# 245
+
+ce1s_245 <- conditional_effects(warming.245, effect = "warming", re_formula = NA,
+                                probs = c(0.025, 0.975), resolution = 10000)
+
+index <- ce1s_245$warming$warming
+
+choose <- c(which.min(abs(index - 0.5)),
+            which.min(abs(index - 1.0)),
+            which.min(abs(index - 1.5)),
+            which.min(abs(index - 2.0)))
+
+pred.plot.245 <- data.frame(source = "SSP 245",
+                            warming = c(0.5, 1.0, 1.5, 2.0),
+                            year = ce1s_245$warming$estimate__[choose],
+                            UCI = ce1s_245$warming$upper__[choose],
+                            LCI = ce1s_245$warming$lower__[choose])
+
+
+# 585 
+
+ce1s_585 <- conditional_effects(warming.585, effect = "warming", re_formula = NA,
+                                probs = c(0.025, 0.975), resolution = 10000)
+
+index <- ce1s_585$warming$warming
+
+choose <- c(which.min(abs(index - 0.5)),
+            which.min(abs(index - 1.0)),
+            which.min(abs(index - 1.5)),
+            which.min(abs(index - 2.0)))
+
+pred.plot.585 <- data.frame(source = "SSP 585",
+                            warming = c(0.5, 1.0, 1.5, 2.0),
+                            year = ce1s_585$warming$estimate__[choose],
+                            UCI = ce1s_585$warming$upper__[choose],
+                            LCI = ce1s_585$warming$lower__[choose])
+
+
+# ersst
+ce1s_ERSST <- conditional_effects(warming.ersst, effect = "ersst.warming", re_formula = NA,
+                                  probs = c(0.025, 0.975), resolution = 10000)
+
+index <- ce1s_ERSST$ersst.warming$ersst.warming
+
+choose <- c(which.min(abs(index - 0.5)),
+            which.min(abs(index - 1.0)))
+
+pred.plot.ERSST <- data.frame(source = "ERSST",
+                              warming = c(0.5, 1.0),
+                              year = ce1s_ERSST$ersst.warming$estimate__[choose],
+                              UCI = ce1s_ERSST$ersst.warming$upper__[choose],
+                              LCI = ce1s_ERSST$ersst.warming$lower__[choose])
+
+pred.plot <- rbind(pred.plot.245,
+                   pred.plot.585,
+                   pred.plot.ERSST)
+pred.plot$warming <- as.factor(pred.plot$warming)
+
+pos_dodge = position_dodge(width = 0.2)
+
+
+
+time.plot <- ggplot(pred.plot, aes(warming, year, color = source)) +
+  geom_errorbar(aes(ymin = LCI, ymax = UCI), width = 0.2, position = pos_dodge) +
+  geom_point(size = 4, position = pos_dodge) +
+  labs(x = "North Pacific warming (°C)",
+       y = "Year reached") +
+  scale_color_manual(values = cb[c(2,6,7)]) +
+  theme(legend.position = c(0.75, 0.15),
+        legend.title = element_blank())
+
+
+# and combine the three plots
+
+# get blank plot
+blank <- ggplot + theme_void()
+
+
+png("./Figs/extremes_probability_warming_timing.png", width = 10, height = 5, units = 'in', res = 300) 
+
+ggpubr::ggarrange(time.plot,
+                  sst.pdfs,
+                  return.time,
+                  labels = "auto",
+                  ncol = 3,
+                  widths = c(0.3, 0.4, 0.3))
+
+dev.off()
