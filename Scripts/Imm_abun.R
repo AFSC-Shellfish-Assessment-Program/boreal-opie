@@ -29,14 +29,21 @@ sc_catch <- sc_catch %>%
 sc_strata <- sc_strata %>%
   rename(YEAR = SURVEY_YEAR)
 
-#Calculate CPUE by station for immature snow crab 
+# check size of stratum in each year
+check <- sc_strata %>%
+  group_by(YEAR) %>%
+  summarise(area = mean(TOTAL_AREA))
+
+ggplot(check, aes(YEAR, area)) + 
+  geom_line() +
+  geom_point() # big differences!
+
+# calculate CPUE by station for immature snow crab 
 sc_catch %>%
   filter(HAUL_TYPE == 3, 
-         SEX %in% 1:2,
-         YEAR > 1979) %>%
-  mutate(MAT_SEX = case_when((SEX == 1 & WIDTH < 95) ~ "Immature Male",
-                             (SEX == 2 & CLUTCH_SIZE == 0) ~ "Immature Female")) %>%
-  filter(MAT_SEX %in% c("Immature Male", "Immature Female")) %>%
+         SEX == 1,
+         YEAR > 1979,
+         WIDTH >= 40 & WIDTH <= 95) %>%
   group_by(YEAR, GIS_STATION, AREA_SWEPT,MID_LATITUDE, MID_LONGITUDE) %>%
   summarise(N_CRAB = sum(SAMPLING_FACTOR, na.rm = T),
             CPUE = N_CRAB / mean(AREA_SWEPT)) %>%
