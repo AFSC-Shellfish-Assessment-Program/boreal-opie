@@ -463,12 +463,12 @@ for(i in 1:length(models)){ # start i loop (models)
 # prediction of observed regional warming
 
 # load CMIP6 model weights
-model.weights <- read.csv("./CMIP6/summaries/CMIP6_model_weights_by_region_window.csv") 
+model.weights <- read.csv("./Data/CMIP6_model_weights_by_region_window.csv") 
 
 # clean up model weights 
 model.weights <- model.weights %>%
   filter(window == "annual",
-         region == "Gulf_of_Alaska") %>%
+         region == "Eastern_Bering_Sea") %>%
   select(model, scaled.total.weight) 
 
 # calculate EBS-specific model warming weights (based on prediction of experienced warming)
@@ -584,7 +584,12 @@ sst.pdfs <- ggplot(resample.pdf, aes(period, anomaly)) +
   coord_flip() +
   xlab("North Pacific warming") +
   ylab("SST anomaly wrt 1850-1949 (SD)") +
-  geom_hline(yintercept = ersst.max, lty = 2) 
+  geom_hline(yintercept = ersst.max, lty = 2) +
+  scale_x_discrete(labels = c("Preindustrial",
+                              "1950 to 0.5°",
+                              "0.5° to 1.0°",
+                              "1.0° to 1.5°",
+                              "1.5° to 2.0°"))
 
 
 # ggsave("./CMIP6/figs/sockeye_anomaly_pdfs.png", width = 3, height = 3, units = 'in')    
@@ -702,5 +707,16 @@ ggpubr::ggarrange(time.plot,
                   labels = "auto",
                   ncol = 3,
                   widths = c(0.3, 0.4, 0.3))
+
+dev.off()
+
+# and a 2-panel version
+png("./Figs/extremes_probability_warming_timing_2_panel.png", width = 7, height = 5, units = 'in', res = 300) 
+
+ggpubr::ggarrange(sst.pdfs,
+                  time.plot,
+                  labels = "auto",
+                  ncol = 2,
+                  widths = c(0.4, 0.3))
 
 dev.off()
