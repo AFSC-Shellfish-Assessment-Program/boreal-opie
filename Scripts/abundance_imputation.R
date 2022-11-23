@@ -1,15 +1,9 @@
-# notes ----
-
 # Calculate immature snow crab abundance in EBS
+# Impute for missing stations
 
-#NOTE: There are no pre-1980 stratum tables on akfin so abundances were only 
-  #calculated for 1980+
-
-# Author: Erin Fedewa
 
 # load ----
 library(tidyverse)
-library(ggmap)
 library(Hmisc)
 
 theme_set(theme_bw())
@@ -23,7 +17,6 @@ sc_catch <- read.csv("./Data/crabhaul_opilio.csv")
 #EBS strata data ----
 sc_strata <- read_csv("./Data/STRATA_OPILIO_NEWTIMESERIES.csv")
 
-###################################################
 
 # evaluate available hauls
 haul <- read.csv("./Data/haul.csv")
@@ -33,24 +26,6 @@ haul <- haul %>%
   filter(HAUL_TYPE == 3) 
 
 ggplot(haul, aes(MID_LONGITUDE, MID_LATITUDE)) +
-  geom_point() +
-  facet_wrap(~SURVEY_YEAR)
-
-# load core stations from Erin's analysis
-core <- read.csv("./output/core_stations.csv")
-
-# combine with haul
-core <- core %>%
-  select(GIS_STATION) %>%
-  left_join(., haul)
-
-# plot these
-ggplot(core, aes(MID_LONGITUDE, MID_LATITUDE)) +
-  geom_point() +
-  facet_wrap(~SURVEY_YEAR)
-
-# plot these
-ggplot(core, aes(MID_LONGITUDE, MID_LATITUDE)) +
   geom_point() +
   facet_wrap(~SURVEY_YEAR)
 
@@ -61,24 +36,6 @@ sc_catch <- sc_catch %>%
 # rename year in strata
 sc_strata <- sc_strata %>%
   rename(YEAR = SURVEY_YEAR)
-
-## now attempt for the entire stratum---------------------
-
-# start over with loading up data
-
-#EBS strata data ----
-sc_strata <- read_csv("./Data/STRATA_OPILIO_NEWTIMESERIES.csv")
-
-# evaluate available hauls
-haul <- read.csv("./Data/haul.csv")
-
-# restrict to haul_type = 3 and plot
-haul <- haul %>%
-  filter(HAUL_TYPE == 3) 
-
-ggplot(haul, aes(MID_LONGITUDE, MID_LATITUDE)) +
-  geom_point() +
-  facet_wrap(~SURVEY_YEAR)
 
 # combine stratum with haul
 use <- unique(sc_strata$STATION_ID)
@@ -95,7 +52,9 @@ ggplot(stratum, aes(MID_LONGITUDE, MID_LATITUDE)) +
 ## get strata areas for weighted mean abundance --------------
 
 area <- sc_strata %>%
-  filter(SURVEY_YEAR == 2022)
+  mutate(STATION = str_remove_all(STATION_ID, "-")) %>%
+  filter(YEAR == 2022) %>%
+  select(STATION, DISTRICT, TOTAL_AREA)
 
 sum_area <- area %>%
   group_by(DISTRICT) %>%
@@ -115,10 +74,6 @@ scratch <- sc_catch %>%
 
 
 # join with stratum stations to include 0 catches 
-stratum <- haul %>%
-  filter(GIS_STATION %in% use) %>%
-  rename(YEAR = SURVEY_YEAR)
-
 stratum <- stratum %>%
   select(GIS_STATION, YEAR, MID_LONGITUDE, MID_LATITUDE) %>%
   left_join(., scratch)
@@ -144,83 +99,14 @@ check
 # log transform CPUE
 stratum$log_cpue <- log(stratum$CPUE + 1)
 
-# plot histogram of mean cpue per station
-check <- stratum %>%
-  group_by(GIS_STATION) %>%
-  summarise(mean_log_cpue = mean(log_cpue),
-            latitude = mean(MID_LATITUDE),
-            longitude = mean(MID_LONGITUDE))
-
-ggplot(check, aes(mean_log_cpue)) + 
-  geom_histogram(bins = 30, fill = "grey", color = "black")
-
-ggplot(check, aes(longitude, latitude, color = mean_log_cpue)) +
-  geom_point(size = 4, shape = 15) +
-  scale_colour_gradient(
-    low = "purple",
-    high = "red",
-    space = "Lab",
-    na.value = "grey50",
-    guide = "colourbar",
-    aesthetics = "colour"
-  )
-
 # remove stations with mean cpue = 0
 
 drop_0 <- check %>%
   filter(mean_log_cpue > 0)
 
-ggplot(drop_0, aes(mean_log_cpue)) + 
-  geom_histogram(bins = 30, fill = "grey", color = "black")
-
-ggplot(drop_0, aes(longitude, latitude, color = mean_log_cpue)) +
-  geom_point(size = 4, shape = 15) +
-  scale_colour_gradient(
-    low = "purple",
-    high = "red",
-    space = "Lab",
-    na.value = "grey50",
-    guide = "colourbar",
-    aesthetics = "colour"
-  )
-
-# plot zeros
-
-zero <- check %>%
-  filter(mean_log_cpue == 0)
-
-ggplot(zero, aes(longitude, latitude)) +
-  geom_point() +
-  xlim(-180, -155) +
-  ylim(54, 62)
-
-# looks at histogram for non-zero catches
-ggplot(drop_0, aes(mean_log_cpue)) +
-  geom_histogram(bins = 50, fill = "grey", color = "black")
-
-# View(drop_0)
-
-
-# # drop catches below 1
-# 
-# drop_1 <- check %>%
-#   filter(mean_log_cpue >= 1)
-# 
-# ggplot(drop_1, aes(mean_log_cpue)) + 
-#   geom_histogram(bins = 30, fill = "grey", color = "black")
-# 
-# ggplot(drop_1, aes(longitude, latitude, color = mean_log_cpue)) +
-#   geom_point(size = 4, shape = 15) +
-#   scale_colour_gradient(
-#     low = "purple",
-#     high = "red",
-#     space = "Lab",
-#     na.value = "grey50",
-#     guide = "colourbar",
-#     aesthetics = "colour"
-#   )
-
-# drop catches < 5th quantile
+# now...drop catches < 5th quantile
+# because imputation to non-zero stations doesn't work well - 
+# presumably too many very low values
 
 drop_5th <- drop_0 %>%
   filter(mean_log_cpue > quantile(drop_0$mean_log_cpue, 0.05))
@@ -243,7 +129,6 @@ all_immature_drop5_map <- ggplot(drop_5th, aes(longitude, latitude, color = mean
 all_immature_drop5_map
 
 # remove mean_log_cpue < 5th quantile from annual catch data
-
 dat <- stratum %>%
   filter(stratum$GIS_STATION %in% unique(drop_5th$GIS_STATION))
 
@@ -268,7 +153,13 @@ hist(r)
 pred <- t(apply(r,1, function(x) rank(1-abs(x))<=25))# T for the 30 strongest correlations for each time series
 diag(pred) <- FALSE # and of course, drop self-correlations - make the diagonal FALSE
 
-hist(r[pred])
+# plot r used in imputation
+plot_r <- data.frame(r = r[pred])
+
+all_immature_drop5_hist <- ggplot(plot_r, aes(r)) +
+  geom_histogram(fill = "grey", color = "black", bins = 50)
+
+all_immature_drop5_hist
 
 colnames(pred) <- rownames(pred) <- colnames(dat) <- str_remove_all(colnames(pred), "-")
 
@@ -279,25 +170,27 @@ imp <- mice::mice(data = dat, method = "norm", m=100, predictorMatrix = pred, bl
 saveRDS(imp, "./output/abundance_imputations_all_immature_stratum_drop_5.RDS")
 imp_immature_drop_5 <- readRDS("./output/abundance_imputations_all_immature_stratum_drop_5.RDS")
 
-
 # are there NAs in complete(imp)?
-
 check <- is.na(complete(imp))
 
 sum(check) # 0
 
-
 # also create df to save mean annual temp and sampling day for each imputed temperature data set
-
 imputed.dat <- data.frame()
 
 # this is clunky but should work!
 
 # create bounds for imputed values 
 # (min = 0, max = max observed)
-
 lower_bound <- 0
 upper_bound <- max(dat, na.rm = T) 
+
+# get weights (area of each stratum) for weighted mean abundance
+weights <- data.frame(STATION = colnames(complete(imp_immature_drop_5, action = i))) %>%
+  left_join(., area)
+
+# get proportion of each stratum that is included in the imputation
+summary_weights <- weights %>%
 
 for(i in 1:100){
   
@@ -310,6 +203,8 @@ for(i in 1:100){
   
   change <- temp > upper_bound
   temp[change] <- upper_bound
+  
+
   
   imputed.dat <- rbind(imputed.dat,
                        data.frame(imputation = i,
@@ -343,107 +238,6 @@ immature.stratum_drop_5th <- ggplot(plot.dat, aes(year, log_mean)) +
   ggtitle("Total immature, stratum > 5th percentile")
 
 immature.stratum_drop_5th
-
-
-## total immature, stratum, drop 0 only ----------------------------
-
-dat <- stratum %>%
-  filter(stratum$GIS_STATION %in% unique(drop_0$GIS_STATION))
-
-# check stations per year
-count <- dat %>%
-  group_by(YEAR) %>%
-  summarise(count = n())
-
-count
-
-
-# get into matrix form for mice
-dat <- tapply(dat$log_cpue, list(dat$YEAR, dat$GIS_STATION), mean)
-
-# examine correlations
-r <- rcorr(as.matrix(dat))$r 
-r #Cross-year correlations between each station combination
-
-hist(r)
-
-# choose 15 variables with highest absolute correlation (van Buuren & Oudshoorn recommend 15-25)
-pred <- t(apply(r,1, function(x) rank(1-abs(x))<=25))# T for the 30 strongest correlations for each time series
-diag(pred) <- FALSE # and of course, drop self-correlations - make the diagonal FALSE
-
-colnames(pred) <- rownames(pred) <- colnames(dat) <- str_remove_all(colnames(pred), "-")
-
-blocks <- mice::make.blocks(dat)
-
-imp <- mice::mice(data = dat, method = "norm", m=100, predictorMatrix = pred, blocks = blocks) 
-
-saveRDS(imp, "./output/abundance_imputations_all_immature_stratum_drop_0.RDS")
-imp <- readRDS("./output/abundance_imputations_all_immature_stratum_drop_0.RDS")
-
-
-# are there NAs in complete(imp)?
-
-check <- is.na(complete(imp))
-
-sum(check) # 13
-
-
-# also create df to save mean annual temp and sampling day for each imputed temperature data set
-
-imputed.dat <- data.frame()
-
-# this is clunky but should work!
-
-# create bounds for imputed values 
-# (min = 0, max = max observed)
-
-lower_bound <- 0
-upper_bound <- max(dat, na.rm = T) 
-
-for(i in 1:100){
-  
-  # i <- 1
-  temp <- complete(imp, action = i)
-  
-  # apply bounds
-  change <- temp < lower_bound
-  temp[change] <- lower_bound
-  
-  change <- temp > upper_bound
-  temp[change] <- upper_bound
-  
-  imputed.dat <- rbind(imputed.dat,
-                       data.frame(imputation = i,
-                                  year = c(1975:2019, 2021, 2022),
-                                  log_mean = rowMeans(temp, na.rm = T)))
-}
-
-
-# View(imputed.dat)
-
-# not using dplyr because sd using summarize cannot handle sd = 0
-plot.dat <- data.frame(year = c(1975:2019, 2021:2022),
-                       log_mean = tapply(imputed.dat$log_mean, imputed.dat$year, mean),
-                       sd = tapply(imputed.dat$log_mean, imputed.dat$year, sd))
-
-# summarize raw (non-imputed data) to plot
-
-raw.dat <- stratum %>%
-  filter(stratum$GIS_STATION %in% unique(drop_0$GIS_STATION)) %>%
-  group_by(YEAR) %>%
-  rename(year = YEAR) %>%
-  summarise(log_mean = mean(log_cpue))
-
-immature.stratum_drop_0 <- ggplot(plot.dat, aes(year, log_mean)) +
-  geom_line(data = raw.dat, aes(year, log_mean), color = "red") +
-  geom_point(data = raw.dat, aes(year, log_mean), color = "red") + 
-  geom_line() +
-  geom_point(size = 2) +
-  geom_errorbar(aes(ymin = log_mean - 2*sd,
-                    ymax = log_mean + 2*sd)) +
-  ggtitle("Total immature, stratum, drop 0 catch")
-
-immature.stratum_drop_0
 
 
 
