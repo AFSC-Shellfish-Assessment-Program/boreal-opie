@@ -109,7 +109,7 @@ ggplot(drop_2nd, aes(mean_log_cpue)) +
   geom_histogram(bins = 30, fill = "grey", color = "black")
 
 all_immature_drop_2_map <-  ggplot(drop_2nd, aes(longitude, latitude, color = mean_log_cpue)) +
-  geom_point(size = 4, shape = 15) +
+  geom_point(size = 3, shape = 15) +
   scale_colour_gradient(
     low = "purple",
     high = "red",
@@ -117,7 +117,8 @@ all_immature_drop_2_map <-  ggplot(drop_2nd, aes(longitude, latitude, color = me
     na.value = "grey50",
     guide = "colourbar",
     aesthetics = "colour"
-  )
+  ) +
+  theme(legend.position = c(0.8, 0.8))
 
 all_immature_drop_2_map
 
@@ -350,7 +351,7 @@ ggplot(drop_10th, aes(mean_log_cpue)) +
   geom_histogram(bins = 30, fill = "grey", color = "black")
 
 male_30_59_drop_10_map <- ggplot(drop_10th, aes(longitude, latitude, color = mean_log_cpue)) +
-  geom_point(size = 4, shape = 15) +
+  geom_point(size = 3, shape = 15) +
   scale_colour_gradient(
     low = "purple",
     high = "red",
@@ -358,7 +359,8 @@ male_30_59_drop_10_map <- ggplot(drop_10th, aes(longitude, latitude, color = mea
     na.value = "grey50",
     guide = "colourbar",
     aesthetics = "colour"
-  )
+  ) +
+  theme(legend.position = c(0.8, 0.8))
 
 male_30_59_drop_10_map 
 
@@ -597,7 +599,7 @@ ggplot(drop_5th, aes(mean_log_cpue)) +
   geom_histogram(bins = 30, fill = "grey", color = "black")
 
 male_60_95_drop_5_map <- ggplot(drop_5th, aes(longitude, latitude, color = mean_log_cpue)) +
-  geom_point(size = 4, shape = 15) +
+  geom_point(size = 3, shape = 15) +
   scale_colour_gradient(
     low = "purple",
     high = "red",
@@ -605,7 +607,8 @@ male_60_95_drop_5_map <- ggplot(drop_5th, aes(longitude, latitude, color = mean_
     na.value = "grey50",
     guide = "colourbar",
     aesthetics = "colour"
-  )
+  ) +
+  theme(legend.position = c(0.8, 0.8))
 
 male_60_95_drop_5_map
 
@@ -847,7 +850,7 @@ ggplot(drop_10th, aes(mean_log_cpue)) +
   geom_histogram(bins = 30, fill = "grey", color = "black")
 
 female_immature_drop_10_map <- ggplot(drop_10th, aes(longitude, latitude, color = mean_log_cpue)) +
-  geom_point(size = 4, shape = 15) +
+  geom_point(size = 3, shape = 15) +
   scale_colour_gradient(
     low = "purple",
     high = "red",
@@ -855,7 +858,8 @@ female_immature_drop_10_map <- ggplot(drop_10th, aes(longitude, latitude, color 
     na.value = "grey50",
     guide = "colourbar",
     aesthetics = "colour"
-  )
+  ) +
+  theme(legend.position = c(0.8, 0.8))
 
 female_immature_drop_10_map
 
@@ -892,10 +896,10 @@ female_immature_drop10_hist
 colnames(pred) <- rownames(pred) <- colnames(dat) <- str_remove_all(colnames(pred), "-")
 
 blocks <- mice::make.blocks(dat)
-
-imp <- mice::mice(data = dat, method = "norm", m=100, predictorMatrix = pred, blocks = blocks)
-
-saveRDS(imp, "./output/abundance_imputations_female_immature_stratum_drop_10.RDS")
+# 
+# imp <- mice::mice(data = dat, method = "norm", m=100, predictorMatrix = pred, blocks = blocks)
+# 
+# saveRDS(imp, "./output/abundance_imputations_female_immature_stratum_drop_10.RDS")
 imp_female_drop_10 <- readRDS("./output/abundance_imputations_female_immature_stratum_drop_10.RDS")
 
 
@@ -1045,3 +1049,16 @@ female.stratum_drop_10th <- ggplot(plot.dat, aes(year, log_mean)) +
 
 female.stratum_drop_10th
 
+## combine all the plots ---------------
+
+png("./Figs/combined_imputation_plots.png", width = 15, height = 15, units = 'in', res = 300)
+
+ggpubr::ggarrange(male_30_59_drop_10_map, male_30_59_drop10_hist, male_30_59_stratum_drop_10,
+                  male_60_95_drop_5_map, male_60_95_drop5_hist, male_60_95_stratum_drop_5,
+                  female_immature_drop_10_map, female_immature_drop10_hist, female.stratum_drop_10th,
+                  all_immature_drop_2_map, all_immature_drop2_hist, immature.stratum_drop_2nd,
+                  ncol = 3,
+                  nrow = 4,
+                  labels = "auto")
+
+dev.off()
