@@ -139,8 +139,6 @@ dat <- tapply(dat$log_cpue, list(dat$YEAR, dat$GIS_STATION), mean)
 r <- rcorr(as.matrix(dat))$r 
 r #Cross-year correlations between each station combination
 
-hist(r)
-
 # choose 15 variables with highest absolute correlation (van Buuren & Oudshoorn recommend 15-25)
 pred <- t(apply(r,1, function(x) rank(1-abs(x))<=25))# T for the 30 strongest correlations for each time series
 diag(pred) <- FALSE # and of course, drop self-correlations - make the diagonal FALSE
@@ -157,9 +155,9 @@ colnames(pred) <- rownames(pred) <- colnames(dat) <- str_remove_all(colnames(pre
 
 blocks <- mice::make.blocks(dat)
 
-imp <- mice::mice(data = dat, method = "norm", m=100, predictorMatrix = pred, blocks = blocks) 
-
-saveRDS(imp, "./output/abundance_imputations_all_immature_stratum_drop_2nd.RDS")
+# imp <- mice::mice(data = dat, method = "norm", m=100, predictorMatrix = pred, blocks = blocks) 
+# 
+# saveRDS(imp, "./output/abundance_imputations_all_immature_stratum_drop_2nd.RDS")
 imp_immature_drop_2nd <- readRDS("./output/abundance_imputations_all_immature_stratum_drop_2nd.RDS")
 
 
@@ -267,9 +265,9 @@ plot.raw <- raw.dat %>%
   mutate(weighted_log_cpue = log_cpue*weight) %>%
   group_by(YEAR) %>%
   summarise(sum_weight = sum(weight),
-            sum_weighted_log_cpue = sum(weighted_log_cpue)) %>%
+            sum_weighted_log_cpue = sum(weighted_log_cpue))%>%
   mutate(log_mean = sum_weighted_log_cpue / sum_weight) %>%
-  rename(year = YEAR)
+  rename(year = YEAR) 
 
 unweighted.raw <- raw.dat %>%
   group_by(YEAR) %>%
@@ -285,7 +283,8 @@ immature.stratum_drop_2nd <- ggplot(plot.dat, aes(year, log_mean)) +
   geom_point(size = 2) +
   geom_errorbar(aes(ymin = log_mean - 2*sd,
                     ymax = log_mean + 2*sd)) +
-  ggtitle("Total immature, stratum > 2nd percentile")
+  ggtitle("Total immature, stratum > 2nd percentile") + 
+  theme(axis.title.x = element_blank())
 
 immature.stratum_drop_2nd
 
@@ -327,7 +326,6 @@ check
 stratum$log_cpue <- log(stratum$CPUE + 1)
 
 # plot histogram of mean cpue per station
-
 check <- stratum %>%
   group_by(GIS_STATION) %>%
   summarise(mean_log_cpue = mean(log_cpue),
@@ -337,61 +335,21 @@ check <- stratum %>%
 ggplot(check, aes(mean_log_cpue)) + 
   geom_histogram(bins = 30, fill = "grey", color = "black")
 
-ggplot(check, aes(longitude, latitude, color = mean_log_cpue)) +
-  geom_point(size = 4, shape = 15) +
-  scale_colour_gradient(
-    low = "purple",
-    high = "red",
-    space = "Lab",
-    na.value = "grey50",
-    guide = "colourbar",
-    aesthetics = "colour"
-  )
-
 # remove stations with mean cpue = 0
-
 drop_0 <- check %>%
   filter(mean_log_cpue > 0)
 
 ggplot(drop_0, aes(mean_log_cpue)) + 
   geom_histogram(bins = 30, fill = "grey", color = "black")
 
-ggplot(drop_0, aes(longitude, latitude, color = mean_log_cpue)) +
-  geom_point(size = 4, shape = 15) +
-  scale_colour_gradient(
-    low = "purple",
-    high = "red",
-    space = "Lab",
-    na.value = "grey50",
-    guide = "colourbar",
-    aesthetics = "colour"
-  )
-
-# plot zeros
-
-zero <- check %>%
-  filter(mean_log_cpue == 0)
-
-ggplot(zero, aes(longitude, latitude)) +
-  geom_point() +
-  xlim(-180, -155) +
-  ylim(54, 62)
-
-# looks at histogram for non-zero catches
-ggplot(drop_0, aes(mean_log_cpue)) +
-  geom_histogram(bins = 50, fill = "grey", color = "black")
-
-# View(drop_0)
-
 # drop catches < 10th quantile
-
 drop_10th <- drop_0 %>%
   filter(mean_log_cpue > quantile(drop_0$mean_log_cpue, 0.1))
 
 ggplot(drop_10th, aes(mean_log_cpue)) + 
   geom_histogram(bins = 30, fill = "grey", color = "black")
 
-ggplot(drop_10th, aes(longitude, latitude, color = mean_log_cpue)) +
+male_30_59_drop_10_map <- ggplot(drop_10th, aes(longitude, latitude, color = mean_log_cpue)) +
   geom_point(size = 4, shape = 15) +
   scale_colour_gradient(
     low = "purple",
@@ -402,9 +360,9 @@ ggplot(drop_10th, aes(longitude, latitude, color = mean_log_cpue)) +
     aesthetics = "colour"
   )
 
+male_30_59_drop_10_map 
 
 # remove mean_log_cpue < 10th quantile from annual catch data
-
 dat <- stratum %>%
   filter(stratum$GIS_STATION %in% unique(drop_10th$GIS_STATION))
 
@@ -415,7 +373,6 @@ count <- dat %>%
 
 count
 
-
 # get into matrix form for mice
 dat <- tapply(dat$log_cpue, list(dat$YEAR, dat$GIS_STATION), mean)
 
@@ -423,19 +380,25 @@ dat <- tapply(dat$log_cpue, list(dat$YEAR, dat$GIS_STATION), mean)
 r <- rcorr(as.matrix(dat))$r 
 r #Cross-year correlations between each station combination
 
-hist(r)
-
 # choose 15 variables with highest absolute correlation (van Buuren & Oudshoorn recommend 15-25)
 pred <- t(apply(r,1, function(x) rank(1-abs(x))<=25))# T for the 30 strongest correlations for each time series
 diag(pred) <- FALSE # and of course, drop self-correlations - make the diagonal FALSE
+
+# plot r used in imputation
+plot_r <- data.frame(r = r[pred])
+
+male_30_59_drop10_hist <- ggplot(plot_r, aes(r)) +
+  geom_histogram(fill = "grey", color = "black", bins = 50)
+
+male_30_59_drop10_hist
 
 colnames(pred) <- rownames(pred) <- colnames(dat) <- str_remove_all(colnames(pred), "-")
 
 blocks <- mice::make.blocks(dat)
 
-imp <- mice::mice(data = dat, method = "norm", m=100, predictorMatrix = pred, blocks = blocks) 
-
-saveRDS(imp, "./output/abundance_imputations_male_30-59_stratum_drop_10th.RDS")
+# imp <- mice::mice(data = dat, method = "norm", m=100, predictorMatrix = pred, blocks = blocks) 
+# 
+# saveRDS(imp, "./output/abundance_imputations_male_30-59_stratum_drop_10th.RDS")
 imp_30_59_drop_10 <- readRDS("./output/abundance_imputations_male_30-59_stratum_drop_10th.RDS")
 
 
@@ -458,6 +421,35 @@ imputed.dat <- data.frame()
 lower_bound <- 0
 upper_bound <- max(dat, na.rm = T) 
 
+# get weights (area of each stratum) for weighted mean abundance
+# first, strata areas for weighted mean abundance - use 2022, when all stations were sampled
+area <- sc_strata %>%
+  filter(YEAR == 2022,
+         STATION_ID %in% unique(drop_10th$GIS_STATION)) %>%
+  mutate(STATION = str_remove_all(STATION_ID, "-")) %>%
+  select(STATION, DISTRICT, TOTAL_AREA)
+
+sum_area <- area %>%
+  group_by(DISTRICT) %>%
+  summarise(total_count = n(),
+            total_area = mean(TOTAL_AREA))
+
+weights <- data.frame(STATION = colnames(complete(imp_30_59_drop_10, action = 1))) %>%
+  left_join(., area)
+
+# get proportion of each stratum that is included in the imputation
+summary_weights <- weights %>%
+  group_by(DISTRICT) %>%
+  summarise(count_sampled = n()) %>%
+  left_join(., sum_area) %>%
+  mutate(weight = (count_sampled / total_count) * total_area) %>%
+  select(DISTRICT, weight)
+
+weights <- left_join(weights, summary_weights)
+
+# set up weighted mean function
+ff <- function(x) weighted.mean(x, weights$weight, na.rm = T)
+
 for(i in 1:100){
   
   # i <- 1
@@ -473,7 +465,7 @@ for(i in 1:100){
   imputed.dat <- rbind(imputed.dat,
                        data.frame(imputation = i,
                                   year = c(1975:2019, 2021, 2022),
-                                  log_mean = rowMeans(temp, na.rm = T)))
+                                  log_mean = apply(temp, 1, ff)))
 }
 
 
@@ -484,24 +476,63 @@ plot.dat <- data.frame(year = c(1975:2019, 2021:2022),
                        log_mean = tapply(imputed.dat$log_mean, imputed.dat$year, mean),
                        sd = tapply(imputed.dat$log_mean, imputed.dat$year, sd))
 
+# replace sd = 0 with NA
+check <- plot.dat$sd == 0
+plot.dat$sd[check] <- NA
+
 # summarize raw (non-imputed data) to plot
+# first, get weights
+raw_weights <- sc_strata %>%
+  select(STATION_ID, DISTRICT, YEAR, TOTAL_AREA) %>%
+  rename(GIS_STATION = STATION_ID)
+
+raw_summary1 <- raw_weights %>%
+  group_by(YEAR, DISTRICT) %>%
+  summarise(total_count = n(),
+            total_area = mean(TOTAL_AREA))
+
+# get proportion of each stratum that is included in the imputation
+raw_summary2 <- raw_weights %>%
+  group_by(YEAR, DISTRICT) %>%
+  summarise(count_sampled = n()) %>%
+  left_join(., raw_summary1) %>%
+  mutate(weight = (count_sampled / total_count) * total_area) %>%
+  select(YEAR, DISTRICT, weight)
 
 raw.dat <- stratum %>%
-  filter(stratum$GIS_STATION %in% unique(drop_10th$GIS_STATION)) %>%
+  left_join(.,raw_summary2)
+
+# replace NA weights with 1
+change <- is.na(raw.dat$weight)
+raw.dat$weight[change] <- 1
+
+plot.raw <- raw.dat %>%
+  mutate(weighted_log_cpue = log_cpue*weight) %>%
+  group_by(YEAR) %>%
+  summarise(sum_weight = sum(weight),
+            sum_weighted_log_cpue = sum(weighted_log_cpue)) %>%
+  mutate(log_mean = sum_weighted_log_cpue / sum_weight) %>%
+  rename(year = YEAR)
+
+unweighted.raw <- raw.dat %>%
   group_by(YEAR) %>%
   rename(year = YEAR) %>%
   summarise(log_mean = mean(log_cpue))
 
-male_30_59_stratum_drop_10th <- ggplot(plot.dat, aes(year, log_mean)) +
-  geom_line(data = raw.dat, aes(year, log_mean), color = "red") +
-  geom_point(data = raw.dat, aes(year, log_mean), color = "red") + 
+male_30_59_stratum_drop_10 <- ggplot(plot.dat, aes(year, log_mean)) +
+  geom_line(data = plot.raw, aes(year, log_mean), color = "red") +
+  geom_point(data = plot.raw, aes(year, log_mean), color = "red") + 
+  geom_line(data = unweighted.raw, aes(year, log_mean), color = "blue") +
+  geom_point(data = unweighted.raw, aes(year, log_mean), color = "blue") + 
   geom_line() +
   geom_point(size = 2) +
   geom_errorbar(aes(ymin = log_mean - 2*sd,
                     ymax = log_mean + 2*sd)) +
-  ggtitle("Male 30-59 mm, stratum > 10th percentile")
+  ggtitle("Male 30-59 mm, stratum > 10th percentile") + 
+  theme(axis.title.x = element_blank())
 
-male_30_59_stratum_drop_10th
+male_30_59_stratum_drop_10
+
 
 
 ## male 60-95, whole stratum, drop 5th quantile --------------------
@@ -552,59 +583,21 @@ check <- stratum %>%
 ggplot(check, aes(mean_log_cpue)) + 
   geom_histogram(bins = 30, fill = "grey", color = "black")
 
-ggplot(check, aes(longitude, latitude, color = mean_log_cpue)) +
-  geom_point(size = 4, shape = 15) +
-  scale_colour_gradient(
-    low = "purple",
-    high = "red",
-    space = "Lab",
-    na.value = "grey50",
-    guide = "colourbar",
-    aesthetics = "colour"
-  )
-
 # remove stations with mean cpue = 0
-
 drop_0 <- check %>%
   filter(mean_log_cpue > 0)
 
 ggplot(drop_0, aes(mean_log_cpue)) + 
   geom_histogram(bins = 30, fill = "grey", color = "black")
 
-ggplot(drop_0, aes(longitude, latitude, color = mean_log_cpue)) +
-  geom_point(size = 4, shape = 15) +
-  scale_colour_gradient(
-    low = "purple",
-    high = "red",
-    space = "Lab",
-    na.value = "grey50",
-    guide = "colourbar",
-    aesthetics = "colour"
-  )
-
-# plot zeros
-
-zero <- check %>%
-  filter(mean_log_cpue == 0)
-
-ggplot(zero, aes(longitude, latitude)) +
-  geom_point() +
-  xlim(-180, -155) +
-  ylim(54, 62)
-
-# looks at histogram for non-zero catches
-ggplot(drop_0, aes(mean_log_cpue)) +
-  geom_histogram(bins = 50, fill = "grey", color = "black")
-
 # drop catches < 5th quantile
-
 drop_5th <- drop_0 %>%
   filter(mean_log_cpue > quantile(drop_0$mean_log_cpue, 0.05))
 
 ggplot(drop_5th, aes(mean_log_cpue)) + 
   geom_histogram(bins = 30, fill = "grey", color = "black")
 
-ggplot(drop_5th, aes(longitude, latitude, color = mean_log_cpue)) +
+male_60_95_drop_5_map <- ggplot(drop_5th, aes(longitude, latitude, color = mean_log_cpue)) +
   geom_point(size = 4, shape = 15) +
   scale_colour_gradient(
     low = "purple",
@@ -615,9 +608,9 @@ ggplot(drop_5th, aes(longitude, latitude, color = mean_log_cpue)) +
     aesthetics = "colour"
   )
 
+male_60_95_drop_5_map
 
-# remove mean_log_cpue < 2nd quantile from annual catch data
-
+# remove mean_log_cpue < 5th quantile from annual catch data
 dat <- stratum %>%
   filter(stratum$GIS_STATION %in% unique(drop_5th$GIS_STATION))
 
@@ -628,7 +621,6 @@ count <- dat %>%
 
 count
 
-
 # get into matrix form for mice
 dat <- tapply(dat$log_cpue, list(dat$YEAR, dat$GIS_STATION), mean)
 
@@ -637,25 +629,31 @@ dat <- tapply(dat$log_cpue, list(dat$YEAR, dat$GIS_STATION), mean)
 r <- rcorr(as.matrix(dat))$r 
 r #Cross-year correlations between each station combination
 
-hist(r)
-
 # choose 15 variables with highest absolute correlation (van Buuren & Oudshoorn recommend 15-25)
 pred <- t(apply(r,1, function(x) rank(1-abs(x))<=25))# T for the 30 strongest correlations for each time series
 diag(pred) <- FALSE # and of course, drop self-correlations - make the diagonal FALSE
+
+# plot r used in imputation
+plot_r <- data.frame(r = r[pred])
+
+male_60_95_drop5_hist <- ggplot(plot_r, aes(r)) +
+  geom_histogram(fill = "grey", color = "black", bins = 50)
+
+male_60_95_drop5_hist
 
 colnames(pred) <- rownames(pred) <- colnames(dat) <- str_remove_all(colnames(pred), "-")
 
 blocks <- mice::make.blocks(dat)
 
-imp <- mice::mice(data = dat, method = "norm", m=100, predictorMatrix = pred, blocks = blocks) 
+# imp <- mice::mice(data = dat, method = "norm", m=100, predictorMatrix = pred, blocks = blocks) 
 
-saveRDS(imp, "./output/abundance_imputations_male_60_95_stratum_drop_5.RDS")
+# saveRDS(imp, "./output/abundance_imputations_male_60_95_stratum_drop_5.RDS")
 imp_60_95_drop_5 <- readRDS("./output/abundance_imputations_male_60_95_stratum_drop_5.RDS")
 
 
 # are there NAs in complete(imp)?
 
-check <- is.na(complete(imp))
+check <- is.na(complete(imp_60_95_drop_5))
 
 sum(check) # 0
 
@@ -672,6 +670,35 @@ imputed.dat <- data.frame()
 lower_bound <- 0
 upper_bound <- max(dat, na.rm = T) 
 
+# get weights (area of each stratum) for weighted mean abundance
+# first, strata areas for weighted mean abundance - use 2022, when all stations were sampled
+area <- sc_strata %>%
+  filter(YEAR == 2022,
+         STATION_ID %in% unique(drop_5th$GIS_STATION)) %>%
+  mutate(STATION = str_remove_all(STATION_ID, "-")) %>%
+  select(STATION, DISTRICT, TOTAL_AREA)
+
+sum_area <- area %>%
+  group_by(DISTRICT) %>%
+  summarise(total_count = n(),
+            total_area = mean(TOTAL_AREA))
+
+weights <- data.frame(STATION = colnames(complete(imp_60_95_drop_5, action = 1))) %>%
+  left_join(., area)
+
+# get proportion of each stratum that is included in the imputation
+summary_weights <- weights %>%
+  group_by(DISTRICT) %>%
+  summarise(count_sampled = n()) %>%
+  left_join(., sum_area) %>%
+  mutate(weight = (count_sampled / total_count) * total_area) %>%
+  select(DISTRICT, weight)
+
+weights <- left_join(weights, summary_weights)
+
+# set up weighted mean function
+ff <- function(x) weighted.mean(x, weights$weight, na.rm = T)
+
 for(i in 1:100){
   
   # i <- 1
@@ -687,7 +714,7 @@ for(i in 1:100){
   imputed.dat <- rbind(imputed.dat,
                        data.frame(imputation = i,
                                   year = c(1975:2019, 2021, 2022),
-                                  log_mean = rowMeans(temp, na.rm = T)))
+                                  log_mean = apply(temp, 1, ff)))
 }
 
 
@@ -698,28 +725,62 @@ plot.dat <- data.frame(year = c(1975:2019, 2021:2022),
                        log_mean = tapply(imputed.dat$log_mean, imputed.dat$year, mean),
                        sd = tapply(imputed.dat$log_mean, imputed.dat$year, sd))
 
+# replace sd = 0 with NA
+check <- plot.dat$sd == 0
+plot.dat$sd[check] <- NA
+
 # summarize raw (non-imputed data) to plot
+# first, get weights
+raw_weights <- sc_strata %>%
+  select(STATION_ID, DISTRICT, YEAR, TOTAL_AREA) %>%
+  rename(GIS_STATION = STATION_ID)
+
+raw_summary1 <- raw_weights %>%
+  group_by(YEAR, DISTRICT) %>%
+  summarise(total_count = n(),
+            total_area = mean(TOTAL_AREA))
+
+# get proportion of each stratum that is included in the imputation
+raw_summary2 <- raw_weights %>%
+  group_by(YEAR, DISTRICT) %>%
+  summarise(count_sampled = n()) %>%
+  left_join(., raw_summary1) %>%
+  mutate(weight = (count_sampled / total_count) * total_area) %>%
+  select(YEAR, DISTRICT, weight)
 
 raw.dat <- stratum %>%
-  filter(stratum$GIS_STATION %in% unique(drop_5th$GIS_STATION)) %>%
+  left_join(.,raw_summary2)
+
+# replace NA weights with 1
+change <- is.na(raw.dat$weight)
+raw.dat$weight[change] <- 1
+
+plot.raw <- raw.dat %>%
+  mutate(weighted_log_cpue = log_cpue*weight) %>%
+  group_by(YEAR) %>%
+  summarise(sum_weight = sum(weight),
+            sum_weighted_log_cpue = sum(weighted_log_cpue)) %>%
+  mutate(log_mean = sum_weighted_log_cpue / sum_weight) %>%
+  rename(year = YEAR)
+
+unweighted.raw <- raw.dat %>%
   group_by(YEAR) %>%
   rename(year = YEAR) %>%
   summarise(log_mean = mean(log_cpue))
 
-male_60_95_stratum_drop_5th <- ggplot(plot.dat, aes(year, log_mean)) +
-  geom_line(data = raw.dat, aes(year, log_mean), color = "red") +
-  geom_point(data = raw.dat, aes(year, log_mean), color = "red") + 
+male_60_95_stratum_drop_5 <- ggplot(plot.dat, aes(year, log_mean)) +
+  geom_line(data = plot.raw, aes(year, log_mean), color = "red") +
+  geom_point(data = plot.raw, aes(year, log_mean), color = "red") + 
+  geom_line(data = unweighted.raw, aes(year, log_mean), color = "blue") +
+  geom_point(data = unweighted.raw, aes(year, log_mean), color = "blue") + 
   geom_line() +
   geom_point(size = 2) +
   geom_errorbar(aes(ymin = log_mean - 2*sd,
                     ymax = log_mean + 2*sd)) +
-  ggtitle("Male 60-95, stratum > 5th percentile")
+  ggtitle("Male 60-95 mm, stratum > 5th percentile") + 
+  theme(axis.title.x = element_blank())
 
-male_60_95_stratum_drop_5th
-
-
-
-
+male_60_95_stratum_drop_5
 
 
 ## female immature > 30 mm ---------------------------
@@ -728,7 +789,7 @@ scratch <- sc_catch %>%
          SEX == 2,
          CLUTCH_SIZE == 0,
          WIDTH >= 30,
-         SHELL_CONDITION == 2) %>%
+         SHELL_CONDITION <= 2) %>%
   group_by(YEAR, GIS_STATION, AREA_SWEPT) %>%
   summarise(N_CRAB = sum(SAMPLING_FACTOR, na.rm = T),
             CPUE = N_CRAB / mean(AREA_SWEPT)) 
@@ -763,8 +824,7 @@ check
 # log transform CPUE
 stratum$log_cpue <- log(stratum$CPUE + 1)
 
-# plot histogram of mean cpue per station
-
+# remove stations with mean cpue = 0
 check <- stratum %>%
   group_by(GIS_STATION) %>%
   summarise(mean_log_cpue = mean(log_cpue),
@@ -774,49 +834,11 @@ check <- stratum %>%
 ggplot(check, aes(mean_log_cpue)) + 
   geom_histogram(bins = 30, fill = "grey", color = "black")
 
-ggplot(check, aes(longitude, latitude, color = mean_log_cpue)) +
-  geom_point(size = 4, shape = 15) +
-  scale_colour_gradient(
-    low = "purple",
-    high = "red",
-    space = "Lab",
-    na.value = "grey50",
-    guide = "colourbar",
-    aesthetics = "colour"
-  )
-
-# remove stations with mean cpue = 0
-
 drop_0 <- check %>%
   filter(mean_log_cpue > 0)
 
 ggplot(drop_0, aes(mean_log_cpue)) + 
   geom_histogram(bins = 30, fill = "grey", color = "black")
-
-ggplot(drop_0, aes(longitude, latitude, color = mean_log_cpue)) +
-  geom_point(size = 4, shape = 15) +
-  scale_colour_gradient(
-    low = "purple",
-    high = "red",
-    space = "Lab",
-    na.value = "grey50",
-    guide = "colourbar",
-    aesthetics = "colour"
-  )
-
-# plot zeros
-
-zero <- check %>%
-  filter(mean_log_cpue == 0)
-
-ggplot(zero, aes(longitude, latitude)) +
-  geom_point() +
-  xlim(-180, -155) +
-  ylim(54, 62)
-
-# looks at histogram for non-zero catches
-ggplot(drop_0, aes(mean_log_cpue)) +
-  geom_histogram(bins = 50, fill = "grey", color = "black")
 
 # drop 10th quantile
 drop_10th <- drop_0 %>%
@@ -825,7 +847,7 @@ drop_10th <- drop_0 %>%
 ggplot(drop_10th, aes(mean_log_cpue)) + 
   geom_histogram(bins = 30, fill = "grey", color = "black")
 
-ggplot(drop_10th, aes(longitude, latitude, color = mean_log_cpue)) +
+female_immature_drop_10_map <- ggplot(drop_10th, aes(longitude, latitude, color = mean_log_cpue)) +
   geom_point(size = 4, shape = 15) +
   scale_colour_gradient(
     low = "purple",
@@ -836,14 +858,11 @@ ggplot(drop_10th, aes(longitude, latitude, color = mean_log_cpue)) +
     aesthetics = "colour"
   )
 
+female_immature_drop_10_map
 
 # remove mean_log_cpue < 10th quantile from annual catch data
-
 dat <- stratum %>%
   filter(stratum$GIS_STATION %in% unique(drop_10th$GIS_STATION))
-
-
-# remove mean_log_cpue = 0 from annual catch data
 
 # check stations per year
 count <- dat %>%
@@ -859,19 +878,23 @@ dat <- tapply(dat$log_cpue, list(dat$YEAR, dat$GIS_STATION), mean)
 r <- rcorr(as.matrix(dat))$r 
 r #Cross-year correlations between each station combination
 
-hist(r)
-
 # choose 15 variables with highest absolute correlation (van Buuren & Oudshoorn recommend 15-25)
 pred <- t(apply(r,1, function(x) rank(1-abs(x))<=25))# T for the 30 strongest correlations for each time series
 diag(pred) <- FALSE # and of course, drop self-correlations - make the diagonal FALSE
 
-hist(r[pred])
+# plot r used in imputation
+plot_r <- data.frame(r = r[pred])
+
+female_immature_drop10_hist <- ggplot(plot_r, aes(r)) +
+  geom_histogram(fill = "grey", color = "black", bins = 50)
+
+female_immature_drop10_hist
 
 colnames(pred) <- rownames(pred) <- colnames(dat) <- str_remove_all(colnames(pred), "-")
 
 blocks <- mice::make.blocks(dat)
 
-imp <- mice::mice(data = dat, method = "norm", m=100, predictorMatrix = pred, blocks = blocks) 
+imp <- mice::mice(data = dat, method = "norm", m=100, predictorMatrix = pred, blocks = blocks)
 
 saveRDS(imp, "./output/abundance_imputations_female_immature_stratum_drop_10.RDS")
 imp_female_drop_10 <- readRDS("./output/abundance_imputations_female_immature_stratum_drop_10.RDS")
@@ -881,7 +904,7 @@ imp_female_drop_10 <- readRDS("./output/abundance_imputations_female_immature_st
 
 check <- is.na(complete(imp_female_drop_10))
 
-sum(check) # 4!
+sum(check) # 2!
 
 
 # also create df to save mean annual temp and sampling day for each imputed temperature data set
@@ -895,6 +918,50 @@ imputed.dat <- data.frame()
 
 lower_bound <- 0
 upper_bound <- max(dat, na.rm = T) 
+
+# get weights (area of each stratum) for weighted mean abundance
+# first, strata areas for weighted mean abundance - use 2022, when all stations were sampled
+area_full <- sc_strata %>%
+  filter(YEAR == 2022) %>%
+  mutate(STATION = str_remove_all(STATION_ID, "-")) %>%
+  select(STATION, DISTRICT, TOTAL_AREA)
+
+sum_area_full <- area_full %>%
+  group_by(DISTRICT) %>%
+  summarise(full_count = n())
+
+area_10 <- sc_strata %>%
+  filter(YEAR == 2022,
+         STATION_ID %in% unique(drop_10th$GIS_STATION)) %>%
+  mutate(STATION = str_remove_all(STATION_ID, "-")) %>%
+  select(STATION, DISTRICT, TOTAL_AREA)
+
+sum_area_10 <- area_10 %>%
+  group_by(DISTRICT) %>%
+  summarise(total_count = n(),
+            total_area = mean(TOTAL_AREA)) %>%
+  left_join(., sum_area_full) %>%
+  mutate(area_10 = (total_count / full_count) * total_area) %>%
+  select(DISTRICT, area_10) %>%
+  rename(weight = area_10)
+
+weights <- data.frame(STATION = colnames(complete(imp_female_drop_10, action = 1))) %>%
+  left_join(., area_10) %>%
+  select(-TOTAL_AREA) %>%
+  left_join(.,sum_area_10)
+
+# # get proportion of each stratum that is included in the imputation
+# summary_weights <- weights %>%
+#   group_by(DISTRICT) %>%
+#   summarise(count_sampled = n()) %>%
+#   left_join(., sum_area) %>%
+#   mutate(weight = (count_sampled / total_count) * total_area) %>%
+#   select(DISTRICT, weight)
+
+# weights <- left_join(weights, summary_weights)
+
+# set up weighted mean function
+ff <- function(x) weighted.mean(x, weights$weight, na.rm = T)
 
 for(i in 1:100){
   
@@ -911,7 +978,7 @@ for(i in 1:100){
   imputed.dat <- rbind(imputed.dat,
                        data.frame(imputation = i,
                                   year = c(1975:2019, 2021, 2022),
-                                  log_mean = rowMeans(temp, na.rm = T)))
+                                  log_mean = apply(temp, 1, ff)))
 }
 
 
@@ -922,24 +989,62 @@ plot.dat <- data.frame(year = c(1975:2019, 2021:2022),
                        log_mean = tapply(imputed.dat$log_mean, imputed.dat$year, mean),
                        sd = tapply(imputed.dat$log_mean, imputed.dat$year, sd))
 
+# replace sd = 0 with NA
+check <- plot.dat$sd == 0
+plot.dat$sd[check] <- NA
+
 # summarize raw (non-imputed data) to plot
+# first, get weights
+raw_weights <- sc_strata %>%
+  select(STATION_ID, DISTRICT, YEAR, TOTAL_AREA) %>%
+  rename(GIS_STATION = STATION_ID)
+
+raw_summary1 <- raw_weights %>%
+  group_by(YEAR, DISTRICT) %>%
+  summarise(total_count = n(),
+            total_area = mean(TOTAL_AREA))
+
+# get proportion of each stratum that is included in the imputation
+raw_summary2 <- raw_weights %>%
+  group_by(YEAR, DISTRICT) %>%
+  summarise(count_sampled = n()) %>%
+  left_join(., raw_summary1) %>%
+  mutate(weight = (count_sampled / total_count) * total_area) %>%
+  select(YEAR, DISTRICT, weight)
 
 raw.dat <- stratum %>%
-  filter(stratum$GIS_STATION %in% unique(drop_10th$GIS_STATION)) %>%
+  left_join(.,raw_summary2)
+
+# replace NA weights with 1
+change <- is.na(raw.dat$weight)
+raw.dat$weight[change] <- 1
+
+plot.raw <- raw.dat %>%
+  mutate(weighted_log_cpue = log_cpue*weight) %>%
+  group_by(YEAR) %>%
+  summarise(sum_weight = sum(weight),
+            sum_weighted_log_cpue = sum(weighted_log_cpue)) %>%
+  mutate(log_mean = sum_weighted_log_cpue / sum_weight) %>%
+  rename(year = YEAR)
+
+unweighted.raw <- raw.dat %>%
   group_by(YEAR) %>%
   rename(year = YEAR) %>%
   summarise(log_mean = mean(log_cpue))
 
-female_stratum_drop_10th <- ggplot(plot.dat, aes(year, log_mean)) +
-  geom_line(data = raw.dat, aes(year, log_mean), color = "red") +
-  geom_point(data = raw.dat, aes(year, log_mean), color = "red") + 
+female.stratum_drop_10th <- ggplot(plot.dat, aes(year, log_mean)) +
+  geom_line(data = plot.raw, aes(year, log_mean), color = "red") +
+  geom_point(data = plot.raw, aes(year, log_mean), color = "red") + 
+  geom_line(data = unweighted.raw, aes(year, log_mean), color = "blue") +
+  geom_point(data = unweighted.raw, aes(year, log_mean), color = "blue") + 
   geom_line() +
   geom_point(size = 2) +
   geom_errorbar(aes(ymin = log_mean - 2*sd,
                     ymax = log_mean + 2*sd)) +
-  ggtitle("Female > 30 mm, stratum > 10th percentile")
+  ggtitle("Female immature, stratum > 10th percentile") + 
+  theme(axis.title.x = element_blank())
 
-female_stratum_drop_10th
+female.stratum_drop_10th
 
 
 ###################
