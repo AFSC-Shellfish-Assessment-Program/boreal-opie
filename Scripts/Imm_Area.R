@@ -19,9 +19,13 @@ library(ggmap)
 
 ## EBS haul data ----
 sc_catch <- read.csv("./Data/crabhaul_opilio.csv")
+sc_catch <- read.csv("./Data/CRABHAUL_OPILIO.csv")
+
 
 #EBS strata data ----
 sc_strata <- read_csv("./Data/crabstrata_opilio.csv")
+sc_strata <- read_csv("./Data/STRATA_OPILIO_NEWTIMESERIES.csv")
+
 
 ###################################################
 # data exploration ----
@@ -63,7 +67,7 @@ sc_catch %>%
   #join to zero catch stations
   right_join(sc_strata %>%
                     filter(SURVEY_YEAR > 1979) %>%
-                    distinct(SURVEY_YEAR, STATION_ID, STRATUM, TOTAL_AREA_SQ_NM) %>%
+                    distinct(SURVEY_YEAR, STATION_ID, STRATUM, TOTAL_AREA) %>%
                     rename_all(~c("GIS_STATION", "AKFIN_SURVEY_YEAR",
                              "STRATUM", "TOTAL_AREA_SQ_NM"))) %>%
               replace_na(list(CPUE = 0)) -> cpue
