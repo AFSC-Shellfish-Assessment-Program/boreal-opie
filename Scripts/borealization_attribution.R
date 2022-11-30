@@ -76,8 +76,8 @@ dat_ce[["upper_90"]] <- ce1s_2$sst.anomaly[["upper__"]]
 dat_ce[["lower_90"]] <- ce1s_2$sst.anomaly[["lower__"]]
 dat_ce[["upper_80"]] <- ce1s_3$sst.anomaly[["upper__"]]
 dat_ce[["lower_80"]] <- ce1s_3$sst.anomaly[["lower__"]]
-dat_ce[["rug.anom"]] <- c(jitter(unique(dat$sst.anomaly), amount = 0.01),
-                          rep(NA, 100-length(unique(dat$sst.anomaly))))
+# dat_ce[["rug.anom"]] <- c(jitter(unique(dat$sst.anomaly), amount = 0.01),
+                          # rep(NA, 100-length(unique(dat$sst.anomaly))))
 
 
 g1 <- ggplot(dat_ce) +
@@ -86,8 +86,9 @@ g1 <- ggplot(dat_ce) +
   geom_ribbon(aes(ymin = lower_90, ymax = upper_90), fill = "grey85") +
   geom_ribbon(aes(ymin = lower_80, ymax = upper_80), fill = "grey80") +
   geom_line(size = 0.5, color = "red3") +
-  labs(x = "SST anomaly wrt 1950-1999", y = "Borealization trend") +
-  geom_rug(aes(x=rug.anom, y=NULL)) 
+  labs(x = "SST anomaly wrt 1854-1949 (SD)", y = "Borealization index") +
+  geom_text(data = dat, aes(sst.anomaly, trend, label = year), size = 3)
+  # geom_rug](aes(x=rug.anom, y=NULL)) 
 
 print(g1)
 
@@ -95,6 +96,8 @@ print(g1)
 
 # load model object for predicting preindustrial and historical probabilities
 mod <- readRDS("./output/Eastern_Bering_sea_rolling_window_binomial2.rds")
+
+bayes_R2(mod)
 
 far_pred <- data.frame()
 
@@ -149,10 +152,8 @@ print(g2)
 
 # aside - calculate risk ratio
 
-RR <- far_pred %>%
-  filter(year >= 2014) %>%
-  mutate(RR = 1/(1-far))
-
+far_pred <- far_pred %>%
+  mutate(rr = 1/(1-far))
 
 
 ## fit attribution model in brms----------------------
@@ -160,7 +161,7 @@ RR <- far_pred %>%
 # NB - could add uncertainty in FAR estimates into this model
 
 far_add <- far_pred %>%
-  select(year, far)
+  select(year, far, rr)
 
 dat <- left_join(dat, far_add)
 
@@ -174,7 +175,7 @@ attribution_boreal_brm <- brm(attribution_boreal_formula,
                       data = dat, 
                       cores = 4, chains = 4, iter = 3000,
                       save_pars = save_pars(all = TRUE),
-                      control = list(adapt_delta = 0.999, max_treedepth = 10))
+                      control = list(adapt_delta = 0.999, max_treedepth = 12))
 
 saveRDS(attribution_boreal_brm, file = "output/attribution_boreal_brm.rds")
 
@@ -213,18 +214,83 @@ g3 <- ggplot(dat_ce) +
   geom_ribbon(aes(ymin = lower_90, ymax = upper_90), fill = "grey85") +
   geom_ribbon(aes(ymin = lower_80, ymax = upper_80), fill = "grey80") +
   geom_line(size = 0.5, color = "red3") +
-  labs(x = "Fraction of attributable risk", y = "Borealization trend") +
-  geom_rug(aes(x=rug.anom, y=NULL)) 
+  labs(x = "Fraction of attributable risk", y = "Borealization index") +
+  geom_text(data = dat, aes(far, trend, label = year))
+  # geom_rug(aes(x=rug.anom, y=NULL)) 
 
 print(g3)
+
+### explore rr vs trend -------------
+dat <- dat %>%
+  mutate(log_rr = log(rr, 10))
+
+ggplot(dat, aes(log_rr, trend)) +
+  geom_text(aes(label = year)) +
+  geom_smooth(se=F)
+
+
+rr_boreal_formula <-  bf(trend ~ s(log_rr))
+
+## Show default priors
+get_prior(rr_boreal_formula, dat)
+
+## fit 
+rr_boreal_brm <- brm(rr_boreal_formula,
+                              data = dat, 
+                              cores = 4, chains = 4, iter = 3000,
+                              save_pars = save_pars(all = TRUE),
+                              control = list(adapt_delta = 0.999, max_treedepth = 12))
+
+saveRDS(rr_boreal_brm, file = "output/rr_boreal_brm.rds")
+
+# run diagnostics
+rr_boreal_brm <- readRDS("./output/rr_boreal_brm.rds")
+check_hmc_diagnostics(rr_boreal_brm$fit)
+neff_lowest(rr_boreal_brm$fit)
+rhat_highest(rr_boreal_brm$fit)
+summary(rr_boreal_brm)
+bayes_R2(rr_boreal_brm)
+
+# plot
+## 95% CI
+ce1s_1 <- conditional_effects(rr_boreal_brm, effect = "log_rr", re_formula = NA,
+                              probs = c(0.025, 0.975))
+## 90% CI
+ce1s_2 <- conditional_effects(rr_boreal_brm, effect = "log_rr", re_formula = NA,
+                              probs = c(0.05, 0.95))
+## 80% CI
+ce1s_3 <- conditional_effects(rr_boreal_brm, effect = "log_rr", re_formula = NA,
+                              probs = c(0.1, 0.9))
+dat_ce <- ce1s_1$log_rr
+dat_ce[["upper_95"]] <- dat_ce[["upper__"]]
+dat_ce[["lower_95"]] <- dat_ce[["lower__"]]
+dat_ce[["upper_90"]] <- ce1s_2$log_rr[["upper__"]]
+dat_ce[["lower_90"]] <- ce1s_2$log_rr[["lower__"]]
+dat_ce[["upper_80"]] <- ce1s_3$log_rr[["upper__"]]
+dat_ce[["lower_80"]] <- ce1s_3$log_rr[["lower__"]]
+
+
+g3b <- ggplot(dat_ce) +
+  aes(x = effect1__, y = estimate__) +
+  geom_ribbon(aes(ymin = lower_95, ymax = upper_95), fill = "grey90") +
+  geom_ribbon(aes(ymin = lower_90, ymax = upper_90), fill = "grey85") +
+  geom_ribbon(aes(ymin = lower_80, ymax = upper_80), fill = "grey80") +
+  geom_line(size = 0.5, color = "red3") +
+  labs(x = "Risk ratio", y = "Borealization index") +
+  geom_text(data = dat, aes(log_rr, trend, label = year), size = 3) +
+  scale_x_continuous(breaks = c(0, 1, 2, 3), labels = c("1", "10", "100", "1000"))
+# geom_rug(aes(x=rug.anom, y=NULL)) 
+
+print(g3b)
+
 
 
 # save
 png("./Figs/borealization_attribution.png", width = 4, height = 8, units = 'in', res = 300)
 
-ggpubr::ggarrange(g1,
-                  g2,
-                  g3,
+ggpubr::ggarrange(g2,
+                  g1,
+                  g3b,
                   ncol = 1,
                   labels = "auto")
 

@@ -27,8 +27,8 @@ abundance <- read.csv("./Data/imm_abun.csv", row.names = 1)
 # clean up and combine
 
 abundance <- abundance %>%
-  rename(year = AKFIN_SURVEY_YEAR) %>%
-  mutate(log_abundance = log(ABUNDANCE_MIL), .keep = "unused")
+  rename(year = YEAR) %>%
+  mutate(log_abundance = log(ABUNDANCE), .keep = "unused")
 
 dat <- left_join(trend, abundance)
 

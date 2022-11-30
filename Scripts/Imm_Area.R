@@ -116,6 +116,10 @@ sc_strata %>%
       dplyr::rename(GIS_STATION = STATION_ID) %>%
       right_join(perc50) -> perc50_core
 
+# save for other analyses
+write.csv(perc50_core, "output/core_stations.csv", row.names = F)
+
+
 #Plot....this takes awhile to generate a stamen map FYI!!
 get_stamenmap(bbox=c(-180, 54, -157, 63),
   maptype="toner-lite") %>%

@@ -149,7 +149,7 @@
     # pivot wider
     means <- means %>% 
       pivot_wider(values_from = ice, names_from = month) %>%
-      filter(year %in% 1953:2021) # fixed values through 1952, 2022 incomplete!
+      filter(year %in% 1953:2022) 
     
     means[,2:5] <- apply(means[,2:5], 2, scale)
     

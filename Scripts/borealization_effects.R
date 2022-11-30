@@ -66,7 +66,12 @@ mod2 <- gam(abundance_change ~ log_abundance + s(trend2), data = dat)
 summary(mod2)
 plot(mod2)
 
-MuMIn::AICc(mod1, mod2) # mod1 is slightly better
+
+mod3 <- gam(abundance_change ~ s(log_abundance) + s(trend2), data = dat)
+
+summary(mod3)
+plot(mod3)
+MuMIn::AICc(mod1, mod2, mod3) # mod1 is slightly better
 
 ## fit brms models ---------------------
 
@@ -74,6 +79,7 @@ trend_formula <-  bf(abundance_change ~ log_abundance + s(trend))
 
 trend2_formula <-  bf(abundance_change ~ log_abundance + s(trend2))
 
+trend3_formula <-  bf(abundance_change ~ s(log_abundance) + s(trend2))
 
 # drop NAs
 dat <- na.omit(dat)
