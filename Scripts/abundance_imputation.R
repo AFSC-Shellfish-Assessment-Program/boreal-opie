@@ -289,6 +289,14 @@ immature.stratum_drop_2nd <- ggplot(plot.dat, aes(year, log_mean)) +
 
 immature.stratum_drop_2nd
 
+# Create csv of imputed cpue, imputed sd, raw weighted cpue, raw unweighted cpue, and # stations sampled by year
+allimm_drop2_df <- cbind(data.frame(year = plot.dat$year, imp_log_mean = plot.dat$log_mean, imp_sd = plot.dat$sd),
+                         plot.raw %>% select(log_mean) %>% rename(wtd_log_mean = log_mean),
+                         unweighted.raw %>% select(log_mean) %>% rename(unwtd_log_mean = log_mean),
+                         count %>% select(count) %>% rename(n_stations = count))
+
+write.csv(allimm_drop2_df, "./output/allimm_drop2_df.csv")
+
 ## male 30-59, whole stratum, drop 10th quantile -------------
 scratch <- sc_catch %>%
   filter(HAUL_TYPE == 3, 
@@ -534,6 +542,14 @@ male_30_59_stratum_drop_10 <- ggplot(plot.dat, aes(year, log_mean)) +
   theme(axis.title.x = element_blank())
 
 male_30_59_stratum_drop_10
+
+# Create csv of imputed cpue, imputed sd, raw weighted cpue, raw unweighted cpue, and # stations sampled by year
+male3059_drop10_df <- cbind(data.frame(year = plot.dat$year, imp_log_mean = plot.dat$log_mean, imp_sd = plot.dat$sd),
+                         plot.raw %>% select(log_mean) %>% rename(wtd_log_mean = log_mean),
+                         unweighted.raw %>% select(log_mean) %>% rename(unwtd_log_mean = log_mean),
+                         count %>% select(count) %>% rename(n_stations = count))
+
+write.csv(male3059_drop10_df , "./output/male3059_drop10_df.csv")
 
 
 ## male 60-95, whole stratum, drop 5th quantile --------------------
@@ -783,6 +799,14 @@ male_60_95_stratum_drop_5 <- ggplot(plot.dat, aes(year, log_mean)) +
   theme(axis.title.x = element_blank())
 
 male_60_95_stratum_drop_5
+
+# Create csv of imputed cpue, imputed sd, raw weighted cpue, raw unweighted cpue, and # stations sampled by year
+male6095_drop5_df <- cbind(data.frame(year = plot.dat$year, imp_log_mean = plot.dat$log_mean, imp_sd = plot.dat$sd),
+                            plot.raw %>% select(log_mean) %>% rename(wtd_log_mean = log_mean),
+                            unweighted.raw %>% select(log_mean) %>% rename(unwtd_log_mean = log_mean),
+                            count %>% select(count) %>% rename(n_stations = count))
+
+write.csv(male6095_drop5_df , "./output/male6095_drop5_df.csv")
 
 
 ## female immature > 30 mm ---------------------------
@@ -1048,6 +1072,14 @@ female.stratum_drop_10th <- ggplot(plot.dat, aes(year, log_mean)) +
   theme(axis.title.x = element_blank())
 
 female.stratum_drop_10th
+
+# Create csv of imputed cpue, imputed sd, raw weighted cpue, raw unweighted cpue, and # stations sampled by year
+female_drop10_df <- cbind(data.frame(year = plot.dat$year, imp_log_mean = plot.dat$log_mean, imp_sd = plot.dat$sd),
+                            plot.raw %>% select(log_mean) %>% rename(wtd_log_mean = log_mean),
+                            unweighted.raw %>% select(log_mean) %>% rename(unwtd_log_mean = log_mean),
+                            count %>% select(count) %>% rename(n_stations = count))
+
+write.csv(female_drop10_df , "./output/female_drop10_df.csv")
 
 ## combine all the plots ---------------
 
