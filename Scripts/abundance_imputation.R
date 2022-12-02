@@ -62,7 +62,7 @@ scratch <- sc_catch %>%
 # join with stratum stations to include 0 catches 
 stratum <- stratum %>%
   select(GIS_STATION, YEAR, MID_LONGITUDE, MID_LATITUDE) %>%
-  left_join(., scratch)
+  left_join(., scratch) 
 
 ggplot(stratum, aes(MID_LONGITUDE, MID_LATITUDE)) +
   geom_point() +
@@ -180,8 +180,8 @@ upper_bound <- max(dat, na.rm = T)
 # get weights (area of each stratum) for weighted mean abundance
 # first, strata areas for weighted mean abundance - use 2022, when all stations were sampled
 area <- sc_strata %>%
-  filter(YEAR == 2022,
-         STATION_ID %in% unique(drop_0$GIS_STATION)) %>%
+  filter(YEAR == 2022) %>%
+         #STATION_ID %in% unique(drop_0$GIS_STATION)) %>%
   mutate(STATION = str_remove_all(STATION_ID, "-")) %>%
   select(STATION, DISTRICT, TOTAL_AREA)
 
@@ -239,24 +239,33 @@ plot.dat$sd[check] <- NA
 # summarize raw (non-imputed data) to plot
 # first, get weights
 raw_weights <- sc_strata %>%
-  select(STATION_ID, DISTRICT, YEAR, TOTAL_AREA) %>%
-  rename(GIS_STATION = STATION_ID)
+  mutate(STATION = str_remove_all(STATION_ID, "-")) %>%
+  select(YEAR, STATION, DISTRICT, TOTAL_AREA)
 
-raw_summary1 <- raw_weights %>%
-  group_by(YEAR, DISTRICT) %>%
-  summarise(total_count = n(),
-            total_area = mean(TOTAL_AREA))
+weights1 <- distinct(data.frame(YEAR = sc_catch$YEAR, STATION = sc_catch$GIS_STATION)) %>%
+  mutate(STATION = str_remove_all(STATION, "-")) %>%
+  left_join(., raw_weights)
 
 # get proportion of each stratum that is included in the imputation
-raw_summary2 <- raw_weights %>%
+summary_weights <- weights1 %>%
   group_by(YEAR, DISTRICT) %>%
   summarise(count_sampled = n()) %>%
-  left_join(., raw_summary1) %>%
+  left_join(., sum_area) %>%
   mutate(weight = (count_sampled / total_count) * total_area) %>%
-  select(YEAR, DISTRICT, weight)
+  select(DISTRICT, weight)
 
-raw.dat <- stratum %>%
-  left_join(.,raw_summary2)
+weights2 <- left_join(weights1, summary_weights)
+
+weights2 %>%
+  select(STATION, YEAR, DISTRICT, weight) %>%
+  distinct() %>%
+  as_tibble() %>%
+  rename(GIS_STATION = STATION) -> new_wts
+
+stratum %>%
+  mutate(GIS_STATION = str_remove_all(GIS_STATION, "-")) -> stratum # remove dash between GIS station to match new_wts
+
+raw.dat <- left_join(stratum, new_wts) 
 
 # replace NA weights with 1
 change <- is.na(raw.dat$weight)
@@ -275,13 +284,16 @@ unweighted.raw <- raw.dat %>%
   rename(year = YEAR) %>%
   summarise(log_mean = mean(log_cpue))
 
-immature.stratum_drop_2nd <- ggplot(plot.dat, aes(year, log_mean)) +
-  geom_line(data = plot.raw, aes(year, log_mean), color = "red") +
-  geom_point(data = plot.raw, aes(year, log_mean), color = "red") + 
-  geom_line(data = unweighted.raw, aes(year, log_mean), color = "blue") +
-  geom_point(data = unweighted.raw, aes(year, log_mean), color = "blue") + 
+# Plot
+immature.stratum_drop_2nd <- ggplot(plot.dat, aes(year, log_mean, color = "black")) +
+  geom_line(data = plot.raw, aes(year, log_mean, color = "red")) +
+  geom_point(data = plot.raw, aes(year, log_mean, color = "red")) + 
+  geom_line(data = unweighted.raw, aes(year, log_mean, color = "blue")) +
+  geom_point(data = unweighted.raw, aes(year, log_mean, color = "blue")) + 
   geom_line() +
+  scale_colour_manual(name = element_blank(), values = c("black", "red", "blue"), labels = c("Imputed", "Unweighted", "Weighted"))+
   geom_point(size = 2) +
+  theme(legend.position = "bottom")+
   geom_errorbar(aes(ymin = log_mean - 2*sd,
                     ymax = log_mean + 2*sd)) +
   ggtitle("Total immature, stratum > 2nd percentile") + 
@@ -309,9 +321,13 @@ scratch <- sc_catch %>%
 
 
 # join with stratum stations to include 0 catches 
+stratum <- haul %>%
+  filter(GIS_STATION %in% use) %>%
+  rename(YEAR = SURVEY_YEAR)
+
 stratum <- stratum %>%
   select(GIS_STATION, YEAR, MID_LONGITUDE, MID_LATITUDE) %>%
-  left_join(., scratch)
+  left_join(., scratch) 
 
 ggplot(stratum, aes(MID_LONGITUDE, MID_LATITUDE)) +
   geom_point() +
@@ -434,8 +450,8 @@ upper_bound <- max(dat, na.rm = T)
 # get weights (area of each stratum) for weighted mean abundance
 # first, strata areas for weighted mean abundance - use 2022, when all stations were sampled
 area <- sc_strata %>%
-  filter(YEAR == 2022,
-         STATION_ID %in% unique(drop_10th$GIS_STATION)) %>%
+  filter(YEAR == 2022) %>%
+         #STATION_ID %in% unique(drop_10th$GIS_STATION)) %>%
   mutate(STATION = str_remove_all(STATION_ID, "-")) %>%
   select(STATION, DISTRICT, TOTAL_AREA)
 
@@ -493,24 +509,33 @@ plot.dat$sd[check] <- NA
 # summarize raw (non-imputed data) to plot
 # first, get weights
 raw_weights <- sc_strata %>%
-  select(STATION_ID, DISTRICT, YEAR, TOTAL_AREA) %>%
-  rename(GIS_STATION = STATION_ID)
+  mutate(STATION = str_remove_all(STATION_ID, "-")) %>%
+  select(YEAR, STATION, DISTRICT, TOTAL_AREA)
 
-raw_summary1 <- raw_weights %>%
-  group_by(YEAR, DISTRICT) %>%
-  summarise(total_count = n(),
-            total_area = mean(TOTAL_AREA))
+weights1 <- distinct(data.frame(YEAR = sc_catch$YEAR, STATION = sc_catch$GIS_STATION)) %>%
+  mutate(STATION = str_remove_all(STATION, "-")) %>%
+  left_join(., raw_weights)
 
 # get proportion of each stratum that is included in the imputation
-raw_summary2 <- raw_weights %>%
+summary_weights <- weights1 %>%
   group_by(YEAR, DISTRICT) %>%
   summarise(count_sampled = n()) %>%
-  left_join(., raw_summary1) %>%
+  left_join(., sum_area) %>%
   mutate(weight = (count_sampled / total_count) * total_area) %>%
-  select(YEAR, DISTRICT, weight)
+  select(DISTRICT, weight)
 
-raw.dat <- stratum %>%
-  left_join(.,raw_summary2)
+weights2 <- left_join(weights1, summary_weights)
+
+weights2 %>%
+  select(STATION, YEAR, DISTRICT, weight) %>%
+  distinct() %>%
+  as_tibble() %>%
+  rename(GIS_STATION = STATION) -> new_wts
+
+stratum %>%
+  mutate(GIS_STATION = str_remove_all(GIS_STATION, "-")) -> stratum # remove dash between GIS station to match new_wts
+
+raw.dat <- left_join(stratum, new_wts) 
 
 # replace NA weights with 1
 change <- is.na(raw.dat$weight)
@@ -520,22 +545,25 @@ plot.raw <- raw.dat %>%
   mutate(weighted_log_cpue = log_cpue*weight) %>%
   group_by(YEAR) %>%
   summarise(sum_weight = sum(weight),
-            sum_weighted_log_cpue = sum(weighted_log_cpue)) %>%
+            sum_weighted_log_cpue = sum(weighted_log_cpue))%>%
   mutate(log_mean = sum_weighted_log_cpue / sum_weight) %>%
-  rename(year = YEAR)
+  rename(year = YEAR) 
 
 unweighted.raw <- raw.dat %>%
   group_by(YEAR) %>%
   rename(year = YEAR) %>%
   summarise(log_mean = mean(log_cpue))
 
-male_30_59_stratum_drop_10 <- ggplot(plot.dat, aes(year, log_mean)) +
-  geom_line(data = plot.raw, aes(year, log_mean), color = "red") +
-  geom_point(data = plot.raw, aes(year, log_mean), color = "red") + 
-  geom_line(data = unweighted.raw, aes(year, log_mean), color = "blue") +
-  geom_point(data = unweighted.raw, aes(year, log_mean), color = "blue") + 
+# Plot
+male_30_59_stratum_drop_10 <- ggplot(plot.dat, aes(year, log_mean, color = "black")) +
+  geom_line(data = plot.raw, aes(year, log_mean, color = "red")) +
+  geom_point(data = plot.raw, aes(year, log_mean, color = "red")) + 
+  geom_line(data = unweighted.raw, aes(year, log_mean, color = "blue")) +
+  geom_point(data = unweighted.raw, aes(year, log_mean, color = "blue")) + 
   geom_line() +
+  scale_colour_manual(name = element_blank(), values = c("black", "red", "blue"), labels = c("Imputed", "Unweighted", "Weighted"))+
   geom_point(size = 2) +
+  theme(legend.position = "bottom")+
   geom_errorbar(aes(ymin = log_mean - 2*sd,
                     ymax = log_mean + 2*sd)) +
   ggtitle("Male 30-59 mm, stratum > 10th percentile") + 
@@ -564,9 +592,14 @@ scratch <- sc_catch %>%
 
 
 # join with stratum stations to include 0 catches 
+stratum <- haul %>%
+  filter(GIS_STATION %in% use) %>%
+  rename(YEAR = SURVEY_YEAR)
+
 stratum <- stratum %>%
   select(GIS_STATION, YEAR, MID_LONGITUDE, MID_LATITUDE) %>%
-  left_join(., scratch)
+  left_join(., scratch) 
+
 
 ggplot(stratum, aes(MID_LONGITUDE, MID_LATITUDE)) +
   geom_point() +
@@ -691,8 +724,8 @@ upper_bound <- max(dat, na.rm = T)
 # get weights (area of each stratum) for weighted mean abundance
 # first, strata areas for weighted mean abundance - use 2022, when all stations were sampled
 area <- sc_strata %>%
-  filter(YEAR == 2022,
-         STATION_ID %in% unique(drop_5th$GIS_STATION)) %>%
+  filter(YEAR == 2022) %>%
+         #STATION_ID %in% unique(drop_5th$GIS_STATION)) %>%
   mutate(STATION = str_remove_all(STATION_ID, "-")) %>%
   select(STATION, DISTRICT, TOTAL_AREA)
 
@@ -750,24 +783,33 @@ plot.dat$sd[check] <- NA
 # summarize raw (non-imputed data) to plot
 # first, get weights
 raw_weights <- sc_strata %>%
-  select(STATION_ID, DISTRICT, YEAR, TOTAL_AREA) %>%
-  rename(GIS_STATION = STATION_ID)
+  mutate(STATION = str_remove_all(STATION_ID, "-")) %>%
+  select(YEAR, STATION, DISTRICT, TOTAL_AREA)
 
-raw_summary1 <- raw_weights %>%
-  group_by(YEAR, DISTRICT) %>%
-  summarise(total_count = n(),
-            total_area = mean(TOTAL_AREA))
+weights1 <- distinct(data.frame(YEAR = sc_catch$YEAR, STATION = sc_catch$GIS_STATION)) %>%
+  mutate(STATION = str_remove_all(STATION, "-")) %>%
+  left_join(., raw_weights)
 
 # get proportion of each stratum that is included in the imputation
-raw_summary2 <- raw_weights %>%
+summary_weights <- weights1 %>%
   group_by(YEAR, DISTRICT) %>%
   summarise(count_sampled = n()) %>%
-  left_join(., raw_summary1) %>%
+  left_join(., sum_area) %>%
   mutate(weight = (count_sampled / total_count) * total_area) %>%
-  select(YEAR, DISTRICT, weight)
+  select(DISTRICT, weight)
 
-raw.dat <- stratum %>%
-  left_join(.,raw_summary2)
+weights2 <- left_join(weights1, summary_weights)
+
+weights2 %>%
+  select(STATION, YEAR, DISTRICT, weight) %>%
+  distinct() %>%
+  as_tibble() %>%
+  rename(GIS_STATION = STATION) -> new_wts
+
+stratum %>%
+  mutate(GIS_STATION = str_remove_all(GIS_STATION, "-")) -> stratum # remove dash between GIS station to match new_wts
+
+raw.dat <- left_join(stratum, new_wts) 
 
 # replace NA weights with 1
 change <- is.na(raw.dat$weight)
@@ -777,22 +819,25 @@ plot.raw <- raw.dat %>%
   mutate(weighted_log_cpue = log_cpue*weight) %>%
   group_by(YEAR) %>%
   summarise(sum_weight = sum(weight),
-            sum_weighted_log_cpue = sum(weighted_log_cpue)) %>%
+            sum_weighted_log_cpue = sum(weighted_log_cpue))%>%
   mutate(log_mean = sum_weighted_log_cpue / sum_weight) %>%
-  rename(year = YEAR)
+  rename(year = YEAR) 
 
 unweighted.raw <- raw.dat %>%
   group_by(YEAR) %>%
   rename(year = YEAR) %>%
   summarise(log_mean = mean(log_cpue))
 
-male_60_95_stratum_drop_5 <- ggplot(plot.dat, aes(year, log_mean)) +
-  geom_line(data = plot.raw, aes(year, log_mean), color = "red") +
-  geom_point(data = plot.raw, aes(year, log_mean), color = "red") + 
-  geom_line(data = unweighted.raw, aes(year, log_mean), color = "blue") +
-  geom_point(data = unweighted.raw, aes(year, log_mean), color = "blue") + 
+# Plot
+male_60_95_stratum_drop_5 <- ggplot(plot.dat, aes(year, log_mean, color = "black")) +
+  geom_line(data = plot.raw, aes(year, log_mean, color = "red")) +
+  geom_point(data = plot.raw, aes(year, log_mean, color = "red")) + 
+  geom_line(data = unweighted.raw, aes(year, log_mean, color = "blue")) +
+  geom_point(data = unweighted.raw, aes(year, log_mean, color = "blue")) + 
   geom_line() +
+  scale_colour_manual(name = element_blank(), values = c("black", "red", "blue"), labels = c("Imputed", "Unweighted", "Weighted"))+
   geom_point(size = 2) +
+  theme(legend.position = "bottom")+
   geom_errorbar(aes(ymin = log_mean - 2*sd,
                     ymax = log_mean + 2*sd)) +
   ggtitle("Male 60-95 mm, stratum > 5th percentile") + 
@@ -825,9 +870,11 @@ stratum <- haul %>%
   filter(GIS_STATION %in% use) %>%
   rename(YEAR = SURVEY_YEAR)
 
+
 stratum <- stratum %>%
   select(GIS_STATION, YEAR, MID_LONGITUDE, MID_LATITUDE) %>%
-  left_join(., scratch)
+  left_join(., scratch) 
+
 
 ggplot(stratum, aes(MID_LONGITUDE, MID_LATITUDE)) +
   geom_point() +
@@ -958,8 +1005,8 @@ sum_area_full <- area_full %>%
   summarise(full_count = n())
 
 area_10 <- sc_strata %>%
-  filter(YEAR == 2022,
-         STATION_ID %in% unique(drop_10th$GIS_STATION)) %>%
+  filter(YEAR == 2022)%>%
+         #STATION_ID %in% unique(drop_10th$GIS_STATION)) %>%
   mutate(STATION = str_remove_all(STATION_ID, "-")) %>%
   select(STATION, DISTRICT, TOTAL_AREA)
 
@@ -1023,24 +1070,33 @@ plot.dat$sd[check] <- NA
 # summarize raw (non-imputed data) to plot
 # first, get weights
 raw_weights <- sc_strata %>%
-  select(STATION_ID, DISTRICT, YEAR, TOTAL_AREA) %>%
-  rename(GIS_STATION = STATION_ID)
+  mutate(STATION = str_remove_all(STATION_ID, "-")) %>%
+  select(YEAR, STATION, DISTRICT, TOTAL_AREA)
 
-raw_summary1 <- raw_weights %>%
-  group_by(YEAR, DISTRICT) %>%
-  summarise(total_count = n(),
-            total_area = mean(TOTAL_AREA))
+weights1 <- distinct(data.frame(YEAR = sc_catch$YEAR, STATION = sc_catch$GIS_STATION)) %>%
+  mutate(STATION = str_remove_all(STATION, "-")) %>%
+  left_join(., raw_weights)
 
 # get proportion of each stratum that is included in the imputation
-raw_summary2 <- raw_weights %>%
+summary_weights <- weights1 %>%
   group_by(YEAR, DISTRICT) %>%
   summarise(count_sampled = n()) %>%
-  left_join(., raw_summary1) %>%
+  left_join(., sum_area) %>%
   mutate(weight = (count_sampled / total_count) * total_area) %>%
-  select(YEAR, DISTRICT, weight)
+  select(DISTRICT, weight)
 
-raw.dat <- stratum %>%
-  left_join(.,raw_summary2)
+weights2 <- left_join(weights1, summary_weights)
+
+weights2 %>%
+  select(STATION, YEAR, DISTRICT, weight) %>%
+  distinct() %>%
+  as_tibble() %>%
+  rename(GIS_STATION = STATION) -> new_wts
+
+stratum %>%
+  mutate(GIS_STATION = str_remove_all(GIS_STATION, "-")) -> stratum # remove dash between GIS station to match new_wts
+
+raw.dat <- left_join(stratum, new_wts) 
 
 # replace NA weights with 1
 change <- is.na(raw.dat$weight)
@@ -1050,22 +1106,25 @@ plot.raw <- raw.dat %>%
   mutate(weighted_log_cpue = log_cpue*weight) %>%
   group_by(YEAR) %>%
   summarise(sum_weight = sum(weight),
-            sum_weighted_log_cpue = sum(weighted_log_cpue)) %>%
+            sum_weighted_log_cpue = sum(weighted_log_cpue))%>%
   mutate(log_mean = sum_weighted_log_cpue / sum_weight) %>%
-  rename(year = YEAR)
+  rename(year = YEAR) 
 
 unweighted.raw <- raw.dat %>%
   group_by(YEAR) %>%
   rename(year = YEAR) %>%
   summarise(log_mean = mean(log_cpue))
 
-female.stratum_drop_10th <- ggplot(plot.dat, aes(year, log_mean)) +
-  geom_line(data = plot.raw, aes(year, log_mean), color = "red") +
-  geom_point(data = plot.raw, aes(year, log_mean), color = "red") + 
-  geom_line(data = unweighted.raw, aes(year, log_mean), color = "blue") +
-  geom_point(data = unweighted.raw, aes(year, log_mean), color = "blue") + 
+# Plot
+female.stratum_drop_10th <- ggplot(plot.dat, aes(year, log_mean, color = "black")) +
+  geom_line(data = plot.raw, aes(year, log_mean, color = "red")) +
+  geom_point(data = plot.raw, aes(year, log_mean, color = "red")) + 
+  geom_line(data = unweighted.raw, aes(year, log_mean, color = "blue")) +
+  geom_point(data = unweighted.raw, aes(year, log_mean, color = "blue")) + 
   geom_line() +
+  scale_colour_manual(name = element_blank(), values = c("black", "red", "blue"), labels = c("Imputed", "Unweighted", "Weighted"))+
   geom_point(size = 2) +
+  theme(legend.position = "bottom")+
   geom_errorbar(aes(ymin = log_mean - 2*sd,
                     ymax = log_mean + 2*sd)) +
   ggtitle("Female immature, stratum > 10th percentile") + 
