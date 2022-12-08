@@ -22,7 +22,7 @@ haul <- read.csv("./Data/haul.csv")
 
 # restrict to haul_type = 3 and plot
 haul <- haul %>%
-  filter(HAUL_TYPE == 3) 
+  filter(HAUL_TYPE %in% 3:4) 
 
 ggplot(haul, aes(MID_LONGITUDE, MID_LATITUDE)) +
   geom_point() +
@@ -156,9 +156,9 @@ colnames(pred) <- rownames(pred) <- colnames(dat) <- str_remove_all(colnames(pre
 
 blocks <- mice::make.blocks(dat)
 
-# imp <- mice::mice(data = dat, method = "norm", m=100, predictorMatrix = pred, blocks = blocks) 
-# 
-# saveRDS(imp, "./output/abundance_imputations_all_immature_stratum_drop_2nd.RDS")
+imp <- mice::mice(data = dat, method = "norm", m=100, predictorMatrix = pred, blocks = blocks)
+
+saveRDS(imp, "./output/abundance_imputations_all_immature_stratum_drop_2nd.RDS")
 imp_immature_drop_2nd <- readRDS("./output/abundance_imputations_all_immature_stratum_drop_2nd.RDS")
 
 
@@ -422,9 +422,9 @@ colnames(pred) <- rownames(pred) <- colnames(dat) <- str_remove_all(colnames(pre
 
 blocks <- mice::make.blocks(dat)
 
-# imp <- mice::mice(data = dat, method = "norm", m=100, predictorMatrix = pred, blocks = blocks) 
-# 
-# saveRDS(imp, "./output/abundance_imputations_male_30-59_stratum_drop_10th.RDS")
+imp <- mice::mice(data = dat, method = "norm", m=100, predictorMatrix = pred, blocks = blocks)
+
+saveRDS(imp, "./output/abundance_imputations_male_30-59_stratum_drop_10th.RDS")
 imp_30_59_drop_10 <- readRDS("./output/abundance_imputations_male_30-59_stratum_drop_10th.RDS")
 
 
@@ -696,9 +696,9 @@ colnames(pred) <- rownames(pred) <- colnames(dat) <- str_remove_all(colnames(pre
 
 blocks <- mice::make.blocks(dat)
 
-# imp <- mice::mice(data = dat, method = "norm", m=100, predictorMatrix = pred, blocks = blocks) 
+imp <- mice::mice(data = dat, method = "norm", m=100, predictorMatrix = pred, blocks = blocks)
 
-# saveRDS(imp, "./output/abundance_imputations_male_60_95_stratum_drop_5.RDS")
+saveRDS(imp, "./output/abundance_imputations_male_60_95_stratum_drop_5.RDS")
 imp_60_95_drop_5 <- readRDS("./output/abundance_imputations_male_60_95_stratum_drop_5.RDS")
 
 
@@ -968,9 +968,9 @@ colnames(pred) <- rownames(pred) <- colnames(dat) <- str_remove_all(colnames(pre
 
 blocks <- mice::make.blocks(dat)
 # 
-# imp <- mice::mice(data = dat, method = "norm", m=100, predictorMatrix = pred, blocks = blocks)
-# 
-# saveRDS(imp, "./output/abundance_imputations_female_immature_stratum_drop_10.RDS")
+imp <- mice::mice(data = dat, method = "norm", m=100, predictorMatrix = pred, blocks = blocks)
+
+saveRDS(imp, "./output/abundance_imputations_female_immature_stratum_drop_10.RDS")
 imp_female_drop_10 <- readRDS("./output/abundance_imputations_female_immature_stratum_drop_10.RDS")
 
 
