@@ -1,9 +1,6 @@
 # notes ----
 # Estimate missing temperature values with MICE (Multivariate Imputation by Chained Equations)
-#Re-calculating avg bottom temp, cold pool extent and cold pool COD with imputed temp time series 
-
-# authors: Mike Litzow, Erin Fedewa, Tyler Jackson
-# last updated: 2020/1/9 TJ
+#Re-calculating EBS avg bottom temp and cold pool extent with imputed temp time series 
 
 # load ----
 library(tidyverse)

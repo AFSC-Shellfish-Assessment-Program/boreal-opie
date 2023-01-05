@@ -39,9 +39,10 @@ ebs13 <- import("./Data/Groundfish Catch Data/ebs2013_2016.csv")
 ebs17 <- import("./Data/Groundfish Catch Data/ebs2017_2018.csv")
 ebs19 <- import("./Data/Groundfish Catch Data/ebs2019.csv")
 ebs21 <- import("./Data/Groundfish Catch Data/ebs2021.csv")
+ebs22 <- import("./Data/Groundfish Catch Data/ebs2022.csv")
 
 # combine datasets now and save output
-bind_rows(ebs82, ebs85, ebs90, ebs95, ebs00, ebs05, ebs09, ebs13, ebs17, ebs19, ebs21) %>%
+bind_rows(ebs82, ebs85, ebs90, ebs95, ebs00, ebs05, ebs09, ebs13, ebs17, ebs19, ebs21, ebs22) %>%
   write_csv("./Data/groundfish_timeseries.csv")
 
 ###########################################

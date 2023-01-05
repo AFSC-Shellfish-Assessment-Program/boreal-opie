@@ -5,6 +5,7 @@
   #2) Determine average bottom temperature of core habitat within each yr
   
 # Author: Erin Fedewa
+#Last update: 1/5/2023
 
 #NOTES:
 #Given that stations differed pre 1980, only 1980+ dataset was used to calculate 
@@ -19,11 +20,8 @@ library(ggmap)
 
 ## EBS haul data ----
 sc_catch <- read.csv("./Data/crabhaul_opilio.csv")
-sc_catch <- read.csv("./Data/CRABHAUL_OPILIO.csv")
-
 
 #EBS strata data ----
-sc_strata <- read_csv("./Data/crabstrata_opilio.csv")
 sc_strata <- read_csv("./Data/STRATA_OPILIO_NEWTIMESERIES.csv")
 
 
