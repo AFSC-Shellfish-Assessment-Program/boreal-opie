@@ -16,8 +16,6 @@ library(Hmisc)
 
 ## EBS haul data ----
 sc_catch <- read.csv("./Data/crabhaul_opilio.csv")
-sc_catch <- read.csv("./Data/CRABHAUL_OPILIO.csv")
-
 
 #EBS strata data ----
 sc_strata <- read_csv("./Data/STRATA_OPILIO_NEWTIMESERIES.csv")
