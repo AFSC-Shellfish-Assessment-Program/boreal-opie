@@ -47,14 +47,6 @@ dat.new %>%
   labs(x = "Longitude", y = "Latitude") +
   facet_wrap(~year)
 
-#EBS stations sampled 50% of the years
-dat.new %>%
-  filter(gear_lat < 60,
-         year != 2019) %>%
-  group_by(gear_lat, gear_long) %>%
-#Need to come back to this......
-
-
 #EBS Mean date sampled 
 dat.new %>%
   filter(gear_lat < 60,
@@ -71,28 +63,66 @@ dat.new %>%
   geom_histogram(bins = 12, fill = "dark grey", color = "black") +
   facet_wrap(~year) # big differences 
 
-#To do: spatially subset by bsierp regions? How to deliniate EBS vrs NBS
-#Need to filter for EBS, pull 2019, filter for stations sampled in >50% of years?
+#Avg chla ratio by year (no date correction)
+dat.new %>%
+  group_by(year) %>%
+  summarise(total_ratio = mean(avg_ratio, na.rm=T))%>%
+  ggplot(aes(as.numeric(year), total_ratio)) +
+  geom_point() +
+  geom_line() 
+
+#To do: Look up table for BSIERP regions 3 & 6
+#filter by regions, pull years with only a few stations sampled
 
 ###############################################
 # fit model to chl-a ratio to control for lat,long and julian day and 
 # estimate annual chl-a
 
-#ALL data- not spatially subset yet 
+#ALL data- not spatially subset yet
 chla.mod <- gam(avg_ratio ~ te(gear_long, gear_lat) + s(julian, k = 5) + year, 
                   data = dat.new)
 
-summary(chla.mod)
+summary(chla.mod) #don't really need julian smooth here...
 plot(chla.mod)
+gam.check(chla.mod) #not great...lots of positive residuals
+
+#4th root transform response and re-run
+dat.new %>%
+  filter(avg_ratio > 0) -> dat.new.fourth #One zero obsv. in dataset
+chla.mod.2 <- gam(avg_ratio^0.25 ~ te(gear_long, gear_lat) + s(julian, k = 5) + year, 
+                data = dat.new.fourth)
+
+summary(chla.mod.2)
+plot(chla.mod.2)
+gam.check(chla.mod.2) #much better
+
+#Back transform and extract year coefficient (2003 is our intercept)
+c(coef(chla.mod.2)[1], coef(chla.mod.2)[1] + coef(chla.mod.2)[2:17])^4 -> est
+
+year <- data.frame(year = 2003:2019)
+cbind(est,year) -> dat
+as_tibble(dat) %>%
+  rename(avg_chla_ratio = est) -> ratio.dat
+
+#plot 
+ratio.dat %>%
+  ggplot(aes(year, avg_chla_ratio)) +
+  geom_point() + 
+  geom_line() #Trends are similar to raw data plot 
+
+# Save product
+write.csv(ratio.dat, "./Data/summarized_chla.csv")
+
+###################
+#Mike approach used for zooplankton data 
 
 #Create new data frame with average lat, long, and day and predict ratio for each year
 new.chla.dat <- data.frame(julian = mean(dat.new$julian, na.rm=T),
-                             lat = mean(dat.new$gear_lat),
-                             long = mean(dat.new$gear_long),
+                             gear_lat = mean(dat.new$gear_lat),
+                             gear_long = mean(dat.new$gear_long),
                              year = unique(dat.new$year))
 
 chla.pred <- predict(chla.mod, newdata = new.chla.dat, se = T)
-
 
 pred.dat <- data.frame(year = new.chla.dat$year,
                              chla_ratio = chla.pred$fit,
@@ -101,11 +131,9 @@ pred.dat <- data.frame(year = new.chla.dat$year,
                              group = "chla") %>%
   mutate(year = as.numeric(as.character(year)))
 
-ggplot(pred.dat, aes(year, log_abundance)) +
+ggplot(pred.dat, aes(year, chla_ratio)) +
   geom_point() +
   geom_errorbar(aes(ymin = LCI, ymax = UCI)) +
   facet_wrap(~group, scales = "free_y", ncol = 1)
 
 
-# Save product
-write.csv(pred.dat, "./Data/summarized_chla.csv")
