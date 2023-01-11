@@ -7,37 +7,33 @@ library(corrplot)
 library(oce)
 theme_set(theme_bw())
 
+#Updated 1/10/23 with 2022 data by EJF
+
 # set colors
 cb <- c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
 
 ## data processing -------------------------------------
 
+#bloom timing
 d1 <- read.csv("./Data/bloom_timing.csv")
 
 d1 <- d1 %>%
-  filter(sub_6domain == "south_middle") %>%
-  rename(value = peak_mean) %>%
+  filter(north_south == "south") %>%
+  rename(value = globcolour_peak_mean) %>%
   mutate(name = "Bloom timing") %>%
   select(year, name, value)
-  
+
+#bloom type  
 d2 <- read.csv("./Data/bloom_type.csv")
 
 d2 <- d2 %>%
-  filter(!is.na(bloom_type),
-         sub_6domain == "south_middle")
-
-ggplot(d2, aes(year, count, color = bloom_type)) +
-  geom_line() +
-  geom_point() 
-
-d2 <- d2 %>%
-  pivot_wider(names_from = bloom_type,
-              values_from = count) %>%
-  rename(`Ice-edge bloom` = ice_full,
-         `Open water bloom` = ice_free) %>%
-  pivot_longer(cols = c(-year, -sub_6domain)) %>%
+  filter(north_south == "south") %>%
+  mutate(name = case_when(gl_type == "ice_full" ~ "Ice-edge bloom",
+                          gl_type == "ice_free" ~ "Open water bloom")) %>%
+  rename(value = count) %>%
   select(year, name, value)
 
+#sea ice
 d3 <- read.csv("./Data/ice.csv")
 
 d3 <- d3 %>%
@@ -46,34 +42,29 @@ d3 <- d3 %>%
   filter(year >= 1972) %>%
   pivot_longer(cols = -year)
 
-d4 <- read.csv("./Data/chl_a.csv")
+#chl-a size fraction
+d4 <- read.csv("./Data/summarized_chla.csv")
 
 d4 <- d4 %>%
-  select(-north_int_chla, -north_fract_chla) %>%
-  rename(`Bloom size` = south_int_chla,
-         `Phytoplankton size` = south_fract_chla) %>%
-  pivot_longer(cols = -year)
+  rename(`Bloom size` = total_avg_chla,
+         `Phytoplankton size` = avg_chla_ratio) 
 
+#BCS prevalence 
 d5 <- read.csv("./Data/bcs_prev.csv", row.names = 1)
 
-plot <- d5 %>%
-  pivot_longer(cols = -year)
-
-ggplot(plot, aes(year, value, color = name)) +
-  geom_line() +
-  geom_point()
-
 d5 <- d5 %>% 
-  select(year, Population) %>%
-  rename(`Hematodinium` = Population) %>%
-  pivot_longer(cols = -year)
+  select(YEAR, All) %>%
+  rename(Hematodinium = All,
+         year = YEAR) 
   
+#bottom temp
 d6 <- read.csv("./Data/date_corrected_bottom_temp.csv")
 
 d6 <- d6 %>%
   rename(value = bottom.temp) %>%
   mutate(name = 'Bottom temperature')
 
+#groundfish CPUE
 d7 <- read.csv("./Data/groundfish_med_cpue.csv", row.names = 1)
 
 d7 <- d7 %>%
@@ -82,6 +73,7 @@ d7 <- d7 %>%
          `Arctic groundfish` = med_arctic_CPUE) %>%
   pivot_longer(cols = -year)
 
+#zooplankton abundances
 d8 <- read.csv("./Data/summarized_zooplankton.csv")
 
 d8 <- d8 %>%
