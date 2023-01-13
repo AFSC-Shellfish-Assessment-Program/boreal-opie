@@ -112,7 +112,7 @@ cpue %>%
 #Join lat/long back in to perc50 dataset and plot
 sc_strata %>%
       filter(SURVEY_YEAR == 2021) %>% #Just selecting a yr when all stations were sampled
-      select(STATION_ID, LATITUDE, LONGITUDE) %>%
+      dplyr::select(STATION_ID, LATITUDE, LONGITUDE) %>%
       dplyr::rename(GIS_STATION = STATION_ID) %>%
       right_join(perc50) -> perc50_core
 
