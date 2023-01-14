@@ -47,15 +47,17 @@ d4 <- read.csv("./Data/summarized_chla.csv")
 
 d4 <- d4 %>%
   rename(`Bloom size` = total_avg_chla,
-         `Phytoplankton size` = avg_chla_ratio) 
+         `Phytoplankton size ratio` = avg_chla_ratio) %>%
+  pivot_longer(c(1,3)) 
 
 #BCS prevalence 
 d5 <- read.csv("./Data/bcs_prev.csv", row.names = 1)
 
 d5 <- d5 %>% 
   select(YEAR, All) %>%
-  rename(Hematodinium = All,
-         year = YEAR) 
+  rename(value = All,
+         year = YEAR) %>%
+  mutate(name = "Hematodinium")
   
 #bottom temp
 d6 <- read.csv("./Data/date_corrected_bottom_temp.csv")
@@ -77,8 +79,7 @@ d7 <- d7 %>%
 d8 <- read.csv("./Data/summarized_zooplankton.csv")
 
 d8 <- d8 %>%
-  select(-LCI, -UCI) %>%
-  rename(name = group, 
+  rename(name = taxa, 
          value = log_abundance)
 
 dat <- rbind(d1, d2, d3, d4, d5, d6, d7, d8)
