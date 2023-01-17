@@ -65,3 +65,4 @@ ggplot(dat, aes(lag_bor_index, log_male_30_59)) +
 ggplot(dat, aes(bor_index, log_male_30_59)) +
   geom_point() +
   geom_smooth(method = "gam", se = F, formula = y ~ s(x, k = 6))
+
