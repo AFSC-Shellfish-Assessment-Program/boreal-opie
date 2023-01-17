@@ -7,7 +7,7 @@ library(corrplot)
 library(oce)
 theme_set(theme_bw())
 
-#Updated 1/10/23 with 2022 data by EJF
+# Updated 1/10/23 with 2022 data by EJF
 
 # set colors
 cb <- c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
@@ -114,10 +114,29 @@ cors <- cor(t(dfa.dat), use = "p")
 diag(cors) <- 0
 
 max(cors)
-min(cors)
+min(cors) # open-water bloom and ice-edge bloom are perfectly correlated?
+
+plot <- as.data.frame(t(dfa.dat))
+
+ggplot(plot, aes(`Open water bloom`, `Ice-edge bloom`)) +
+  geom_point()
+
+# remove open water and replot cors
+drop <- rownames(dfa.dat) == "Open water bloom"
+
+dfa.dat <- dfa.dat[!drop,]
+
+cors <- cor(t(dfa.dat), use = "p")
+diag(cors) <- 0
+
+max(cors)
+min(cors) 
+
+
+ggsave("./figs/open water vs ice edge.png", width = 5, height = 3, units = 'in')
 
 png("./Figs/time_series_corrplot.png", width = 6, height = 5.5, units = 'in', res = 300)
-corrplot(cors, method = "sq", col.lim = c(-0.94, 0.94), col = oceColorsPalette(64), tl.col = "black", cl.cex = 0.7, order = "FPC")
+corrplot(cors, method = "sq", col.lim = c(-0.86, 0.86), col = oceColorsPalette(64), tl.col = "black", cl.cex = 0.7, order = "FPC")
 dev.off()
 
 # set up forms of R matrices
