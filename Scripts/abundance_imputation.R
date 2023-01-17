@@ -22,7 +22,7 @@ haul <- read.csv("./Data/haul.csv")
 
 # restrict to haul_type = 3 and plot
 haul <- haul %>%
-  filter(HAUL_TYPE %in% 3:4) 
+  filter(HAUL_TYPE == 3) 
 
 ggplot(haul, aes(MID_LONGITUDE, MID_LATITUDE)) +
   geom_point() +
