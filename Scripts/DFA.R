@@ -121,8 +121,8 @@ plot <- as.data.frame(t(dfa.dat))
 ggplot(plot, aes(`Open water bloom`, `Ice-edge bloom`)) +
   geom_point()
 
-# remove open water and replot cors
-drop <- rownames(dfa.dat) == "Open water bloom"
+# remove ice-edge bloom (more NAs) and replot cors
+drop <- rownames(dfa.dat) == "Ice-edge bloom"
 
 dfa.dat <- dfa.dat[!drop,]
 
@@ -136,7 +136,7 @@ min(cors)
 ggsave("./figs/open water vs ice edge.png", width = 5, height = 3, units = 'in')
 
 png("./Figs/time_series_corrplot.png", width = 6, height = 5.5, units = 'in', res = 300)
-corrplot(cors, method = "sq", col.lim = c(-0.86, 0.86), col = oceColorsPalette(64), tl.col = "black", cl.cex = 0.7, order = "FPC")
+corrplot(cors, method = "sq", col.lim = c(-0.865, 0.865), col = oceColorsPalette(64), tl.col = "black", cl.cex = 0.7, order = "FPC")
 dev.off()
 
 # set up forms of R matrices
@@ -219,9 +219,9 @@ plot.CI
 dodge <- position_dodge(width=0.9)
 
 
-plot.CI$names <- reorder(plot.CI$names, CI$par$Z[1:26])
+plot.CI$names <- reorder(plot.CI$names, CI$par$Z[1:24])
 
-plot.CI$trend <- rep(c("T1", "T2"), each = 13)
+plot.CI$trend <- rep(c("T1", "T2"), each = 12)
 
 loadings.plot <- ggplot(plot.CI, aes(x=names, y=mean, fill = trend)) +
   geom_bar(position=dodge, stat="identity") +
@@ -267,14 +267,14 @@ mod = MARSS(dfa.dat, model=model.list, z.score=TRUE, form="dfa", control=cntl.li
 CI <- MARSSparamCIs(mod)
 
 plot.CI <- data.frame(names=rownames(dfa.dat),
-                          mean=CI$par$Z[1:13],
-                          upCI=CI$par.upCI$Z[1:13],
-                          lowCI=CI$par.lowCI$Z[1:13])
+                          mean=CI$par$Z[1:12],
+                          upCI=CI$par.upCI$Z[1:12],
+                          lowCI=CI$par.lowCI$Z[1:12])
 
 dodge <- position_dodge(width=0.9)
 
 
-plot.CI$names <- reorder(plot.CI$names, CI$par$Z[1:13])
+plot.CI$names <- reorder(plot.CI$names, CI$par$Z[1:12])
 
 loadings.plot <- ggplot(plot.CI, aes(x=names, y=mean)) +
   geom_bar(position=dodge, stat="identity", fill=cb[2]) +
