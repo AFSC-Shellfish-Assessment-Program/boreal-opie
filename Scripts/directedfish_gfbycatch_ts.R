@@ -88,7 +88,7 @@ length_opilio <- read.csv("./Data/DEBRIEFED_CRAB_LENGTH.txt") %>%
 haul_opilio <- read.csv("./Data/DEBRIEFED_HAUL.txt") %>%
   filter(SPECIES_NAME == "OPILIO TANNER CRAB")
     
-#Filter haul data by summer months and NPT
+# Pull out months and year
 haul_opilio %>%
   mutate(sampdate = lubridate::mdy(HAUL_DATE), 
          year = lubridate::year(sampdate),
@@ -197,8 +197,8 @@ length_opilio %>%
     var1 = var_names[ii, 1]
     var2 = var_names[ii, 2]
     
-    as.data.frame(ccf(comb_df[grepl(var1, colnames(comb_df))], df[grepl(var2, colnames(comb_df))], 
-                      plot = FALSE)$acf[,,1]) -> ccf_df[,ii]
+    ccf(comb_df[grepl(var1, colnames(comb_df))], comb_df[grepl(var2, colnames(comb_df))], 
+                      plot = FALSE)$acf[,,1] -> ccf_df[,ii]
     
     colnames(ccf_df)[ii] <- paste(var1, var2, sep = "-")
     
@@ -206,3 +206,4 @@ length_opilio %>%
 
   # Save output to csv
   write.csv(ccf_df, "./Output/ccf_opiliogroundfish.csv")
+  write.csv(comb_df, "./Output/bycatch_directfish_groundfish_ts.csv")
