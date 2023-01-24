@@ -143,7 +143,24 @@ length_opilio %>%
     scale_color_manual(name = NULL, values = c("blue", "red"),
                        labels = c("Mature (>=95mm)", "Immature (<95mm)"))+
     theme_bw() -> total_catch_per_year
+
+# save just bycatch / directed catch data for imputation -------------------------
+  opie_bycatch <- read.csv("./Data/opilio_male_bycatch_ts.csv", row.names = 1) %>%
+    dplyr::select(year, logmean_male3059, logmean_male6095) %>%
+    filter(year >= 1988) # truncating first two years with very low catch
   
+  opie_directfish <- read.csv("./Data/opilio_male_directfish_ts.csv", row.names = 1) %>%
+    dplyr::select(year, logmean_male3059pp, logmean_male6095pp)
+  
+# combine
+out <- left_join(opie_bycatch, opie_directfish) %>%
+  dplyr::rename(small_log_cpue_bycatch = logmean_male3059,
+         large_log_cpue_bycatch = logmean_male6095,
+         small_log_cpue_directed = logmean_male3059pp,
+         large_log_cpue_directed = logmean_male6095pp)
+
+write.csv(out, "./output/directed_bycatch_all_years.csv")
+    
 # CROSS-CORRELATION BETWEEN DIRECTED FISHERY and BYCATCH DATA for OPILIO and YFS, POLLOCK, and PLAICE RECRUIT AND SSB ---------------------------------------------------------------------------------------------
 
   years <- 1995:2019 #set years for data
