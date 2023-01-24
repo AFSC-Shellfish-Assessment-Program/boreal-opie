@@ -20,12 +20,15 @@
     ## load and process ERSST ------------------------
     
     # download.file("https://coastwatch.pfeg.noaa.gov/erddap/griddap/nceiErsstv5.nc?sst[(1950-01-01):1:(2022-03-01T00:00:00Z)][(0.0):1:(0.0)][(50):1:(66)][(180):1:(204)]", "~temp")
+    # download.file("https://coastwatch.pfeg.noaa.gov/erddap/griddap/nceiErsstv5.nc?sst[(1854-01-01):1:(2022-12-01T00:00:00Z)][(0.0):1:(0.0)][(50):1:(66)][(180):1:(204)]", "~temp")
     
     # load and process SST data
     # nc <- nc_open("~temp")
     
     nc <- nc_open("./Data/nceiErsstv5_b990_926e_15da.nc")
     
+    # full time series
+    nc <- nc_open("./Data/nceiErsstv5_845b_f996_87bc.nc")
     # process
     
     ncvar_get(nc, "time")   # seconds since 1-1-1970
@@ -92,6 +95,24 @@ unique(cell.weight) # looks right
 # create a weighted mean function
 weighted.cell.mean <- function(x) weighted.mean(x, w = cell.weight, na.rm = T)
 
+# calculate annual weighted mean temp
+monthly.sst <- apply(ebs.sst, 1, weighted.cell.mean)
+annual.sst <- tapply(monthly.sst, yr, mean)
+
+plot.sst <- data.frame(year = 1854:2022,
+                       sst = annual.sst)
+
+ggplot(plot.sst, aes(year, annual.sst)) +
+  geom_point(size = 1) +
+  geom_line() +
+  geom_smooth(se = F) +
+  scale_x_continuous(breaks = seq(1860, 2020, 20)) +
+  theme(axis.title.x = element_blank()) +
+  ylab("Mean SST (°C)")
+
+ggsave("./figs/annual_sst_ts.png", width = 4, height = 3, units = "in")
+
+
 # create a function to compute monthly anomalies
 monthly.anomalies <- function(x) tapply(x, m, mean) 
 
@@ -113,7 +134,9 @@ winter.year <- winter.year[m.1950.2022  %in% c("Nov", "Dec", "Jan", "Feb", "Mar"
   
   # calculate weighted monthly means
   monthly.anom <- apply(anom, 1, weighted.cell.mean)
-    
+
+  
+      
   # make data frame for plotting
   obs.plot <- data.frame(monthly.anom = monthly.anom,
                          date = lubridate::parse_date_time(x = paste(yr,as.numeric(m),"01"),orders="ymd",tz="America/Anchorage"))
