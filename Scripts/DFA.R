@@ -100,6 +100,9 @@ ggplot(dat, aes(year, value)) +
 
 ggsave("./Figs/borealization_time_series.png", width = 12, height = 5, units = 'in')
 
+# save time series
+write.csv(dat, "./output/dfa time series.csv", row.names = F)
+
 dfa.dat <- dat %>%
   select(-order) %>%
   pivot_wider(names_from = name, values_from = value) %>% 
@@ -277,7 +280,7 @@ dodge <- position_dodge(width=0.9)
 plot.CI$names <- reorder(plot.CI$names, CI$par$Z[1:12])
 
 loadings.plot <- ggplot(plot.CI, aes(x=names, y=mean)) +
-  geom_bar(position=dodge, stat="identity", fill=cb[2]) +
+  geom_bar(position=dodge, stat="identity", fill=cb[6]) +
   geom_errorbar(aes(ymax=upCI, ymin=lowCI), position=dodge, width=0.5) +
   ylab("Loading") +
   xlab("") +
@@ -293,10 +296,10 @@ trend <- data.frame(t=1972:2022,
 
 trend.plot <- ggplot(trend, aes(t, estimate)) +
   theme_bw() +
-  geom_line(color=cb[2]) +
+  geom_line(color=cb[6]) +
   geom_hline(yintercept = 0) +
-  geom_point(color=cb[2]) +
-  geom_ribbon(aes(x=t, ymin=conf.low, ymax=conf.high), linetype=2, alpha=0.1, fill=cb[2]) + xlab("") + ylab("Borealization index")
+  geom_point(color=cb[6]) +
+  geom_ribbon(aes(x=t, ymin=conf.low, ymax=conf.high), linetype=2, alpha=0.1, fill=cb[6]) + xlab("") + ylab("Borealization index")
 
 
 # save
