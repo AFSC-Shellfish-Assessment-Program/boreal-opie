@@ -151,7 +151,7 @@ MuMIn::AICc(sm_mod1, sm_mod2, sm_mod3, sm_mod4, sm_mod5, sm_mod6, sm_mod7) # bes
 
 ## brms version of best small male model--------------------
 
-form <- bf(small_male ~ s(trend2_lag1, k = 4))
+form <- bf(small_male ~ s(trend2_lag1, k = 4) + ar(time = year, p = 1, cov = T))
 
 ## fit
 mice_brm <- brm(form,
@@ -160,7 +160,7 @@ mice_brm <- brm(form,
                          save_pars = save_pars(all = TRUE),
                          control = list(adapt_delta = 0.999, max_treedepth = 12))
 
-saveRDS(mice_brm, file = "output/mice_sm_male_brm_no_imputation.rds")
+saveRDS(mice_brm, file = "output/mice_sm_male_brm_no_imputation_ar.rds")
 
 # diagnostics
 mice_brm <- readRDS("./output/mice_sm_male_brm_no_imputation.rds")
@@ -204,8 +204,6 @@ dat_ce[["upper_90"]] <- ce1s_2$trend2_lag1[["upper__"]]
 dat_ce[["lower_90"]] <- ce1s_2$trend2_lag1[["lower__"]]
 dat_ce[["upper_80"]] <- ce1s_3$trend2_lag1[["upper__"]]
 dat_ce[["lower_80"]] <- ce1s_3$trend2_lag1[["lower__"]]
-dat_ce[["rug.anom"]] <- c(jitter(unique(trend$trend[trend$year %in% 1980:2020]), amount = 0.01),
-                          rep(NA, 100-length(trend$trend[trend$year %in% 1980:2020])))
 
 
 g1 <- ggplot(dat_ce) +
@@ -214,13 +212,23 @@ g1 <- ggplot(dat_ce) +
   geom_ribbon(aes(ymin = lower_90, ymax = upper_90), fill = "grey85") +
   geom_ribbon(aes(ymin = lower_80, ymax = upper_80), fill = "grey80") +
   geom_line(size = 1, color = "red3") +
-  labs(x = "Borealization index", y = "Log abundance") +
-  geom_rug(aes(x=rug.anom, y=NULL))
+  labs(x = "Borealization index (mean year-1, year-2)", y = "Mean log CPUE") +
+  geom_text(data = filter(dat, year != 2020), aes(x = trend2_lag1, y = small_male, label = year), size = 3)
 
 print(g1)
 
-ggsave("./Figs/mice_borealization_abundance_regression.png", width = 6, height = 4, units = 'in')
-# large male models
+ggsave("./Figs/mice_borealization_abundance_regression_small_male_no_imputation_ar.png", width = 6, height = 4, units = 'in')
+
+## fit ar model in gam-----
+sm_mod4a <- gamm(small_male ~ s(trend2_lag1, k = 4), correlation = corAR1(), dat = dat, na.action = "na.omit")
+summary(sm_mod4a$gam)
+plot(sm_mod4a$gam, resid = T, se = T, pch = 19)
+
+ggplot(dat, aes(trend2_lag1, small_male)) +
+  geom_text(aes(label = year)) +
+  geom_smooth(method = "gam", se = F)
+
+## large male models-----------------------------------------------
 
 large_mod1 <- gam(large_male ~ s(small_male_lag1, k = 4), dat = dat, na.action = "na.omit")
 summary(large_mod1)
@@ -274,6 +282,106 @@ plot(large_mod11, resid = T, se = F, pch = 19)
 
 MuMIn::AICc(large_mod7, large_mod8, large_mod9, large_mod10, large_mod11) # mod 10
 
+## brms version of best small male model--------------------
+
+form <- bf(large_male ~ s(small_male_lag1) + s(trend, k = 4))
+
+## fit
+mice_brm <- brm(form,
+                data = dat,
+                cores = 4, chains = 4, iter = 3000,
+                save_pars = save_pars(all = TRUE),
+                control = list(adapt_delta = 0.999, max_treedepth = 12))
+
+saveRDS(mice_brm, file = "output/mice_large_male_brm_no_imputation.rds")
+
+# diagnostics
+mice_brm <- readRDS("./output/mice_large_male_brm_no_imputation.rds")
+check_hmc_diagnostics(mice_brm$fit)
+neff_lowest(mice_brm$fit)
+rhat_highest(mice_brm$fit)
+
+bayes_R2(mice_brm)
+
+plot(conditional_effects(mice_brm), ask = FALSE)
+
+# y <- y %>%
+#   group_by(year) %>%
+#   summarise(log_abundance_lead1 = mean(log_abundance_lead1))
+# 
+# y <- y$log_abundance_lead1
+# 
+# yrep_mice_brm  <- fitted(mice_brm, scale = "response", summary = FALSE)
+# ppc_dens_overlay(y = y, yrep = yrep_mice_brm[sample(nrow(yrep_mice_brm), 25), ]) +
+#   ggtitle("mice_brm")
+# 
+# ggsave("./Figs/mice_brms_ppc.png", width = 6, height = 4, units = 'in')
+# 
+# trace_plot(mice_brm$fit)
+
+# plot mice_brm
+
+## 95% CI
+ce1s_1 <- conditional_effects(mice_brm, effect = "trend", re_formula = NA,
+                              probs = c(0.025, 0.975))
+## 90% CI
+ce1s_2 <- conditional_effects(mice_brm, effect = "trend", re_formula = NA,
+                              probs = c(0.05, 0.95))
+## 80% CI
+ce1s_3 <- conditional_effects(mice_brm, effect = "trend", re_formula = NA,
+                              probs = c(0.1, 0.9))
+dat_ce <- ce1s_1$trend
+dat_ce[["upper_95"]] <- dat_ce[["upper__"]]
+dat_ce[["lower_95"]] <- dat_ce[["lower__"]]
+dat_ce[["upper_90"]] <- ce1s_2$trend[["upper__"]]
+dat_ce[["lower_90"]] <- ce1s_2$trend[["lower__"]]
+dat_ce[["upper_80"]] <- ce1s_3$trend[["upper__"]]
+dat_ce[["lower_80"]] <- ce1s_3$trend[["lower__"]]
+
+
+g2 <- ggplot(dat_ce) +
+  aes(x = effect1__, y = estimate__) +
+  geom_ribbon(aes(ymin = lower_95, ymax = upper_95), fill = "grey90") +
+  geom_ribbon(aes(ymin = lower_90, ymax = upper_90), fill = "grey85") +
+  geom_ribbon(aes(ymin = lower_80, ymax = upper_80), fill = "grey80") +
+  geom_line(size = 1, color = "red3") +
+  labs(x = "Borealization index", y = "Mean log CPUE") 
+
+print(g2)
+
+
+ce1s_1 <- conditional_effects(mice_brm, effect = "small_male_lag1", re_formula = NA,
+                              probs = c(0.025, 0.975))
+## 90% CI
+ce1s_2 <- conditional_effects(mice_brm, effect = "small_male_lag1", re_formula = NA,
+                              probs = c(0.05, 0.95))
+## 80% CI
+ce1s_3 <- conditional_effects(mice_brm, effect = "small_male_lag1", re_formula = NA,
+                              probs = c(0.1, 0.9))
+dat_ce <- ce1s_1$small_male_lag1
+dat_ce[["upper_95"]] <- dat_ce[["upper__"]]
+dat_ce[["lower_95"]] <- dat_ce[["lower__"]]
+dat_ce[["upper_90"]] <- ce1s_2$small_male_lag1[["upper__"]]
+dat_ce[["lower_90"]] <- ce1s_2$small_male_lag1[["lower__"]]
+dat_ce[["upper_80"]] <- ce1s_3$small_male_lag1[["upper__"]]
+dat_ce[["lower_80"]] <- ce1s_3$small_male_lag1[["lower__"]]
+
+
+g3 <- ggplot(dat_ce) +
+  aes(x = effect1__, y = estimate__) +
+  geom_ribbon(aes(ymin = lower_95, ymax = upper_95), fill = "grey90") +
+  geom_ribbon(aes(ymin = lower_90, ymax = upper_90), fill = "grey85") +
+  geom_ribbon(aes(ymin = lower_80, ymax = upper_80), fill = "grey80") +
+  geom_line(size = 1, color = "red3") +
+  labs(x = "Small male CPUE (previous year)", y = "Mean log CPUE") 
+
+print(g3)
+
+png("./figs/large_male_no_imputation.png", width = 6, height = 2.5, units = 'in', res = 300)
+
+ggpubr::ggarrange(g3, g2, ncol = 2)
+
+dev.off()
 
 ggplot(dat, aes(trend2_lag1, small_male)) +
   geom_text(aes(label = year)) +
