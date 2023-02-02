@@ -1153,3 +1153,37 @@ ggpubr::ggarrange(male_30_59_drop_10_map, male_30_59_drop10_hist, male_30_59_str
                   labels = "auto")
 
 dev.off()
+
+## simple plot for talk------------------
+
+d1 <- read.csv("./output/male3059_drop10_df.csv", row.names = 1) %>%
+  dplyr::select(year, imp_log_mean, imp_sd) %>%
+  dplyr::mutate(group = "30-59 mm")
+
+xtra <- data.frame(year = 2020, imp_log_mean = NA, imp_sd = NA, group = "30-59 mm")
+
+d1 <- rbind(d1, xtra)
+
+d2 <- read.csv("./output/male6095_drop5_df.csv", row.names = 1) %>%
+  dplyr::select(year, imp_log_mean, imp_sd) %>%
+  mutate(group = "60-95 mm")
+xtra <- data.frame(year = 2020, imp_log_mean = NA, imp_sd = NA, group = "60-95 mm")
+
+d2 <- rbind(d2, xtra)
+
+plot_dat <- rbind(d1, d2)
+
+change <- is.na(plot_dat$imp_sd) 
+plot_dat$imp_sd[change] <- 0
+
+
+
+ggplot(plot_dat, aes(year, imp_log_mean)) +
+  geom_point() +
+  geom_line() +
+  geom_errorbar(aes(ymin = imp_log_mean-2*imp_sd, ymax = imp_log_mean+2*imp_sd)) +
+  labs(y = "Mean ln(CPUE)") +
+  facet_wrap(~group, ncol = 1, scales = "free_y") +
+  theme(axis.title.x = element_blank())
+
+ggsave("./figs/imputed_abundance_talk.png", width = 4, height = 5, units= 'in')
