@@ -1,0 +1,183 @@
+<?xml version="1.0"?>
+<metadata>
+	<idinfo>
+		<citation>
+			<citeinfo>
+				<origin>Ivonne Ortiz</origin>
+				<origin>Angie Greig</origin>
+				<origin></origin>
+				<origin>The Bering Sea Project NSF/NPRB BEST-BSIERP</origin>
+				<title>Marine Regions for the Bering Sea Integrated Ecosystem Research Program  </title>
+				<pubdate>Unpublished material</pubdate>
+				<geoform>vector digital data</geoform>
+			</citeinfo>
+		</citation>
+		<descript>
+			<abstract>A total of 16 marine regions on the Bering Sea shelf and slope were drawn based on a consensus across researchers of the joint Bering Ecosystem Study - Bering Sea Integrated Research Program. The consensus is based  on observed oceanography, bathymetry, benthic fauna, fish, seabird and marine mammal distribution, as well as established survey strata and ecological domains (for the Pribilof Islands).  These regions by no means preclude the development of  process-specific maps by individual projects, nor do they represent strictly biogeographic domains. Rather they are a negotiated practical spatial division weighted by the spatial aggregation of  biological data and/or large scale oceanographic characteristics.</abstract>
+			<purpose>Facilitate spatial comparisons across projects when aggregating values/averages, data, statistics, etc; Model validation (when using regional averages rather than point data).</purpose>
+		</descript>
+		<timeperd>
+			<timeinfo>
+				<sngdate>
+					<caldate>201006</caldate>
+				</sngdate>
+			</timeinfo>
+			<current>publication</current>
+		</timeperd>
+		<status>
+			<progress>complete</progress>
+			<update>none</update>
+		</status>
+		<spdom>
+			<descgeog>Eastern Bering Sea shelf  and slope</descgeog>
+			<bounding>
+				<westbc>179.0</westbc>
+				<eastbc>-157.0</eastbc>
+				<northbc>66.0</northbc>
+				<southbc>52.0</southbc>
+			</bounding>
+		</spdom>
+		<keywords>
+			<theme>
+				<themekt>ISO19115</themekt>
+				<themekey>Boundaries</themekey>
+				<themekey>Environment</themekey>
+				<themekey>Oceans</themekey>
+			</theme>
+			<place>
+				<placekt>none</placekt>
+				<placekey>Alaska</placekey>
+				<placekey>Bering Sea</placekey>
+			</place>
+			<theme>
+				<themekt>none</themekt>
+				<themekey>regions</themekey>
+			</theme>
+		</keywords>
+		<taxonomy>
+			<keywtax>
+				<taxonkt>none</taxonkt>
+				<taxonkey>phytoplankton</taxonkey>
+				<taxonkey>zooplankton</taxonkey>
+				<taxonkey>ichthyoplankton</taxonkey>
+				<taxonkey>invertebrates</taxonkey>
+				<taxonkey>fish</taxonkey>
+				<taxonkey>forage fish</taxonkey>
+				<taxonkey>groundfish</taxonkey>
+				<taxonkey>sea bird</taxonkey>
+				<taxonkey>marine mammal</taxonkey>
+			</keywtax>
+			<taxoncl>
+				<taxonrn>Kingdom</taxonrn>
+				<taxonrv>Animalia</taxonrv>
+			</taxoncl>
+		</taxonomy>
+		<accconst>Contact Point Of Contact for data request form.</accconst>
+		<useconst>User must read and fully comprehend the metadata prior to use. Applications or inferences derived from the data should be carefully considered for accuracy. Acknowledgement of BEST-BSIERP, as the source from which these data were obtained in any publications and publications and / or other  representations of these data, is suggested</useconst>
+		<ptcontac>
+			<cntinfo>
+				<cntorgp>
+					<cntorg>North Pacific Research Board</cntorg>
+				</cntorgp>
+				<cntaddr>
+					<addrtype>Mailing and physical</addrtype>
+					<address>1007 West Third Avenue, Suite 100</address>
+					<city>Anchorage</city>
+					<state>AK</state>
+					<postal>99501</postal>
+					<country>USA</country>
+				</cntaddr>
+				<cntvoice>907 644 6700</cntvoice>
+				<cntemail>Francis.Wiese@nprb.org</cntemail>
+			</cntinfo>
+		</ptcontac>
+		<native>shapefile</native>
+		<native>Excel</native>
+	</idinfo>
+	<dataqual>
+		<logic>Not applicable.</logic>
+		<complete>Not applicable.</complete>
+		<lineage>
+			<method>
+				<methtype>field</methtype>
+				<methdesc>consensus</methdesc>
+				<methcite>
+					<citeinfo>
+						<origin>BEST-BSIERP</origin>
+						<pubdate>NA</pubdate>
+						<title>BEST-BSIERP Marine Regions</title>
+						<geoform>Word document</geoform>
+						<onlink>http://bsierp.nprb.org/</onlink>
+					</citeinfo>
+				</methcite>
+			</method>
+			<procstep>
+				<procdesc>NA</procdesc>
+				<procdate>Unknown</procdate>
+			</procstep>
+		</lineage>
+	</dataqual>
+	<spdoinfo>
+		<direct>vector</direct>
+	</spdoinfo>
+	<spref>
+		<horizsys>
+			<geograph>
+				<latres>1e-05</latres>
+				<longres>1e-05</longres>
+				<geogunit>decimal degrees</geogunit>
+			</geograph>
+		</horizsys>
+		<vertdef>
+			<depthsys>
+				<depthdn>local surface</depthdn>
+				<depthres>0.1</depthres>
+				<depthdu>meters</depthdu>
+				<depthem>attribute value</depthem>
+			</depthsys>
+		</vertdef>
+	</spref>
+	<distinfo>
+		<distrib>
+			<cntinfo>
+				<cntorgp>
+					<cntorg>North Pacific Research Board</cntorg>
+				</cntorgp>
+				<cntaddr>
+					<addrtype>mailing and physical</addrtype>
+					<address>1007W 3rd Ave  Ste 100</address>
+					<city>Anchorage</city>
+					<state>AK</state>
+					<postal>99501</postal>
+					<country>USA</country>
+				</cntaddr>
+				<cntvoice>1-907-644-6700</cntvoice>
+				<cntemail>igor.katrayev@nprb.org</cntemail>
+			</cntinfo>
+		</distrib>
+		<resdesc>Not applicable.</resdesc>
+		<distliab>No warranty expressed or implied is made regarding the accuracy or utility of the data, nor shall the act of distribution constitute any such warranty. This disclaimer applies both to individual use of the data and aggregate use with other data.  It is strongly recommended that careful attention be paid to the contents of the metadata file associated with the data. The NPRB shall not be held liable for improper or incorrect use of the data described or contained herein.</distliab>
+	</distinfo>
+	<metainfo>
+		<metd>20100608</metd>
+		<metc>
+			<cntinfo>
+				<cntorgp>
+					<cntorg>North Pacific Research Board</cntorg>
+				</cntorgp>
+				<cntaddr>
+					<addrtype>mailing and physical</addrtype>
+					<address>1007W 3rd Ave  Ste 100</address>
+					<city>Anchorage</city>
+					<state>AK</state>
+					<postal>99501</postal>
+					<country>USA</country>
+				</cntaddr>
+				<cntvoice>1-907-644-6700</cntvoice>
+				<cntemail>ivonne@u.washington.edu</cntemail>
+			</cntinfo>
+		</metc>
+		<metstdn>FGDC Biological Data Profile of the Content Standard for Digital Geospatial Metadata </metstdn>
+		<metstdv>FGDC-STD-001.1-1999</metstdv>
+	</metainfo>
+	<Esri><CreaDate>20121030</CreaDate><CreaTime>13562300</CreaTime><ArcGISFormat>1.0</ArcGISFormat><SyncOnce>TRUE</SyncOnce><DataProperties><lineage><Process ToolSource="C:\Program Files (x86)\ArcGIS\Desktop10.0\ArcToolbox\Toolboxes\Data Management Tools.tbx\CalculateField" Date="20121030" Time="143846">CalculateField BSIERP_regions_2012 name "North inner shelf" VB #</Process></lineage></DataProperties></Esri></metadata>
