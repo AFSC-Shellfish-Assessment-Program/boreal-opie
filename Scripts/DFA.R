@@ -26,13 +26,24 @@ d1 <- d1 %>%
 #bloom type  
 d2 <- read.csv("./Data/bloom_type.csv")
 
-d2 <- d2 %>%
+check  <- d2 %>%
   filter(north_south == "south") %>%
   mutate(name = case_when(gl_type == "ice_full" ~ "Ice-edge bloom",
                           gl_type == "ice_free" ~ "Open water bloom")) %>%
   rename(value = count) %>%
   dplyr::select(year, name, value) %>%
-  filter(name == "Ice-edge bloom")
+  group_by(name) %>%
+  summarise(count = n())
+
+check
+
+d2  <- d2 %>%
+  filter(north_south == "south") %>%
+  mutate(name = case_when(gl_type == "ice_full" ~ "Ice-edge bloom",
+                          gl_type == "ice_free" ~ "Open water bloom")) %>%
+  rename(value = count) %>%
+  dplyr::select(year, name, value)%>%
+  filter(name == "Open water bloom")
 
 #sea ice
 d3 <- read.csv("./Data/ice.csv")
@@ -55,8 +66,8 @@ d4 <- d4 %>%
 d5 <- read.csv("./Data/bcs_prev.csv", row.names = 1)
 
 d5 <- d5 %>% 
-  dplyr::select(YEAR, All) %>%
-  rename(value = All,
+  dplyr::select(YEAR, Population) %>%
+  rename(value = Population,
          year = YEAR) %>%
   mutate(name = "Hematodinium")
   
@@ -105,10 +116,10 @@ ggsave("./Figs/borealization_time_series.png", width = 12, height = 5, units = '
 write.csv(dat, "./output/dfa time series.csv", row.names = F)
 
 dfa.dat <- dat %>%
-  select(-order) %>%
+  dplyr::select(-order) %>%
   pivot_wider(names_from = name, values_from = value) %>% 
   arrange(year) %>%
-  select(-year) %>%
+  dplyr::select(-year) %>%
   t()
   
 colnames(dfa.dat) <- unique(d3$year)
@@ -118,17 +129,9 @@ cors <- cor(t(dfa.dat), use = "p")
 diag(cors) <- 0
 
 max(cors)
-min(cors) # open-water bloom and ice-edge bloom are perfectly correlated?
+min(cors) 
 
 plot <- as.data.frame(t(dfa.dat))
-
-ggplot(plot, aes(`Open water bloom`, `Ice-edge bloom`)) +
-  geom_point()
-
-# remove ice-edge bloom (more NAs) and replot cors
-drop <- rownames(dfa.dat) == "Ice-edge bloom"
-
-dfa.dat <- dfa.dat[!drop,]
 
 cors <- cor(t(dfa.dat), use = "p")
 diag(cors) <- 0
@@ -136,8 +139,6 @@ diag(cors) <- 0
 max(cors)
 min(cors) 
 
-
-ggsave("./figs/open water vs ice edge.png", width = 5, height = 3, units = 'in')
 
 png("./Figs/time_series_corrplot.png", width = 6, height = 5.5, units = 'in', res = 300)
 corrplot(cors, method = "sq", col.lim = c(-0.865, 0.865), col = oceColorsPalette(64), tl.col = "black", cl.cex = 0.7, order = "FPC")
