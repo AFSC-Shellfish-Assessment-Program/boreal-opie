@@ -1,74 +1,54 @@
 "year","name","value","order"
-1998,"Bloom timing",149.4705882,6
-1999,"Bloom timing",141.1481481,6
-2000,"Bloom timing",147.1428571,6
-2001,"Bloom timing",140.4285714,6
-2002,"Bloom timing",135.2857143,6
-2003,"Bloom timing",119.4285714,6
-2004,"Bloom timing",132.7142857,6
-2005,"Bloom timing",125.1428571,6
-2006,"Bloom timing",144.2857143,6
-2007,"Bloom timing",124.36,6
-2008,"Bloom timing",133.8571429,6
-2009,"Bloom timing",141,6
-2010,"Bloom timing",130,6
-2011,"Bloom timing",137.7142857,6
-2012,"Bloom timing",133.6666667,6
-2013,"Bloom timing",133.7692308,6
-2014,"Bloom timing",127.7142857,6
-2015,"Bloom timing",143.5714286,6
-2016,"Bloom timing",132.2857143,6
-2017,"Bloom timing",116.8571429,6
-2018,"Bloom timing",153.7142857,6
-2019,"Bloom timing",120.5714286,6
-2020,"Bloom timing",131.5714286,6
-2021,"Bloom timing",133.8571429,6
-2022,"Bloom timing",123.4285714,6
-1998,"Open water bloom",49,5
-1998,"Ice-edge bloom",7,4
-1999,"Open water bloom",34,5
-1999,"Ice-edge bloom",22,4
-2000,"Open water bloom",56,5
-2001,"Open water bloom",55,5
-2001,"Ice-edge bloom",1,4
-2002,"Open water bloom",56,5
-2003,"Open water bloom",39,5
-2003,"Ice-edge bloom",17,4
-2004,"Open water bloom",43,5
-2004,"Ice-edge bloom",13,4
-2005,"Open water bloom",47,5
-2005,"Ice-edge bloom",9,4
-2006,"Open water bloom",34,5
-2006,"Ice-edge bloom",22,4
-2007,"Open water bloom",16,5
-2007,"Ice-edge bloom",40,4
-2008,"Open water bloom",25,5
-2008,"Ice-edge bloom",31,4
-2009,"Open water bloom",26,5
-2009,"Ice-edge bloom",30,4
-2010,"Open water bloom",13,5
-2010,"Ice-edge bloom",43,4
-2011,"Open water bloom",31,5
-2011,"Ice-edge bloom",25,4
-2012,"Open water bloom",11,5
-2012,"Ice-edge bloom",45,4
-2013,"Open water bloom",25,5
-2013,"Ice-edge bloom",31,4
-2014,"Open water bloom",50,5
-2014,"Ice-edge bloom",6,4
-2015,"Open water bloom",46,5
-2015,"Ice-edge bloom",10,4
-2016,"Open water bloom",50,5
-2016,"Ice-edge bloom",6,4
-2017,"Open water bloom",20,5
-2017,"Ice-edge bloom",36,4
-2018,"Open water bloom",56,5
-2019,"Open water bloom",56,5
-2020,"Open water bloom",50,5
-2020,"Ice-edge bloom",6,4
-2021,"Open water bloom",56,5
-2022,"Open water bloom",25,5
-2022,"Ice-edge bloom",31,4
+1998,"Bloom timing",149.4705882,5
+1999,"Bloom timing",141.1481481,5
+2000,"Bloom timing",147.1428571,5
+2001,"Bloom timing",140.4285714,5
+2002,"Bloom timing",135.2857143,5
+2003,"Bloom timing",119.4285714,5
+2004,"Bloom timing",132.7142857,5
+2005,"Bloom timing",125.1428571,5
+2006,"Bloom timing",144.2857143,5
+2007,"Bloom timing",124.36,5
+2008,"Bloom timing",133.8571429,5
+2009,"Bloom timing",141,5
+2010,"Bloom timing",130,5
+2011,"Bloom timing",137.7142857,5
+2012,"Bloom timing",133.6666667,5
+2013,"Bloom timing",133.7692308,5
+2014,"Bloom timing",127.7142857,5
+2015,"Bloom timing",143.5714286,5
+2016,"Bloom timing",132.2857143,5
+2017,"Bloom timing",116.8571429,5
+2018,"Bloom timing",153.7142857,5
+2019,"Bloom timing",120.5714286,5
+2020,"Bloom timing",131.5714286,5
+2021,"Bloom timing",133.8571429,5
+2022,"Bloom timing",123.4285714,5
+1998,"Open water bloom",49,4
+1999,"Open water bloom",34,4
+2000,"Open water bloom",56,4
+2001,"Open water bloom",55,4
+2002,"Open water bloom",56,4
+2003,"Open water bloom",39,4
+2004,"Open water bloom",43,4
+2005,"Open water bloom",47,4
+2006,"Open water bloom",34,4
+2007,"Open water bloom",16,4
+2008,"Open water bloom",25,4
+2009,"Open water bloom",26,4
+2010,"Open water bloom",13,4
+2011,"Open water bloom",31,4
+2012,"Open water bloom",11,4
+2013,"Open water bloom",25,4
+2014,"Open water bloom",50,4
+2015,"Open water bloom",46,4
+2016,"Open water bloom",50,4
+2017,"Open water bloom",20,4
+2018,"Open water bloom",56,4
+2019,"Open water bloom",56,4
+2020,"Open water bloom",50,4
+2021,"Open water bloom",56,4
+2022,"Open water bloom",25,4
 1972,"Jan-Feb ice cover",0.1213298256726,1
 1972,"Mar-Apr ice cover",1.08513615297961,2
 1973,"Jan-Feb ice cover",0.187774783865105,1
@@ -171,67 +151,67 @@
 2021,"Mar-Apr ice cover",-0.936095879802793,2
 2022,"Jan-Feb ice cover",0.355793890329085,1
 2022,"Mar-Apr ice cover",-0.490453742673366,2
-2003,"Bloom size",1.07280911960947,7
-2003,"Phytoplankton size ratio",0.479138859040862,8
-2004,"Bloom size",1.56392815741041,7
-2004,"Phytoplankton size ratio",0.400248001023339,8
-2005,"Bloom size",2.31660942434776,7
-2005,"Phytoplankton size ratio",0.569647312523779,8
-2006,"Bloom size",1.44149363960591,7
-2006,"Phytoplankton size ratio",0.193778741950449,8
-2007,"Bloom size",0.800102256272148,7
-2007,"Phytoplankton size ratio",0.159286038991683,8
-2008,"Bloom size",0.426948736203155,7
-2008,"Phytoplankton size ratio",0.157629262510936,8
-2009,"Bloom size",0.941843835004396,7
-2009,"Phytoplankton size ratio",0.329769431639113,8
-2010,"Bloom size",1.08947976671246,7
-2010,"Phytoplankton size ratio",0.211573739290813,8
-2011,"Bloom size",1.92494527211052,7
-2011,"Phytoplankton size ratio",0.310449728094795,8
-2012,"Bloom size",0.973700438723548,7
-2012,"Phytoplankton size ratio",0.173188365879802,8
-2014,"Bloom size",1.08411746673233,7
-2014,"Phytoplankton size ratio",0.0924097893022011,8
-2015,"Bloom size",0.977632404465679,7
-2015,"Phytoplankton size ratio",0.203584595750216,8
-2016,"Bloom size",0.759435464906785,7
-2016,"Phytoplankton size ratio",0.21875571711578,8
-2018,"Bloom size",0.622850952556047,7
-2018,"Phytoplankton size ratio",0.454655513955162,8
-1989,"Hematodinium",4.43961700409893,11
-1990,"Hematodinium",1.14808342419566,11
-1991,"Hematodinium",0.883916349804894,11
-1992,"Hematodinium",1.45647543066696,11
-1993,"Hematodinium",2.35506342696553,11
-1994,"Hematodinium",6.9446673748525,11
-1995,"Hematodinium",2.89802185156967,11
-1996,"Hematodinium",5.13720718520964,11
-1997,"Hematodinium",1.60177697368981,11
-1998,"Hematodinium",4.64726442238959,11
-1999,"Hematodinium",1.40207479375896,11
-2000,"Hematodinium",1.66247579641996,11
-2001,"Hematodinium",3.1572741566267,11
-2002,"Hematodinium",4.62086469437337,11
-2003,"Hematodinium",6.14319686187403,11
-2004,"Hematodinium",1.48523496673773,11
-2005,"Hematodinium",3.50801688546409,11
-2006,"Hematodinium",1.51341544141336,11
-2007,"Hematodinium",0.633960220630398,11
-2008,"Hematodinium",1.47963525337506,11
-2009,"Hematodinium",2.09635408619855,11
-2010,"Hematodinium",5.83337831236812,11
-2011,"Hematodinium",8.49497009335718,11
-2012,"Hematodinium",1.37033479824787,11
-2013,"Hematodinium",1.01340675115563,11
-2014,"Hematodinium",1.11845639972768,11
-2015,"Hematodinium",6.21171273520131,11
-2016,"Hematodinium",14.7341154758865,11
-2017,"Hematodinium",7.36723013991184,11
-2018,"Hematodinium",4.81380990287256,11
-2019,"Hematodinium",3.13354881056283,11
-2021,"Hematodinium",1.3499473869425,11
-2022,"Hematodinium",3.84907686478236,11
+2003,"Bloom size",1.07280911960947,6
+2003,"Phytoplankton size ratio",0.479138859040862,7
+2004,"Bloom size",1.56392815741041,6
+2004,"Phytoplankton size ratio",0.400248001023339,7
+2005,"Bloom size",2.31660942434776,6
+2005,"Phytoplankton size ratio",0.569647312523779,7
+2006,"Bloom size",1.44149363960591,6
+2006,"Phytoplankton size ratio",0.193778741950449,7
+2007,"Bloom size",0.800102256272148,6
+2007,"Phytoplankton size ratio",0.159286038991683,7
+2008,"Bloom size",0.426948736203155,6
+2008,"Phytoplankton size ratio",0.157629262510936,7
+2009,"Bloom size",0.941843835004396,6
+2009,"Phytoplankton size ratio",0.329769431639113,7
+2010,"Bloom size",1.08947976671246,6
+2010,"Phytoplankton size ratio",0.211573739290813,7
+2011,"Bloom size",1.92494527211052,6
+2011,"Phytoplankton size ratio",0.310449728094795,7
+2012,"Bloom size",0.973700438723548,6
+2012,"Phytoplankton size ratio",0.173188365879802,7
+2014,"Bloom size",1.08411746673233,6
+2014,"Phytoplankton size ratio",0.0924097893022011,7
+2015,"Bloom size",0.977632404465679,6
+2015,"Phytoplankton size ratio",0.203584595750216,7
+2016,"Bloom size",0.759435464906785,6
+2016,"Phytoplankton size ratio",0.21875571711578,7
+2018,"Bloom size",0.622850952556047,6
+2018,"Phytoplankton size ratio",0.454655513955162,7
+1989,"Hematodinium",4.43961700409893,10
+1990,"Hematodinium",1.14808342419566,10
+1991,"Hematodinium",0.883916349804894,10
+1992,"Hematodinium",1.45647543066696,10
+1993,"Hematodinium",2.35506342696553,10
+1994,"Hematodinium",6.9446673748525,10
+1995,"Hematodinium",2.89802185156967,10
+1996,"Hematodinium",5.13720718520964,10
+1997,"Hematodinium",1.60177697368981,10
+1998,"Hematodinium",4.64726442238959,10
+1999,"Hematodinium",1.40207479375896,10
+2000,"Hematodinium",1.66247579641996,10
+2001,"Hematodinium",3.1572741566267,10
+2002,"Hematodinium",4.62086469437337,10
+2003,"Hematodinium",6.14319686187403,10
+2004,"Hematodinium",1.48523496673773,10
+2005,"Hematodinium",3.50801688546409,10
+2006,"Hematodinium",1.51341544141336,10
+2007,"Hematodinium",0.633960220630398,10
+2008,"Hematodinium",1.47963525337506,10
+2009,"Hematodinium",2.09635408619855,10
+2010,"Hematodinium",5.83337831236812,10
+2011,"Hematodinium",8.49497009335718,10
+2012,"Hematodinium",1.37033479824787,10
+2013,"Hematodinium",1.01340675115563,10
+2014,"Hematodinium",1.11845639972768,10
+2015,"Hematodinium",6.21171273520131,10
+2016,"Hematodinium",14.7341154758865,10
+2017,"Hematodinium",7.36723013991184,10
+2018,"Hematodinium",4.81380990287256,10
+2019,"Hematodinium",3.13354881056283,10
+2021,"Hematodinium",1.3499473869425,10
+2022,"Hematodinium",3.84907686478236,10
 1975,"Bottom temperature",0.792400763338189,3
 1976,"Bottom temperature",1.02049396784849,3
 1977,"Bottom temperature",2.64938019928474,3
@@ -280,115 +260,101 @@
 2020,"Bottom temperature",NA,3
 2021,"Bottom temperature",4.10035575822201,3
 2022,"Bottom temperature",1.93512447767612,3
-1982,"Pacific cod",1.94057549225224,12
-1982,"Arctic groundfish",1.80574973547911,13
-1983,"Pacific cod",1.96162355612669,12
-1983,"Arctic groundfish",1.95382204796494,13
-1984,"Pacific cod",1.85225413398686,12
-1984,"Arctic groundfish",1.95975698443229,13
-1985,"Pacific cod",2.01706472635294,12
-1985,"Arctic groundfish",1.85401940733682,13
-1986,"Pacific cod",2.04639198187129,12
-1986,"Arctic groundfish",1.73477301270929,13
-1987,"Pacific cod",2.0547899520131,12
-1987,"Arctic groundfish",1.74831330649102,13
-1988,"Pacific cod",1.81349121856911,12
-1988,"Arctic groundfish",1.78503385667821,13
-1989,"Pacific cod",1.92591714800545,12
-1989,"Arctic groundfish",1.77502512792013,13
-1990,"Pacific cod",1.73999090836718,12
-1990,"Arctic groundfish",1.82166503503652,13
-1991,"Pacific cod",1.70324454941564,12
-1991,"Arctic groundfish",1.83190080118284,13
-1992,"Pacific cod",1.55603469692931,12
-1992,"Arctic groundfish",1.74770013494025,13
-1993,"Pacific cod",1.74017279284516,12
-1993,"Arctic groundfish",1.84335965628114,13
-1994,"Pacific cod",2.02209672146095,12
-1994,"Arctic groundfish",1.91736606468582,13
-1995,"Pacific cod",1.81094645785553,12
-1995,"Arctic groundfish",1.81675700217815,13
-1996,"Pacific cod",1.89648390982695,12
-1996,"Arctic groundfish",1.80487910098129,13
-1997,"Pacific cod",1.69250090189917,12
-1997,"Arctic groundfish",1.83569010923004,13
-1998,"Pacific cod",1.68439880173206,12
-1998,"Arctic groundfish",1.70605851875099,13
-1999,"Pacific cod",1.67154038051585,12
-1999,"Arctic groundfish",1.6099770912765,13
-2000,"Pacific cod",1.69523169957974,12
-2000,"Arctic groundfish",1.64918418457931,13
-2001,"Pacific cod",1.84997622454388,12
-2001,"Arctic groundfish",1.68778366443213,13
-2002,"Pacific cod",1.74668300103727,12
-2002,"Arctic groundfish",1.58646545019135,13
-2003,"Pacific cod",1.79740953673681,12
-2003,"Arctic groundfish",1.54512822936968,13
-2004,"Pacific cod",1.82926291738185,12
-2004,"Arctic groundfish",1.61025314338497,13
-2005,"Pacific cod",1.86323202140099,12
-2005,"Arctic groundfish",1.66870147058181,13
-2006,"Pacific cod",1.96865190476941,12
-2006,"Arctic groundfish",1.66607508510265,13
-2007,"Pacific cod",1.6821420393568,12
-2007,"Arctic groundfish",1.58911675540747,13
-2008,"Pacific cod",1.75759610683146,12
-2008,"Arctic groundfish",1.59826990093537,13
-2009,"Pacific cod",1.53797764434434,12
-2009,"Arctic groundfish",1.33251476340066,13
-2010,"Pacific cod",1.64555147317799,12
-2010,"Arctic groundfish",1.52418616654731,13
-2011,"Pacific cod",1.82000025876786,12
-2011,"Arctic groundfish",1.53989446898874,13
-2012,"Pacific cod",1.67998198059769,12
-2012,"Arctic groundfish",1.55253105324534,13
-2013,"Pacific cod",1.82933784797153,12
-2013,"Arctic groundfish",1.51610900735779,13
-2014,"Pacific cod",1.86145196593864,12
-2014,"Arctic groundfish",1.63584679224162,13
-2015,"Pacific cod",1.98823089812092,12
-2015,"Arctic groundfish",1.60828503524314,13
-2016,"Pacific cod",2.07129903953076,12
-2016,"Arctic groundfish",1.70327487528947,13
-2017,"Pacific cod",1.82641062519927,12
-2017,"Arctic groundfish",1.71122014798052,13
-2018,"Pacific cod",1.71259593243185,12
-2018,"Arctic groundfish",1.73791982223728,13
-2019,"Pacific cod",1.83554580392677,12
-2019,"Arctic groundfish",1.63450031694903,13
-2021,"Pacific cod",1.87364004706364,12
-2021,"Arctic groundfish",1.52386866361463,13
-2022,"Pacific cod",1.81552584647363,12
-2022,"Arctic groundfish",1.33765116199247,13
-2005,"Pseudocalanus",2.59639299085346,9
-2005,"Calanus_glacialis",1.13068250686907,10
-2006,"Pseudocalanus",2.59487515601369,9
-2006,"Calanus_glacialis",0.489625931393768,10
-2007,"Pseudocalanus",2.54379843653186,9
-2007,"Calanus_glacialis",0.701033346168452,10
-2008,"Pseudocalanus",2.62633135393041,9
-2008,"Calanus_glacialis",1.22728606336921,10
-2009,"Pseudocalanus",2.44937800057831,9
-2009,"Calanus_glacialis",1.43054445067702,10
-2010,"Pseudocalanus",2.48772658902909,9
-2010,"Calanus_glacialis",1.63402799159502,10
-2011,"Pseudocalanus",1.24149125725077,9
-2011,"Calanus_glacialis",1.22576684682517,10
-2012,"Pseudocalanus",1.6798083536471,9
-2012,"Calanus_glacialis",1.49917099378592,10
-2013,"Pseudocalanus",3.00148635435254,9
-2013,"Calanus_glacialis",1.42409719822138,10
-2014,"Pseudocalanus",2.59354201270044,9
-2014,"Calanus_glacialis",2.35957564190576,10
-2015,"Pseudocalanus",3.2608602163725,9
-2015,"Calanus_glacialis",1.56402923481183,10
-2016,"Pseudocalanus",2.95936518465856,9
-2016,"Calanus_glacialis",1.45720508037408,10
-2017,"Pseudocalanus",3.03768743804006,9
-2017,"Calanus_glacialis",0.835430196286,10
-2018,"Pseudocalanus",3.06804005234265,9
-2018,"Calanus_glacialis",1.47037512514343,10
-2019,"Pseudocalanus",2.99636787325247,9
-2019,"Calanus_glacialis",0.991595942212233,10
-2021,"Pseudocalanus",2.98536394560846,9
-2021,"Calanus_glacialis",0.904062920717006,10
+1988,"Pacific cod",2.16932665433284,11
+1988,"Arctic groundfish",2.42123531632673,12
+1989,"Pacific cod",2.5228933468995,11
+1989,"Arctic groundfish",2.29809019404732,12
+1990,"Pacific cod",1.97013357210376,11
+1990,"Arctic groundfish",2.42889081006408,12
+1991,"Pacific cod",1.87941245326759,11
+1991,"Arctic groundfish",2.46054340833403,12
+1993,"Pacific cod",2.20166804290645,11
+1993,"Arctic groundfish",2.46948560773669,12
+1994,"Pacific cod",2.38099370893904,11
+1994,"Arctic groundfish",2.55007456901374,12
+1995,"Pacific cod",1.98700310747361,11
+1995,"Arctic groundfish",2.38335016093787,12
+1996,"Pacific cod",2.54877770252694,11
+1996,"Arctic groundfish",2.44252264991321,12
+1997,"Pacific cod",2.21493469470003,11
+1997,"Arctic groundfish",2.46317777592312,12
+1998,"Pacific cod",2.10729776268786,11
+1998,"Arctic groundfish",2.26186588989997,12
+1999,"Pacific cod",1.92761093409485,11
+1999,"Arctic groundfish",2.07369470779525,12
+2000,"Pacific cod",2.08558678708743,11
+2000,"Arctic groundfish",2.09175112492226,12
+2001,"Pacific cod",2.39248927453495,11
+2001,"Arctic groundfish",2.29184180724663,12
+2002,"Pacific cod",2.42982153339233,11
+2002,"Arctic groundfish",2.01071367562722,12
+2003,"Pacific cod",2.39371233274579,11
+2003,"Arctic groundfish",1.91063734423112,12
+2004,"Pacific cod",2.44984799337319,11
+2004,"Arctic groundfish",2.13260316047877,12
+2005,"Pacific cod",2.49852866424156,11
+2005,"Arctic groundfish",2.21529926094681,12
+2006,"Pacific cod",2.2251153665029,11
+2006,"Arctic groundfish",2.23425202359274,12
+2007,"Pacific cod",1.9679008330912,11
+2007,"Arctic groundfish",2.07107452148615,12
+2008,"Pacific cod",1.94227937840174,11
+2008,"Arctic groundfish",2.01296961692917,12
+2009,"Pacific cod",1.79402519514807,11
+2009,"Arctic groundfish",1.67883053174229,12
+2010,"Pacific cod",1.91139290737802,11
+2010,"Arctic groundfish",1.97989504441609,12
+2011,"Pacific cod",2.31944885362762,11
+2011,"Arctic groundfish",2.00847625886565,12
+2012,"Pacific cod",1.85226404429846,11
+2012,"Arctic groundfish",2.04582683399213,12
+2013,"Pacific cod",2.08858646335472,11
+2013,"Arctic groundfish",1.87482595349426,12
+2014,"Pacific cod",2.57571124762164,11
+2014,"Arctic groundfish",2.04162172051235,12
+2015,"Pacific cod",2.50524406759351,11
+2015,"Arctic groundfish",1.96355203408131,12
+2016,"Pacific cod",2.92049908679612,11
+2016,"Arctic groundfish",2.27679724893367,12
+2017,"Pacific cod",2.4085112602954,11
+2017,"Arctic groundfish",2.23245402271046,12
+2018,"Pacific cod",2.25133836284299,11
+2018,"Arctic groundfish",2.18482310430053,12
+2019,"Pacific cod",2.43727098372714,11
+2019,"Arctic groundfish",2.08385976598361,12
+2021,"Pacific cod",2.59140471663965,11
+2021,"Arctic groundfish",1.79880216854359,12
+2022,"Pacific cod",2.39637734782936,11
+2022,"Arctic groundfish",1.61778763737364,12
+2005,"Pseudocalanus",2.59639299085346,8
+2005,"Calanus_glacialis",1.13068250686907,9
+2006,"Pseudocalanus",2.59487515601369,8
+2006,"Calanus_glacialis",0.489625931393768,9
+2007,"Pseudocalanus",2.54379843653186,8
+2007,"Calanus_glacialis",0.701033346168452,9
+2008,"Pseudocalanus",2.62633135393041,8
+2008,"Calanus_glacialis",1.22728606336921,9
+2009,"Pseudocalanus",2.44937800057831,8
+2009,"Calanus_glacialis",1.43054445067702,9
+2010,"Pseudocalanus",2.48772658902909,8
+2010,"Calanus_glacialis",1.63402799159502,9
+2011,"Pseudocalanus",1.24149125725077,8
+2011,"Calanus_glacialis",1.22576684682517,9
+2012,"Pseudocalanus",1.6798083536471,8
+2012,"Calanus_glacialis",1.49917099378592,9
+2013,"Pseudocalanus",3.00148635435254,8
+2013,"Calanus_glacialis",1.42409719822138,9
+2014,"Pseudocalanus",2.59354201270044,8
+2014,"Calanus_glacialis",2.35957564190576,9
+2015,"Pseudocalanus",3.2608602163725,8
+2015,"Calanus_glacialis",1.56402923481183,9
+2016,"Pseudocalanus",2.95936518465856,8
+2016,"Calanus_glacialis",1.45720508037408,9
+2017,"Pseudocalanus",3.03768743804006,8
+2017,"Calanus_glacialis",0.835430196286,9
+2018,"Pseudocalanus",3.06804005234265,8
+2018,"Calanus_glacialis",1.47037512514343,9
+2019,"Pseudocalanus",2.99636787325247,8
+2019,"Calanus_glacialis",0.991595942212233,9
+2021,"Pseudocalanus",2.98536394560846,8
+2021,"Calanus_glacialis",0.904062920717006,9
