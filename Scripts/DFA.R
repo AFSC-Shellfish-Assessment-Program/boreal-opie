@@ -21,7 +21,7 @@ d1 <- d1 %>%
   filter(north_south == "south") %>%
   rename(value = globcolour_peak_mean) %>%
   mutate(name = "Bloom timing") %>%
-  select(year, name, value)
+  dplyr::select(year, name, value)
 
 #bloom type  
 d2 <- read.csv("./Data/bloom_type.csv")
@@ -31,7 +31,8 @@ d2 <- d2 %>%
   mutate(name = case_when(gl_type == "ice_full" ~ "Ice-edge bloom",
                           gl_type == "ice_free" ~ "Open water bloom")) %>%
   rename(value = count) %>%
-  select(year, name, value)
+  dplyr::select(year, name, value) %>%
+  filter(name == "Ice-edge bloom")
 
 #sea ice
 d3 <- read.csv("./Data/ice.csv")
@@ -54,7 +55,7 @@ d4 <- d4 %>%
 d5 <- read.csv("./Data/bcs_prev.csv", row.names = 1)
 
 d5 <- d5 %>% 
-  select(YEAR, All) %>%
+  dplyr::select(YEAR, All) %>%
   rename(value = All,
          year = YEAR) %>%
   mutate(name = "Hematodinium")
@@ -67,12 +68,12 @@ d6 <- d6 %>%
   mutate(name = 'Bottom temperature')
 
 #groundfish CPUE
-d7 <- read.csv("./Data/groundfish_med_cpue.csv", row.names = 1)
+d7 <- read.csv("./Data/groundfish_mean_cpue.csv", row.names = 1)
 
 d7 <- d7 %>%
   rename(year = YEAR,
-         `Pacific cod` = med_cod_CPUE,
-         `Arctic groundfish` = med_arctic_CPUE) %>%
+         `Pacific cod` = mean_cod_CPUE,
+         `Arctic groundfish` = mean_arctic_CPUE) %>%
   pivot_longer(cols = -year)
 
 #zooplankton abundances
@@ -86,7 +87,7 @@ dat <- rbind(d1, d2, d3, d4, d5, d6, d7, d8)
 
 # reorder for plot
 plot.order <- data.frame(name = unique(dat$name),
-                         order = c(6,5,4,1,2,7,8,11,3,12,13,9,10))
+                         order = c(5,4,1,2,6,7,10,3,11,12,8,9))
 
 dat <- left_join(dat, plot.order)
 
@@ -95,7 +96,7 @@ dat$name <- reorder(dat$name, dat$order)
 ggplot(dat, aes(year, value)) +
   geom_line() +
   geom_point() +
-  facet_wrap(~name, scales = "free_y", ncol = 5) +
+  facet_wrap(~name, scales = "free_y", ncol = 4) +
   theme(axis.title.x = element_blank())
 
 ggsave("./Figs/borealization_time_series.png", width = 12, height = 5, units = 'in')
