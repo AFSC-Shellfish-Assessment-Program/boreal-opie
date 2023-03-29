@@ -151,26 +151,26 @@ MuMIn::AICc(sm_mod1, sm_mod2, sm_mod3, sm_mod4, sm_mod5, sm_mod6, sm_mod7) # bes
 
 ## brms version of best small male model--------------------
 
-form <- bf(small_male ~ s(trend2_lag1, k = 4) + ar(time = year, p = 1, cov = T))
+form <- bf(small_male ~ s(trend2_lag1, k = 4))
 
 ## fit
-mice_brm <- brm(form,
+brm <- brm(form,
                          data = dat,
                          cores = 4, chains = 4, iter = 3000,
                          save_pars = save_pars(all = TRUE),
                          control = list(adapt_delta = 0.999, max_treedepth = 12))
 
-saveRDS(mice_brm, file = "output/mice_sm_male_brm_no_imputation_ar.rds")
+saveRDS(brm, file = "output/sm_male_brm_no_imputation.rds")
 
 # diagnostics
-mice_brm <- readRDS("./output/mice_sm_male_brm_no_imputation.rds")
-check_hmc_diagnostics(mice_brm$fit)
-neff_lowest(mice_brm$fit)
-rhat_highest(mice_brm$fit)
+brm <- readRDS("./output/sm_male_brm_no_imputation.rds")
+check_hmc_diagnostics(brm$fit)
+neff_lowest(brm$fit)
+rhat_highest(brm$fit)
 
-bayes_R2(mice_brm)
+bayes_R2(brm)
 
-plot(conditional_effects(mice_brm), ask = FALSE)
+plot(conditional_effects(brm), ask = FALSE)
 
 # y <- y %>%
 #   group_by(year) %>%
@@ -178,24 +178,24 @@ plot(conditional_effects(mice_brm), ask = FALSE)
 # 
 # y <- y$log_abundance_lead1
 # 
-# yrep_mice_brm  <- fitted(mice_brm, scale = "response", summary = FALSE)
-# ppc_dens_overlay(y = y, yrep = yrep_mice_brm[sample(nrow(yrep_mice_brm), 25), ]) +
-#   ggtitle("mice_brm")
+# yrep_brm  <- fitted(brm, scale = "response", summary = FALSE)
+# ppc_dens_overlay(y = y, yrep = yrep_brm[sample(nrow(yrep_brm), 25), ]) +
+#   ggtitle("brm")
 # 
-# ggsave("./Figs/mice_brms_ppc.png", width = 6, height = 4, units = 'in')
+# ggsave("./Figs/brms_ppc.png", width = 6, height = 4, units = 'in')
 # 
-# trace_plot(mice_brm$fit)
+# trace_plot(brm$fit)
 
-# plot mice_brm
+# plot brm
 
 ## 95% CI
-ce1s_1 <- conditional_effects(mice_brm, effect = "trend2_lag1", re_formula = NA,
+ce1s_1 <- conditional_effects(brm, effect = "trend2_lag1", re_formula = NA,
                               probs = c(0.025, 0.975))
 ## 90% CI
-ce1s_2 <- conditional_effects(mice_brm, effect = "trend2_lag1", re_formula = NA,
+ce1s_2 <- conditional_effects(brm, effect = "trend2_lag1", re_formula = NA,
                               probs = c(0.05, 0.95))
 ## 80% CI
-ce1s_3 <- conditional_effects(mice_brm, effect = "trend2_lag1", re_formula = NA,
+ce1s_3 <- conditional_effects(brm, effect = "trend2_lag1", re_formula = NA,
                               probs = c(0.1, 0.9))
 dat_ce <- ce1s_1$trend2_lag1
 dat_ce[["upper_95"]] <- dat_ce[["upper__"]]
@@ -212,12 +212,12 @@ g1 <- ggplot(dat_ce) +
   geom_ribbon(aes(ymin = lower_90, ymax = upper_90), fill = "grey85") +
   geom_ribbon(aes(ymin = lower_80, ymax = upper_80), fill = "grey80") +
   geom_line(size = 1, color = "red3") +
-  labs(x = "Borealization index (mean year-1, year-2)", y = "Mean log CPUE") +
+  labs(x = "Borealization index (mean lag 1-2)", y = "Mean log CPUE") +
   geom_text(data = filter(dat, year != 2020), aes(x = trend2_lag1, y = small_male, label = year), size = 3)
 
 print(g1)
 
-ggsave("./Figs/mice_borealization_abundance_regression_small_male_no_imputation_ar.png", width = 6, height = 4, units = 'in')
+ggsave("./Figs/borealization_abundance_regression_small_male_no_imputation__no_ar.png", width = 6, height = 4, units = 'in')
 
 ## fit ar model in gam-----
 sm_mod4a <- gamm(small_male ~ s(trend2_lag1, k = 4), correlation = corAR1(), dat = dat, na.action = "na.omit")
@@ -287,23 +287,23 @@ MuMIn::AICc(large_mod7, large_mod8, large_mod9, large_mod10, large_mod11) # mod 
 form <- bf(large_male ~ s(small_male_lag1) + s(trend, k = 4))
 
 ## fit
-mice_brm <- brm(form,
+brm <- brm(form,
                 data = dat,
                 cores = 4, chains = 4, iter = 3000,
                 save_pars = save_pars(all = TRUE),
                 control = list(adapt_delta = 0.999, max_treedepth = 12))
 
-saveRDS(mice_brm, file = "output/mice_large_male_brm_no_imputation.rds")
+saveRDS(brm, file = "output/large_male_brm_no_imputation_no_ar.rds")
 
 # diagnostics
-mice_brm <- readRDS("./output/mice_large_male_brm_no_imputation.rds")
-check_hmc_diagnostics(mice_brm$fit)
-neff_lowest(mice_brm$fit)
-rhat_highest(mice_brm$fit)
+brm <- readRDS("./output/large_male_brm_no_imputation_no_ar.rds")
+check_hmc_diagnostics(brm$fit)
+neff_lowest(brm$fit)
+rhat_highest(brm$fit)
 
-bayes_R2(mice_brm)
+bayes_R2(brm)
 
-plot(conditional_effects(mice_brm), ask = FALSE)
+plot(conditional_effects(brm), ask = FALSE)
 
 # y <- y %>%
 #   group_by(year) %>%
@@ -311,24 +311,24 @@ plot(conditional_effects(mice_brm), ask = FALSE)
 # 
 # y <- y$log_abundance_lead1
 # 
-# yrep_mice_brm  <- fitted(mice_brm, scale = "response", summary = FALSE)
-# ppc_dens_overlay(y = y, yrep = yrep_mice_brm[sample(nrow(yrep_mice_brm), 25), ]) +
-#   ggtitle("mice_brm")
+# yrep_brm  <- fitted(brm, scale = "response", summary = FALSE)
+# ppc_dens_overlay(y = y, yrep = yrep_brm[sample(nrow(yrep_brm), 25), ]) +
+#   ggtitle("brm")
 # 
-# ggsave("./Figs/mice_brms_ppc.png", width = 6, height = 4, units = 'in')
+# ggsave("./Figs/brms_ppc.png", width = 6, height = 4, units = 'in')
 # 
-# trace_plot(mice_brm$fit)
+# trace_plot(brm$fit)
 
-# plot mice_brm
+# plot brm
 
 ## 95% CI
-ce1s_1 <- conditional_effects(mice_brm, effect = "trend", re_formula = NA,
+ce1s_1 <- conditional_effects(brm, effect = "trend", re_formula = NA,
                               probs = c(0.025, 0.975))
 ## 90% CI
-ce1s_2 <- conditional_effects(mice_brm, effect = "trend", re_formula = NA,
+ce1s_2 <- conditional_effects(brm, effect = "trend", re_formula = NA,
                               probs = c(0.05, 0.95))
 ## 80% CI
-ce1s_3 <- conditional_effects(mice_brm, effect = "trend", re_formula = NA,
+ce1s_3 <- conditional_effects(brm, effect = "trend", re_formula = NA,
                               probs = c(0.1, 0.9))
 dat_ce <- ce1s_1$trend
 dat_ce[["upper_95"]] <- dat_ce[["upper__"]]
@@ -350,13 +350,13 @@ g2 <- ggplot(dat_ce) +
 print(g2)
 
 
-ce1s_1 <- conditional_effects(mice_brm, effect = "small_male_lag1", re_formula = NA,
+ce1s_1 <- conditional_effects(brm, effect = "small_male_lag1", re_formula = NA,
                               probs = c(0.025, 0.975))
 ## 90% CI
-ce1s_2 <- conditional_effects(mice_brm, effect = "small_male_lag1", re_formula = NA,
+ce1s_2 <- conditional_effects(brm, effect = "small_male_lag1", re_formula = NA,
                               probs = c(0.05, 0.95))
 ## 80% CI
-ce1s_3 <- conditional_effects(mice_brm, effect = "small_male_lag1", re_formula = NA,
+ce1s_3 <- conditional_effects(brm, effect = "small_male_lag1", re_formula = NA,
                               probs = c(0.1, 0.9))
 dat_ce <- ce1s_1$small_male_lag1
 dat_ce[["upper_95"]] <- dat_ce[["upper__"]]
@@ -377,7 +377,7 @@ g3 <- ggplot(dat_ce) +
 
 print(g3)
 
-png("./figs/large_male_no_imputation.png", width = 6, height = 2.5, units = 'in', res = 300)
+png("./figs/large_male_no_imputation_no_ar.png", width = 6, height = 2.5, units = 'in', res = 300)
 
 ggpubr::ggarrange(g3, g2, ncol = 2)
 
