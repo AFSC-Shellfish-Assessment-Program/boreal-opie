@@ -20,9 +20,9 @@ sc_strata <- read_csv("./Data/STRATA_OPILIO_NEWTIMESERIES.csv")
 # evaluate available hauls
 haul <- read.csv("./Data/haul.csv")
 
-# restrict to haul_type = 3 and plot
+# restrict to haul_type = 3 or 4 and plot
 haul <- haul %>%
-  filter(HAUL_TYPE == 3) 
+  filter(HAUL_TYPE %in% c(3,4)) 
 
 ggplot(haul, aes(MID_LONGITUDE, MID_LATITUDE)) +
   geom_point() +
