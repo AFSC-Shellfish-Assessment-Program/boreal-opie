@@ -5,6 +5,7 @@ library(rstan)
 library(brms)
 library(bayesplot)
 library(mgcv)
+library(ggpubr)
 
 source("./scripts/stan_utils.R")
 
@@ -306,7 +307,7 @@ dat_ce[["upper_80"]] <- ce1s_3$trend2_lag1[["upper__"]]
 dat_ce[["lower_80"]] <- ce1s_3$trend2_lag1[["lower__"]]
 
 
-sm_brm <- ggplot(dat_ce) +
+sm_brm_plot <- ggplot(dat_ce) +
   aes(x = effect1__, y = estimate__) +
   geom_ribbon(aes(ymin = lower_95, ymax = upper_95), fill = "grey90") +
   geom_ribbon(aes(ymin = lower_90, ymax = upper_90), fill = "grey85") +
@@ -315,7 +316,7 @@ sm_brm <- ggplot(dat_ce) +
   labs(x = "Borealization index (mean lag 1-2)", y = "Mean log CPUE") +
   geom_text(data = filter(dat, year != 2020), aes(x = trend2_lag1, y = small_male, label = year), size = 3)
 
-print(sm_brm)
+print(sm_brm_plot)
 
 ggsave("./Figs/borealization_abundance_regression_small_male_no_imputation__no_ar.png", width = 6, height = 4, units = 'in')
 
@@ -474,8 +475,7 @@ dat_ce[["lower_90"]] <- ce1s_2$trend[["lower__"]]
 dat_ce[["upper_80"]] <- ce1s_3$trend[["upper__"]]
 dat_ce[["lower_80"]] <- ce1s_3$trend[["lower__"]]
 
-
-lrg_brm2 <- ggplot(dat_ce) +
+lrg_brm_plot2 <- ggplot(dat_ce) +
   aes(x = effect1__, y = estimate__) +
   geom_ribbon(aes(ymin = lower_95, ymax = upper_95), fill = "grey90") +
   geom_ribbon(aes(ymin = lower_90, ymax = upper_90), fill = "grey85") +
@@ -483,7 +483,7 @@ lrg_brm2 <- ggplot(dat_ce) +
   geom_line(size = 1, color = "red3") +
   labs(x = "Borealization index", y = "Mean log CPUE") 
 
-print(lrg_brm2)
+print(lrg_brm_plot2)
 
 
 ce1s_1 <- conditional_effects(lrg_brm, effect = "small_male_lag1", re_formula = NA,
@@ -504,7 +504,7 @@ dat_ce[["upper_80"]] <- ce1s_3$small_male_lag1[["upper__"]]
 dat_ce[["lower_80"]] <- ce1s_3$small_male_lag1[["lower__"]]
 
 
-lrg_brm1 <- ggplot(dat_ce) +
+lrg_brm_plot1 <- ggplot(dat_ce) +
   aes(x = effect1__, y = estimate__) +
   geom_ribbon(aes(ymin = lower_95, ymax = upper_95), fill = "grey90") +
   geom_ribbon(aes(ymin = lower_90, ymax = upper_90), fill = "grey85") +
@@ -512,9 +512,41 @@ lrg_brm1 <- ggplot(dat_ce) +
   geom_line(size = 1, color = "red3") +
   labs(x = "Small male log CPUE (previous year)", y = "Mean log CPUE") 
 
-print(lrg_brm1)
+print(lrg_brm_plot1)
 
 ## combine and plot -----------------------------------
 
-sm_abun <- ggplot(abun1, aes(year, imp_log_mean)) +
-  geom_l
+# make abundance plots for each time series
+sm_abun_plot <- ggplot(abun1, aes(year, imp_log_mean)) +
+  geom_line() +
+  geom_point() +
+  geom_errorbar(aes(ymin = imp_log_mean - 2*imp_sd,
+                    ymax = imp_log_mean + 2*imp_sd)) +
+  labs(y = "Log CPUE") +
+  theme(axis.title.x = element_blank())
+
+sm_abun_plot
+
+lrg_abun_plot <- ggplot(abun2, aes(year, imp_log_mean)) +
+  geom_line() +
+  geom_point() +
+  geom_errorbar(aes(ymin = imp_log_mean - 2*imp_sd,
+                    ymax = imp_log_mean + 2*imp_sd)) +
+  labs(y = "Log CPUE") +
+  theme(axis.title.x = element_blank())
+
+lrg_abun_plot
+
+empty_plot <- ggplot + theme_void()
+
+png("./Figs/combined_borealization_effects_plot.png", width = 9, height = 5, units = 'in', res = 300)
+
+ggarrange(ggarrange(sm_abun_plot, sm_brm_plot, empty_plot, ncol = 3, labels = c("a", "b", ""), widths = c(3,3,2)),
+                  ggarrange(lrg_abun_plot, lrg_brm_plot1, lrg_brm_plot2, ncol = 3, labels = c("c", "d", "e")),
+          nrow = 2)
+
+dev.off()
+
+
+
+
