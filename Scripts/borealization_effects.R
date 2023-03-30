@@ -25,7 +25,7 @@ trend <- trend %>%
 
 # abundance <- read.csv("./Data/imm_abun.csv", row.names = 1)
 
-abun1 <- read.csv("./output/male3059_drop10_df.csv", row.names = 1) %>%
+abun1 <- read.csv("./output/male3059_drop5_df.csv", row.names = 1) %>%
   mutate(size = "30-59")
 
 abun2 <- read.csv("./output/male6095_drop5_df.csv", row.names = 1) %>%
@@ -103,7 +103,7 @@ plot.dat <- dat %>%
   pivot_longer(cols = -year)
 
 
-# exploratory GAMs - 60-95 size class as the lag of 3-50 + borealization effect
+# exploratory GAMs - 60-95 size class as the lag of 30-59 + borealization effect
 dat <- dat %>%
   rename(small_male = `30-59`,
          large_male = `60-95`) %>%
@@ -130,7 +130,6 @@ ggplot(dat, aes(trend2_lag1, small_male)) +
   geom_text(aes(label = year)) +
   geom_smooth(method = "gam", se = F)
 
-
 sm_mod5 <- gam(small_male ~ s(trend3, k = 4), dat = dat, na.action = "na.omit")
 summary(sm_mod5)
 plot(sm_mod5, resid = T, se = F, pch = 19)
@@ -149,8 +148,45 @@ plot(sm_mod7, resid = T, se = F, pch = 19)
 
 MuMIn::AICc(sm_mod1, sm_mod2, sm_mod3, sm_mod4, sm_mod5, sm_mod6, sm_mod7) # best model is sm_mod4
 
-## brms version of best small male model--------------------
+## brms versions of small male models --------------------
 
+# model 1
+form <- bf(small_male ~ s(trend_lag1, k = 4))
+
+## fit
+brm <- brm(form,
+           data = dat,
+           cores = 4, chains = 4, iter = 2000,
+           save_pars = save_pars(all = TRUE),
+           control = list(adapt_delta = 0.99, max_treedepth = 12))
+
+saveRDS(brm, file = "output/sm_male_brm1.rds")
+
+# model 2
+form <- bf(small_male ~ s(trend2, k = 4))
+
+## fit
+brm <- brm(form,
+           data = dat,
+           cores = 4, chains = 4, iter = 2000,
+           save_pars = save_pars(all = TRUE),
+           control = list(adapt_delta = 0.99, max_treedepth = 12))
+
+saveRDS(brm, file = "output/sm_male_brm2.rds")
+
+# model 3
+form <- bf(small_male ~ s(trend, k = 4))
+
+## fit
+brm <- brm(form,
+           data = dat,
+           cores = 4, chains = 4, iter = 2000,
+           save_pars = save_pars(all = TRUE),
+           control = list(adapt_delta = 0.99, max_treedepth = 12))
+
+saveRDS(brm, file = "output/sm_male_brm3.rds")
+
+# model 4
 form <- bf(small_male ~ s(trend2_lag1, k = 4))
 
 ## fit
@@ -160,10 +196,46 @@ brm <- brm(form,
                          save_pars = save_pars(all = TRUE),
                          control = list(adapt_delta = 0.999, max_treedepth = 12))
 
-saveRDS(brm, file = "output/sm_male_brm_no_imputation.rds")
+saveRDS(brm, file = "output/sm_male_brm4.rds")
+
+# model 5
+form <- bf(small_male ~ s(trend3, k = 4))
+
+## fit
+brm <- brm(form,
+           data = dat,
+           cores = 4, chains = 4, iter = 2000,
+           save_pars = save_pars(all = TRUE),
+           control = list(adapt_delta = 0.99, max_treedepth = 12))
+
+saveRDS(brm, file = "output/sm_male_brm5.rds")
+
+# model 6
+form <- bf(small_male ~ s(trend_lag2, k = 4))
+
+## fit
+brm <- brm(form,
+           data = dat,
+           cores = 4, chains = 4, iter = 2000,
+           save_pars = save_pars(all = TRUE),
+           control = list(adapt_delta = 0.99, max_treedepth = 12))
+
+saveRDS(brm, file = "output/sm_male_brm6.rds")
+
+# model 7
+form <- bf(small_male ~ s(trend_lag1, k = 4))
+
+## fit
+brm <- brm(form,
+           data = dat,
+           cores = 4, chains = 4, iter = 2000,
+           save_pars = save_pars(all = TRUE),
+           control = list(adapt_delta = 0.99, max_treedepth = 12))
+
+saveRDS(brm, file = "output/sm_male_brm7.rds")
 
 # diagnostics
-brm <- readRDS("./output/sm_male_brm_no_imputation.rds")
+brm <- readRDS("./output/sm_male_brm4.rds")
 check_hmc_diagnostics(brm$fit)
 neff_lowest(brm$fit)
 rhat_highest(brm$fit)
