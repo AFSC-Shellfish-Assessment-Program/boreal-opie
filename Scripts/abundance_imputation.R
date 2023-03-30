@@ -600,7 +600,45 @@ male6095_drop5_df <- cbind(data.frame(year = plot.dat$year, imp_log_mean = plot.
 
 write.csv(male6095_drop5_df , "./output/male6095_drop5_df.csv")
 
+## plot the two imputed time series
 
+plot_small <- male3059_drop5_df %>%
+  select(year, imp_log_mean, imp_sd) %>%
+  mutate(Size = "30-59 mm") 
+
+xtra <- data.frame(year = 2020, 
+                   imp_log_mean = NA,
+                   imp_sd = NA,
+                   Size = "30-59 mm")
+
+
+plot_small <- rbind(plot_small, xtra)
+
+plot_large <- male6095_drop5_df %>%
+  select(year, imp_log_mean, imp_sd) %>%
+  mutate(Size = "60-95 mm") 
+
+xtra <- data.frame(year = 2020, 
+                   imp_log_mean = NA,
+                   imp_sd = NA,
+                   Size = "60-95 mm")
+
+
+plot_large <- rbind(plot_large, xtra)
+
+
+plot <- rbind(plot_small, plot_large)
+
+ggplot(plot, aes(year, imp_log_mean)) +
+  geom_point() +
+  geom_line() +
+  geom_errorbar(aes(ymin = imp_log_mean - 2*imp_sd,
+                ymax = imp_log_mean + 2*imp_sd)) +
+  facet_wrap(~Size, ncol = 1, scales = "free_y") +
+  ylab("ln(CPUE + 1)") +
+  theme(axis.title.x = element_blank())
+
+ggsave("./figs/imputed_abundance_time_series.png", width = 4, height = 6, units = 'in')
 
 ## combine all the plots ---------------
 
