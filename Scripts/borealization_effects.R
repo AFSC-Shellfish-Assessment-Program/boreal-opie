@@ -26,10 +26,27 @@ trend <- trend %>%
 # abundance <- read.csv("./Data/imm_abun.csv", row.names = 1)
 
 abun1 <- read.csv("./output/male3059_drop5_df.csv", row.names = 1) %>%
-  mutate(size = "30-59")
+  mutate(size = "30-59") %>%
+  dplyr::select(-wtd_log_mean, -unwtd_log_mean, -n_stations)
 
 abun2 <- read.csv("./output/male6095_drop5_df.csv", row.names = 1) %>%
+  mutate(size = "60-95") %>%
+  dplyr::select(-wtd_log_mean, -unwtd_log_mean, -n_stations)
+
+# add in NAs
+xtra <- data.frame(year = 2020,
+                   imp_log_mean = NA,
+                   imp_sd = NA,
+                   size = "30-59")
+
+abun1 <- rbind(abun1, xtra) %>%
+  arrange(year)
+
+xtra <- xtra %>%
   mutate(size = "60-95")
+
+abun2 <- rbind(abun2, xtra) %>%
+  arrange(year)
 
 # clean up and combine
 
@@ -59,7 +76,7 @@ str(dat)
 # cross-correlation for smoothed borealization index v. small size class - strongest at lag 0
 ccf(as.vector(dat[dat$year %in% 1975:2019,5]), as.vector(dat[dat$year %in% 1975:2019,3]))
 
-# cross-correlation for smoothed borealization index v. small size class - strongest at lag 0
+# cross-correlation for smo-thed borealization index v. small size class - strongest at lag 0
 ccf(as.vector(dat[dat$year %in% 1975:2019,5]), as.vector(dat[dat$year %in% 1975:2019,4]))
 
 # set up lag trend for plotting
@@ -101,7 +118,6 @@ ggplot(dat, aes(trend3, `60-95`)) +
 
 plot.dat <- dat %>%
   pivot_longer(cols = -year)
-
 
 # exploratory GAMs - 60-95 size class as the lag of 30-59 + borealization effect
 dat <- dat %>%
@@ -234,7 +250,32 @@ brm <- brm(form,
 
 saveRDS(brm, file = "output/sm_male_brm7.rds")
 
-# diagnostics
+## brms small male model selection ---------------------------
+
+# load model objects
+sm_brm1 <- readRDS("./output/sm_male_brm1.rds")
+sm_brm2 <- readRDS("./output/sm_male_brm2.rds")
+sm_brm3 <- readRDS("./output/sm_male_brm3.rds")
+sm_brm4 <- readRDS("./output/sm_male_brm4.rds")
+sm_brm5 <- readRDS("./output/sm_male_brm5.rds")
+sm_brm6 <- readRDS("./output/sm_male_brm6.rds")
+sm_brm7 <- readRDS("./output/sm_male_brm7.rds")
+
+# calculate loo values for each
+sm_brm1 <- add_criterion(sm_brm1, "loo")
+sm_brm2 <- add_criterion(sm_brm2, "loo")
+sm_brm3 <- add_criterion(sm_brm3, "loo")
+sm_brm4 <- add_criterion(sm_brm4, "loo")
+sm_brm5 <- add_criterion(sm_brm5, "loo")
+sm_brm6 <- add_criterion(sm_brm6, "loo")
+sm_brm7 <- add_criterion(sm_brm7, "loo")
+
+# and compare the models
+compare <- loo_compare(sm_brm1, sm_brm2, sm_brm3, sm_brm4, sm_brm5, sm_brm6, sm_brm7, criterion = "loo")
+
+compare # same result as for mgcv - model 4 is best
+
+# diagnostics for best model
 brm <- readRDS("./output/sm_male_brm4.rds")
 check_hmc_diagnostics(brm$fit)
 neff_lowest(brm$fit)
@@ -244,21 +285,8 @@ bayes_R2(brm)
 
 plot(conditional_effects(brm), ask = FALSE)
 
-# y <- y %>%
-#   group_by(year) %>%
-#   summarise(log_abundance_lead1 = mean(log_abundance_lead1))
-# 
-# y <- y$log_abundance_lead1
-# 
-# yrep_brm  <- fitted(brm, scale = "response", summary = FALSE)
-# ppc_dens_overlay(y = y, yrep = yrep_brm[sample(nrow(yrep_brm), 25), ]) +
-#   ggtitle("brm")
-# 
-# ggsave("./Figs/brms_ppc.png", width = 6, height = 4, units = 'in')
-# 
-# trace_plot(brm$fit)
 
-# plot brm
+# plot
 
 ## 95% CI
 ce1s_1 <- conditional_effects(brm, effect = "trend2_lag1", re_formula = NA,
@@ -278,7 +306,7 @@ dat_ce[["upper_80"]] <- ce1s_3$trend2_lag1[["upper__"]]
 dat_ce[["lower_80"]] <- ce1s_3$trend2_lag1[["lower__"]]
 
 
-g1 <- ggplot(dat_ce) +
+sm_brm <- ggplot(dat_ce) +
   aes(x = effect1__, y = estimate__) +
   geom_ribbon(aes(ymin = lower_95, ymax = upper_95), fill = "grey90") +
   geom_ribbon(aes(ymin = lower_90, ymax = upper_90), fill = "grey85") +
@@ -287,35 +315,24 @@ g1 <- ggplot(dat_ce) +
   labs(x = "Borealization index (mean lag 1-2)", y = "Mean log CPUE") +
   geom_text(data = filter(dat, year != 2020), aes(x = trend2_lag1, y = small_male, label = year), size = 3)
 
-print(g1)
+print(sm_brm)
 
 ggsave("./Figs/borealization_abundance_regression_small_male_no_imputation__no_ar.png", width = 6, height = 4, units = 'in')
 
-## fit ar model in gam-----
-sm_mod4a <- gamm(small_male ~ s(trend2_lag1, k = 4), correlation = corAR1(), dat = dat, na.action = "na.omit")
-summary(sm_mod4a$gam)
-plot(sm_mod4a$gam, resid = T, se = T, pch = 19)
 
-ggplot(dat, aes(trend2_lag1, small_male)) +
-  geom_text(aes(label = year)) +
-  geom_smooth(method = "gam", se = F)
-
-## large male models-----------------------------------------------
+## large male models in gam -----------------------------------------------
 
 large_mod1 <- gam(large_male ~ s(small_male_lag1, k = 4), dat = dat, na.action = "na.omit")
 summary(large_mod1)
 plot(large_mod1, resid = T, se = F, pch = 19)
 
-
 large_mod2 <- gam(large_male ~ s(small_male_lag1, k = 4) + s(trend, k = 4), dat = dat, na.action = "na.omit")
 summary(large_mod2)
 plot(large_mod2, resid = T, se = F, pch = 19)
 
-
 large_mod3 <- gam(large_male ~ s(small_male_lag1, k = 4) + s(trend2, k = 4), dat = dat, na.action = "na.omit")
 summary(large_mod3)
 plot(large_mod3, resid = T, se = F, pch = 19)
-
 
 large_mod4 <- gam(large_male ~ s(small_male_lag1, k = 4) + s(trend3, k = 4), dat = dat, na.action = "na.omit")
 summary(large_mod4)
@@ -331,76 +348,123 @@ plot(large_mod6, resid = T, se = F, pch = 19)
 
 MuMIn::AICc(large_mod1, large_mod2, large_mod3, large_mod4, large_mod5, large_mod6) # mod 2 is best
 
-# now models with only trend
-large_mod7 <- gam(large_male ~ s(trend_lag1, k = 4), dat = dat, na.action = "na.omit")
-summary(large_mod7)
-plot(large_mod7, resid = T, se = F, pch = 19)
+## brms versions of large male models --------------------
 
-large_mod8 <- gam(large_male ~ s(trend2, k = 4), dat = dat, na.action = "na.omit")
-summary(large_mod8)
-plot(large_mod8, resid = T, se = F, pch = 19)
-
-large_mod9 <- gam(large_male ~ s(trend, k = 4), dat = dat, na.action = "na.omit")
-summary(large_mod9)
-plot(large_mod9, resid = T, se = F, pch = 19)
-
-large_mod10 <- gam(large_male ~ s(trend2_lag1, k = 4), dat = dat, na.action = "na.omit")
-summary(large_mod10)
-plot(large_mod10, resid = T, se = F, pch = 19)
-
-large_mod11 <- gam(large_male ~ s(trend3, k = 4), dat = dat, na.action = "na.omit")
-summary(large_mod11)
-plot(large_mod11, resid = T, se = F, pch = 19)
-
-MuMIn::AICc(large_mod7, large_mod8, large_mod9, large_mod10, large_mod11) # mod 10
-
-## brms version of best small male model--------------------
-
-form <- bf(large_male ~ s(small_male_lag1) + s(trend, k = 4))
+# model 1
+form <- bf(large_male ~ s(small_male_lag1, k = 4))
 
 ## fit
 brm <- brm(form,
-                data = dat,
-                cores = 4, chains = 4, iter = 3000,
-                save_pars = save_pars(all = TRUE),
-                control = list(adapt_delta = 0.999, max_treedepth = 12))
+           data = dat,
+           cores = 4, chains = 4, iter = 3000,
+           save_pars = save_pars(all = TRUE),
+           control = list(adapt_delta = 0.999, max_treedepth = 12))
 
-saveRDS(brm, file = "output/large_male_brm_no_imputation_no_ar.rds")
+saveRDS(brm, file = "output/lrg_male_brm1.rds")
+
+# model 2
+form <- bf(large_male ~ s(small_male_lag1, k = 4) + s(trend, k = 4))
+
+## fit
+brm <- brm(form,
+           data = dat,
+           cores = 4, chains = 4, iter = 3000,
+           save_pars = save_pars(all = TRUE),
+           control = list(adapt_delta = 0.999, max_treedepth = 12))
+
+saveRDS(brm, file = "output/lrg_male_brm2.rds")
+
+# model 3
+form <- bf(large_male ~ s(small_male_lag1, k = 4) + s(trend2, k = 4))
+
+## fit
+brm <- brm(form,
+           data = dat,
+           cores = 4, chains = 4, iter = 3000,
+           save_pars = save_pars(all = TRUE),
+           control = list(adapt_delta = 0.999, max_treedepth = 12))
+
+saveRDS(brm, file = "output/lrg_male_brm3.rds")
+
+# model 4
+form <- bf(large_male ~ s(small_male_lag1, k = 4) + s(trend3, k = 4))
+
+## fit
+brm <- brm(form,
+           data = dat,
+           cores = 4, chains = 4, iter = 3000,
+           save_pars = save_pars(all = TRUE),
+           control = list(adapt_delta = 0.999, max_treedepth = 12))
+
+saveRDS(brm, file = "output/lrg_male_brm4.rds")
+
+# model 5
+form <- bf(large_male ~ s(small_male_lag1, k = 4) + s(trend_lag1, k = 4))
+
+## fit
+brm <- brm(form,
+           data = dat,
+           cores = 4, chains = 4, iter = 3000,
+           save_pars = save_pars(all = TRUE),
+           control = list(adapt_delta = 0.999, max_treedepth = 12))
+
+saveRDS(brm, file = "output/lrg_male_brm5.rds")
+
+# model 6
+form <- bf(large_male ~ s(small_male_lag1, k = 4) + s(trend2_lag1, k = 4))
+
+## fit
+brm <- brm(form,
+           data = dat,
+           cores = 4, chains = 4, iter = 3000,
+           save_pars = save_pars(all = TRUE),
+           control = list(adapt_delta = 0.999, max_treedepth = 12))
+
+saveRDS(brm, file = "output/lrg_male_brm6.rds")
+
+## brms large male model selection ---------------------------
+
+# load model objects
+lrg_brm1 <- readRDS("./output/lrg_male_brm1.rds")
+lrg_brm2 <- readRDS("./output/lrg_male_brm2.rds")
+lrg_brm3 <- readRDS("./output/lrg_male_brm3.rds")
+lrg_brm4 <- readRDS("./output/lrg_male_brm4.rds")
+lrg_brm5 <- readRDS("./output/lrg_male_brm5.rds")
+lrg_brm6 <- readRDS("./output/lrg_male_brm6.rds")
+
+# calculate loo values for each
+lrg_brm1 <- add_criterion(lrg_brm1, "loo")
+lrg_brm2 <- add_criterion(lrg_brm2, "loo", moment_match = T)
+lrg_brm3 <- add_criterion(lrg_brm3, "loo", moment_match = T)
+lrg_brm4 <- add_criterion(lrg_brm4, "loo")
+lrg_brm5 <- add_criterion(lrg_brm5, "loo")
+lrg_brm6 <- add_criterion(lrg_brm6, "loo")
+
+# and compare the models
+compare <- loo_compare(lrg_brm1, lrg_brm2, lrg_brm3, lrg_brm4, lrg_brm5, lrg_brm6, criterion = "loo")
+
+compare # same result as for mgcv - model 2 is best
 
 # diagnostics
-brm <- readRDS("./output/large_male_brm_no_imputation_no_ar.rds")
-check_hmc_diagnostics(brm$fit)
-neff_lowest(brm$fit)
-rhat_highest(brm$fit)
+lrg_brm <- readRDS("./output/lrg_male_brm2.rds")
+check_hmc_diagnostics(lrg_brm$fit)
+neff_lowest(lrg_brm$fit)
+rhat_highest(lrg_brm$fit)
 
-bayes_R2(brm)
+bayes_R2(lrg_brm)
 
-plot(conditional_effects(brm), ask = FALSE)
+plot(conditional_effects(lrg_brm), ask = FALSE)
 
-# y <- y %>%
-#   group_by(year) %>%
-#   summarise(log_abundance_lead1 = mean(log_abundance_lead1))
-# 
-# y <- y$log_abundance_lead1
-# 
-# yrep_brm  <- fitted(brm, scale = "response", summary = FALSE)
-# ppc_dens_overlay(y = y, yrep = yrep_brm[sample(nrow(yrep_brm), 25), ]) +
-#   ggtitle("brm")
-# 
-# ggsave("./Figs/brms_ppc.png", width = 6, height = 4, units = 'in')
-# 
-# trace_plot(brm$fit)
-
-# plot brm
+# plot lrg_brm
 
 ## 95% CI
-ce1s_1 <- conditional_effects(brm, effect = "trend", re_formula = NA,
+ce1s_1 <- conditional_effects(lrg_brm, effect = "trend", re_formula = NA,
                               probs = c(0.025, 0.975))
 ## 90% CI
-ce1s_2 <- conditional_effects(brm, effect = "trend", re_formula = NA,
+ce1s_2 <- conditional_effects(lrg_brm, effect = "trend", re_formula = NA,
                               probs = c(0.05, 0.95))
 ## 80% CI
-ce1s_3 <- conditional_effects(brm, effect = "trend", re_formula = NA,
+ce1s_3 <- conditional_effects(lrg_brm, effect = "trend", re_formula = NA,
                               probs = c(0.1, 0.9))
 dat_ce <- ce1s_1$trend
 dat_ce[["upper_95"]] <- dat_ce[["upper__"]]
@@ -411,7 +475,7 @@ dat_ce[["upper_80"]] <- ce1s_3$trend[["upper__"]]
 dat_ce[["lower_80"]] <- ce1s_3$trend[["lower__"]]
 
 
-g2 <- ggplot(dat_ce) +
+lrg_brm2 <- ggplot(dat_ce) +
   aes(x = effect1__, y = estimate__) +
   geom_ribbon(aes(ymin = lower_95, ymax = upper_95), fill = "grey90") +
   geom_ribbon(aes(ymin = lower_90, ymax = upper_90), fill = "grey85") +
@@ -419,17 +483,18 @@ g2 <- ggplot(dat_ce) +
   geom_line(size = 1, color = "red3") +
   labs(x = "Borealization index", y = "Mean log CPUE") 
 
-print(g2)
+print(lrg_brm2)
 
 
-ce1s_1 <- conditional_effects(brm, effect = "small_male_lag1", re_formula = NA,
+ce1s_1 <- conditional_effects(lrg_brm, effect = "small_male_lag1", re_formula = NA,
                               probs = c(0.025, 0.975))
 ## 90% CI
-ce1s_2 <- conditional_effects(brm, effect = "small_male_lag1", re_formula = NA,
+ce1s_2 <- conditional_effects(lrg_brm, effect = "small_male_lag1", re_formula = NA,
                               probs = c(0.05, 0.95))
 ## 80% CI
-ce1s_3 <- conditional_effects(brm, effect = "small_male_lag1", re_formula = NA,
+ce1s_3 <- conditional_effects(lrg_brm, effect = "small_male_lag1", re_formula = NA,
                               probs = c(0.1, 0.9))
+
 dat_ce <- ce1s_1$small_male_lag1
 dat_ce[["upper_95"]] <- dat_ce[["upper__"]]
 dat_ce[["lower_95"]] <- dat_ce[["lower__"]]
@@ -439,580 +504,17 @@ dat_ce[["upper_80"]] <- ce1s_3$small_male_lag1[["upper__"]]
 dat_ce[["lower_80"]] <- ce1s_3$small_male_lag1[["lower__"]]
 
 
-g3 <- ggplot(dat_ce) +
+lrg_brm1 <- ggplot(dat_ce) +
   aes(x = effect1__, y = estimate__) +
   geom_ribbon(aes(ymin = lower_95, ymax = upper_95), fill = "grey90") +
   geom_ribbon(aes(ymin = lower_90, ymax = upper_90), fill = "grey85") +
   geom_ribbon(aes(ymin = lower_80, ymax = upper_80), fill = "grey80") +
   geom_line(size = 1, color = "red3") +
-  labs(x = "Small male CPUE (previous year)", y = "Mean log CPUE") 
+  labs(x = "Small male log CPUE (previous year)", y = "Mean log CPUE") 
 
-print(g3)
+print(lrg_brm1)
 
-png("./figs/large_male_no_imputation_no_ar.png", width = 6, height = 2.5, units = 'in', res = 300)
+## combine and plot -----------------------------------
 
-ggpubr::ggarrange(g3, g2, ncol = 2)
-
-dev.off()
-
-ggplot(dat, aes(trend2_lag1, small_male)) +
-  geom_text(aes(label = year)) +
-  geom_smooth(method = "gam", se = F)
-
-
-
-sm_mod5 <- gam(small_male ~ s(trend3, k = 4), dat = dat, na.action = "na.omit")
-summary(sm_mod5)
-plot(sm_mod5, resid = T, se = F, pch = 19)
-
-
-ggplot(plot.dat, aes(year, value)) +
-  geom_point() +
-  geom_line() +
-  facet_wrap(~name, scales = "free_y", ncol = 1)
-
-
-
-
-
-# ## brms imputation -----------------------------------------
-# 
-# # load prediction time series
-# pred_dat <- read.csv("./Data/imputation_data.csv")
-# 
-# # clean up and remove survey data - can consider these in a lagged application if needed
-# pred_dat <- pred_dat[1:42,1:8] %>%
-#   select(-survey_female_mat_biomass, -survey_male_mat_biomass)
-# 
-# # and log transform
-# pred_dat[,2:6] <- log(pred_dat[,2:6])
-# 
-# ## combine all data sources
-# mi_dat <- rbind(abundance, data.frame(year = 2020, log_abundance = NA))
-# mi_dat <- mi_dat[order(mi_dat$year), ]
-# mi_dat <- left_join(mi_dat, trend, by = "year")
-# mi_dat$log_abundance_lead1 = lead(mi_dat$log_abundance)
-# 
-# ## we don't want to include 2022 abundance (log_abundance_lead1 for 2021)
-# ## the fitted value for 2020 gives us our predicted 2021 log abundance
-# mi_dat <- mi_dat[mi_dat$year %in% 1980:2020, ]
-# 
-# # imputed.data[[1]]
-# 
-# 
-# mi_dat_pred <- left_join(mi_dat, pred_dat, by = "year")
-# 
-# 
-# ## set up model with mi
-# mi_form <- bf(log_abundance_lead1 | mi() ~ mi(log_abundance) + s(trend)) +
-#      bf(log_abundance | mi() ~ model_female_mat_biomass +
-#                                model_male_mat_biomass +
-#                                model_3plus_pollock_biomass +
-#                                model_female_plaice_biomass +
-#                                model_2plus_yellowfin_biomass) + set_rescor(FALSE)
-# 
-# ## fit
-# mi_brm <- brm(mi_form,
-#               data = mi_dat_pred,
-#               cores = 4, chains = 4, iter = 2000,
-#               save_pars = save_pars(all = TRUE),
-#               control = list(adapt_delta = 0.999, max_treedepth = 10))
-# 
-# saveRDS(mi_brm, file = "output/mi_brm.rds")
-# 
-# mi_brm <- readRDS("output/mi_brm.rds")
-# 
-# summary(mi_brm)
-# 
-# ## plot s(z)
-# cs <- conditional_effects(mi_brm, effects = "trend")
-# cs[[2]] <- NULL
-# plot(cs, ask = FALSE)
-# 
-# 
-# ## plot estimated missing values
-# post = as.matrix(mi_brm)
-# hist(post[ , "Ymi_logabundancelead1[38]"])
-# hist(post[ , "Ymi_logabundance[39]"])
-# 
-# # seems that there is added uncertainty because the same value is estimated twice? (once at lag0 and once at lag1)?
-# 
-# # plot estimate value compared with observed time series
-# estimated <- data.frame(year = 2020,
-#                         log_abundance = mean(post[ , "Ymi_logabundance[39]"]),
-#                         LCI = quantile(post[ , "Ymi_logabundance[39]"], 0.025),
-#                         UCI = quantile(post[ , "Ymi_logabundance[39]"], 0.975))
-# 
-# 
-# abundance.plot <- abundance %>%
-#   mutate(LCI = NA,
-#          UCI = NA)
-# 
-# abundance.plot <- rbind(abundance.plot, estimated)
-# 
-# g <- ggplot(abundance.plot, aes(year, log_abundance)) +
-#   geom_line() +
-#   geom_point() +
-#   geom_errorbar(aes(ymin = LCI, ymax = UCI))
-# print(g)
-# ggsave("./Figs/brms_imputed_survey_abundance.png", width = 5, height = 3, units = 'in')
-
-
-
-# estimate with mice ---------------------------------------
-library(mice)
-
-# load prediction time series
-# pred_dat1 <- read.csv("./Data/imputation_data.csv")
-
-# pred_dat <- read.csv("./output/bycatch_directfish_groundfish_ts.csv", row.names = 1) %>%
-#   left_join(.,dat)
-
-# # check cross correlations
-# 
-# ccf(pred_dat$male3059.directfish, pred_dat$`30-59`)
-# 
-# ccf(pred_dat$male3059.bycatch, pred_dat$`30-59`)
-# 
-# ccf(pred_dat$male6095.directfish, pred_dat$`60-95`)
-# 
-# ccf(pred_dat$male6095.bycatch, pred_dat$`60-95`)
-# 
-# # clean up and remove survey data - can consider these in a lagged application if needed
-# pred_dat <- pred_dat[1:42,1:8] %>%
-#   select(-survey_female_mat_biomass, -survey_male_mat_biomass)
-
-pred.dat1 <- read.csv("./data/gf_imputation_data.csv")
-
-# and log transform 
-pred.dat1[,c(2:6)] <- log(pred.dat1[,c(2:6)])
-
-pred.dat2 <- read.csv("./output/directed_bycatch_all_years.csv", row.names = 1)
-
-
-# combine data for ccf analysis
-cor.dat <- dat[,c(1,3,4)] %>%
-  left_join(.,pred.dat1) %>%
-  left_join(.,pred.dat2)
-
-cor.dat <- cor.dat[cor.dat$year %in% 1975:2019,] # using base b/c tidyverse acting up
-
-# check cross correlations
-# small males first
-ccf(cor.dat$small_male, cor.dat$pollockR1)$acf # some information at lag 2 (opilio leads pollock)
-ccf(cor.dat$small_male[cor.dat$year >= 1978], cor.dat$codR0[cor.dat$year >= 1978])$acf # six year lag peak implausible! 
-# lag 2 (cod leads opilio) is best, most usable
-ccf(cor.dat$small_male[cor.dat$year >= 1978], cor.dat$codR0[cor.dat$year >= 1978])$lag
-
-ccf(cor.dat$small_male, cor.dat$pollock3plus)$acf # 2 year lag (pollock leads opilio)
-ccf(cor.dat$small_male[cor.dat$year >= 1978], cor.dat$codbiomass[cor.dat$year >= 1978])$acf # cod leads opilio by 4 years
-ccf(cor.dat$small_male, cor.dat$ylfinbiomass)$acf # lag 0?
-
-ccf(cor.dat$small_male[cor.dat$year >= 1995], cor.dat$large_log_cpue_directed[cor.dat$year >= 1995])$acf # lag 0
-ccf(cor.dat$small_male[cor.dat$year >= 1995], cor.dat$large_log_cpue_bycatch[cor.dat$year >= 1988])$acf # lag 0
-
-ccf(cor.dat$small_male[cor.dat$year >= 1995], cor.dat$small_log_cpue_directed[cor.dat$year >= 1995])$acf # lag 0 - weak / don't use!
-ccf(cor.dat$small_male[cor.dat$year >= 1995], cor.dat$small_log_cpue_bycatch[cor.dat$year >= 1988])$acf # lag 3 - implausible / don't use!
-
-# create a df for predicting small male abundance (at correct lags)
-imp_small <- dat %>%
-  dplyr::select(year, small_male) %>%
-  left_join(.,pred.dat1) %>%
-  left_join(.,pred.dat2)
-
-# set up correct lags
-imp_small <- imp_small %>%
-  mutate(pollock_R1_lag3 = lag(pollockR1, 3)) %>% #  small males 2020, pollockR1 2017
-  mutate(cod_R0_lead2 = lead(codR0, 2)) %>% # small males 2020, cod R0 2022
-  mutate(codbiomass_lag3 = lag(codbiomass, 3)) %>% # small males 2020, cod biomass 2017
-  mutate(pollockbiomass_lag2 = lag(pollock3plus, 2)) %>% # small male 2020, pollock biomass 2022
-  rename(ylfinbiomass_lag0 = ylfinbiomass) %>%
-  rename(large_male_directed_lag0 = large_log_cpue_directed) %>%
-  rename(large_male_bycatch_lag0 = large_log_cpue_bycatch) %>%
-  dplyr::select(-pollockR1, -codR0, -codbiomass, -pollock3plus, -small_log_cpue_bycatch, -small_log_cpue_directed) %>%
-  filter(year >= 1975) # drop early years with NA for survey
-  
-  
- cor(imp_small, use = "p") 
- 
- range(imp_small$year) # 1975-2022
- 
- # remove year  
-imp_small <- imp_small %>%
-  dplyr::select(-year)
- 
-imp_obj_small <- mice(data = imp_small, method = "norm", m = 100)
- 
- # pull out 2020 estimates
- estimated_2020 <- NA
- 
- for(i in 1:100){
-   # i <- 1
-   estimated_2020[i] <- complete(imp_obj_small, i)$small_male[46]
-   
- }
- 
- 
- # plot estimate value compared with observed time series
- estimated <- data.frame(year = 2020,
-                         log_abundance = mean(estimated_2020),
-                         LCI = quantile(estimated_2020, 0.025),
-                         UCI = quantile(estimated_2020, 0.975))
- 
- 
- abundance.plot <- abundance %>%
-   dplyr::rename(log_abundance = `30-59`) %>%
-   dplyr::select(year, log_abundance) %>%
-   mutate(LCI = NA,
-          UCI = NA)
- 
- abundance.plot <- rbind(abundance.plot, estimated)
- 
- ggplot(abundance.plot, aes(year, log_abundance)) +
-   geom_line() +
-   geom_point() +
-   geom_errorbar(aes(ymin = LCI, ymax = UCI)) +
-   ylab("log(immature snow crab abundance)") +
-   theme(axis.title.x = element_blank())
- 
- # save plot
- ggsave("./Figs/small_male_imputed_survey_abundance.png", width = 5, height = 3, units = 'in')
-
- ## process imp and pass mice imputations to brms ------------------
- 
- imputed.data <- list()
- 
- x.dat <- dat %>%
-   dplyr::select(year, trend2_lag1)
- 
- # get a df to plot y values for diagnostics
- y <- data.frame()
- 
- for(i in 1:100){
-   
-   temp <- complete(imp, i)[1]
-   
-   y <- rbind(y, data.frame(
-     year = 1975:2022,
-     small_male_log_cpue = temp$small_male)
-   )
-   
-   # add borealization trend
-   temp <- left_join(y, x.dat)
-   
-   imputed.data[[i]] <- temp
-   
- }
- 
- # set up and run brms
- 
- form <- bf(small_male_log_cpue ~ s(trend2_lag1, k = 4))
- 
- ## fit
- mice_brm <- brm_multiple(form,
-                          data = imputed.data,
-                          cores = 4, chains = 4, iter = 3000,
-                          save_pars = save_pars(all = TRUE),
-                          control = list(adapt_delta = 0.999, max_treedepth = 12))
- 
- saveRDS(mice_brm, file = "output/mice_sm_male_brm.rds")
- 
- summary(mice_brm)
- 
- # diagnostics
- mice_brm <- readRDS("./output/mice_sm_male_brm.rds")
- check_hmc_diagnostics(mice_brm$fit)
- neff_lowest(mice_brm$fit)
- rhat_highest(mice_brm$fit)
- 
- bayes_R2(mice_brm)
- 
- plot(conditional_effects(mice_brm), ask = FALSE)
- 
- y <- y %>%
-   group_by(year) %>%
-   summarise(log_abundance_lead1 = mean(log_abundance_lead1))
- 
- y <- y$log_abundance_lead1
- 
- yrep_mice_brm  <- fitted(mice_brm, scale = "response", summary = FALSE)
- ppc_dens_overlay(y = y, yrep = yrep_mice_brm[sample(nrow(yrep_mice_brm), 25), ]) +
-   ggtitle("mice_brm")
- 
- ggsave("./Figs/mice_brms_ppc.png", width = 6, height = 4, units = 'in')
- 
- trace_plot(mice_brm$fit)
- 
- # plot mice_brm
- 
- ## 95% CI
- ce1s_1 <- conditional_effects(mice_brm, effect = "trend2_lag1", re_formula = NA,
-                               probs = c(0.025, 0.975))
- ## 90% CI
- ce1s_2 <- conditional_effects(mice_brm, effect = "trend2_lag1", re_formula = NA,
-                               probs = c(0.05, 0.95))
- ## 80% CI
- ce1s_3 <- conditional_effects(mice_brm, effect = "trend2_lag1", re_formula = NA,
-                               probs = c(0.1, 0.9))
- dat_ce <- ce1s_1$trend2_lag1
- dat_ce[["upper_95"]] <- dat_ce[["upper__"]]
- dat_ce[["lower_95"]] <- dat_ce[["lower__"]]
- dat_ce[["upper_90"]] <- ce1s_2$trend2_lag1[["upper__"]]
- dat_ce[["lower_90"]] <- ce1s_2$trend2_lag1[["lower__"]]
- dat_ce[["upper_80"]] <- ce1s_3$trend2_lag1[["upper__"]]
- dat_ce[["lower_80"]] <- ce1s_3$trend2_lag1[["lower__"]]
- dat_ce[["rug.anom"]] <- c(jitter(unique(trend$trend[trend$year %in% 1980:2020]), amount = 0.01),
-                           rep(NA, 100-length(trend$trend[trend$year %in% 1980:2020])))
- 
- 
- g1 <- ggplot(dat_ce) +
-   aes(x = effect1__, y = estimate__) +
-   geom_ribbon(aes(ymin = lower_95, ymax = upper_95), fill = "grey90") +
-   geom_ribbon(aes(ymin = lower_90, ymax = upper_90), fill = "grey85") +
-   geom_ribbon(aes(ymin = lower_80, ymax = upper_80), fill = "grey80") +
-   geom_line(size = 1, color = "red3") +
-   labs(x = "Borealization index", y = "Log abundance") +
-   geom_rug(aes(x=rug.anom, y=NULL))
- 
- print(g1)
- 
- ggsave("./Figs/mice_borealization_abundance_regression.png", width = 6, height = 4, units = 'in')
- 
- 
-## large males--------------------------
-ccf(cor.dat$large_male, cor.dat$pollockR1)$acf # large males leads by 2 years
-ccf(cor.dat$large_male[cor.dat$year >= 1978], cor.dat$codR0[cor.dat$year >= 1978])$acf # large male leads by 1 year
-ccf(cor.dat$large_male, cor.dat$pollock3plus)$acf # lag 0
-ccf(cor.dat$large_male[cor.dat$year >= 1978], cor.dat$codbiomass[cor.dat$year >= 1978])$acf # large males lead by 2 years
-ccf(cor.dat$large_male, cor.dat$ylfinbiomass)$acf # lag 0
-
-ccf(cor.dat$large_male[cor.dat$year >= 1995], cor.dat$male6095.directfish[cor.dat$year >= 1995])$acf # lag 0
-ccf(cor.dat$large_male[cor.dat$year >= 1995], cor.dat$male6095.bycatch[cor.dat$year >= 1995])$acf # lag 0
-
-ccf(cor.dat$large_male[cor.dat$year >= 1995], cor.dat$male3059.directfish[cor.dat$year >= 1995])$acf # lag 0 - weak / don't use!
-ccf(cor.dat$large_male[cor.dat$year >= 1995], cor.dat$male3059.bycatch[cor.dat$year >= 1995])$acf # lag 0 - weak / don't use!
-
-
-  
-
-pred_dat[,2:6] <- log(pred_dat[,2:6])
-
-dat <- abundance %>%
-  rbind(.,
-        data.frame(year = 2020,
-                   log_abundance = NA)) %>%
-  arrange(year) %>%
-  left_join(., pred_dat)
-
-# examine correlations!
-cor(dat[,-1], use = "p")
-
-imp <- mice(data = dat, method = "norm", m = 100)
-
-# pull out 2020 estimates
-estimated_2020 <- NA
-
-
-for(i in 1:100){
-
-estimated_2020[i] <- complete(imp, i)$log_abundance[41]
-
-}
-
-
-# plot estimate value compared with observed time series
-estimated <- data.frame(year = 2020,
-                        log_abundance = mean(estimated_2020),
-                        LCI = quantile(estimated_2020, 0.025),
-                        UCI = quantile(estimated_2020, 0.975))
-
-
-abundance.plot <- abundance %>%
-  mutate(LCI = NA,
-         UCI = NA)
-
-abundance.plot <- rbind(abundance.plot, estimated)
-
-ggplot(abundance.plot, aes(year, log_abundance)) +
-  geom_line() +
-  geom_point() +
-  geom_errorbar(aes(ymin = LCI, ymax = UCI)) +
-  ylab("log(immature snow crab abundance)") +
-  theme(axis.title.x = element_blank())
-
-# save plot
-ggsave("./Figs/imputed_survey_abundance.png", width = 5, height = 3, units = 'in')
-
-## process imp and pass mice imputations to brms ------------------
-
-imputed.data <- list()
-
-# get a df to plot y values for diagnostics
-y <- data.frame()
-
-for(i in 1:100){
-
-  temp <- complete(imp, i)[,1:2] %>%
-    mutate(log_abundance_lead1 = lead(log_abundance))
-
-  y <- rbind(y, data.frame(
-    year = temp$year[1:41],
-    log_abundance_lead1 = temp$log_abundance_lead1[1:41])
-  )
-
-  # add borealization trend
-  temp <- left_join(temp, trend)
-
-  imputed.data[[i]] <- temp
-
-  }
-
-# set up and run brms
-
-form <- bf(log_abundance_lead1 ~ log_abundance + s(trend))
-
-## fit
-mice_brm <- brm_multiple(form,
-              data = imputed.data,
-              cores = 4, chains = 4, iter = 3000,
-              save_pars = save_pars(all = TRUE),
-              control = list(adapt_delta = 0.99999999, max_treedepth = 12))
-
-saveRDS(mice_brm, file = "output/mice_brm.rds")
-
-summary(mice_brm)
-
-# diagnostics
-mice_brm <- readRDS("./output/mice_brm.rds")
-check_hmc_diagnostics(mice_brm$fit)
-neff_lowest(mice_brm$fit)
-rhat_highest(mice_brm$fit)
-
-bayes_R2(mice_brm)
-
-plot(conditional_effects(mice_brm), ask = FALSE)
-
-y <- y %>%
-  group_by(year) %>%
-  summarise(log_abundance_lead1 = mean(log_abundance_lead1))
-
-y <- y$log_abundance_lead1
-
-yrep_mice_brm  <- fitted(mice_brm, scale = "response", summary = FALSE)
-ppc_dens_overlay(y = y, yrep = yrep_mice_brm[sample(nrow(yrep_mice_brm), 25), ]) +
-  ggtitle("mice_brm")
-
-ggsave("./Figs/mice_brms_ppc.png", width = 6, height = 4, units = 'in')
-
-trace_plot(mice_brm$fit)
-
-# plot mice_brm
-
-## 95% CI
-ce1s_1 <- conditional_effects(mice_brm, effect = "trend", re_formula = NA,
-                              probs = c(0.025, 0.975))
-## 90% CI
-ce1s_2 <- conditional_effects(mice_brm, effect = "trend", re_formula = NA,
-                              probs = c(0.05, 0.95))
-## 80% CI
-ce1s_3 <- conditional_effects(mice_brm, effect = "trend", re_formula = NA,
-                              probs = c(0.1, 0.9))
-dat_ce <- ce1s_1$trend
-dat_ce[["upper_95"]] <- dat_ce[["upper__"]]
-dat_ce[["lower_95"]] <- dat_ce[["lower__"]]
-dat_ce[["upper_90"]] <- ce1s_2$trend[["upper__"]]
-dat_ce[["lower_90"]] <- ce1s_2$trend[["lower__"]]
-dat_ce[["upper_80"]] <- ce1s_3$trend[["upper__"]]
-dat_ce[["lower_80"]] <- ce1s_3$trend[["lower__"]]
-dat_ce[["rug.anom"]] <- c(jitter(unique(trend$trend[trend$year %in% 1980:2020]), amount = 0.01),
-                          rep(NA, 100-length(trend$trend[trend$year %in% 1980:2020])))
-
-
-g1 <- ggplot(dat_ce) +
-  aes(x = effect1__, y = estimate__) +
-  geom_ribbon(aes(ymin = lower_95, ymax = upper_95), fill = "grey90") +
-  geom_ribbon(aes(ymin = lower_90, ymax = upper_90), fill = "grey85") +
-  geom_ribbon(aes(ymin = lower_80, ymax = upper_80), fill = "grey80") +
-  geom_line(size = 1, color = "red3") +
-  labs(x = "Borealization index", y = "Log abundance") +
-  geom_rug(aes(x=rug.anom, y=NULL))
-
-print(g1)
-
-ggsave("./Figs/mice_borealization_abundance_regression.png", width = 6, height = 4, units = 'in')
-
-
-# now predict for 2022 survey
-new.dat <- data.frame(log_abundance = abundance$log_abundance[abundance$year == 2021],
-                      trend = trend$trend[trend$year == 2021])
-
-
-pred.2022 <- posterior_epred(mice_brm, newdata = new.dat)
-
-
-mean(pred.2022)
-LCI.80 <- exp(quantile(pred.2022, 0.1))
-UCI.80 <- exp(quantile(pred.2022, 0.9))
-
-LCI.95 <- exp(quantile(pred.2022, 0.025))
-UCI.95 <- exp(quantile(pred.2022, 0.975))
-
-overall.mean <- exp(mean(abundance$log_abundance[abundance$year %in% 1980:2019]))
-
-LCI.80 / overall.mean
-UCI.80 / overall.mean
-
-LCI.95 / overall.mean
-UCI.95 / overall.mean
-
-# add blank year to abundance.plot
-xtra.80 <- data.frame(year = 2022,
-                   log_abundance = 5.5, # dummy value to make plot work
-                   LCI = quantile(pred.2022, 0.1),
-                   UCI = quantile(pred.2022, 0.9))
-
-# abundance.plot <- rbind(abundance.plot, xtra)
-
-# create data frame for 95% CI
-xtra.95 <- data.frame(year = 2022,
-                      log_abundance = 5.5, # dummy value to make plot work
-                      LCI = quantile(pred.2022, 0.025),
-                      UCI = quantile(pred.2022, 0.975))
-
-ggplot(abundance.plot, aes(year, log_abundance)) +
-  geom_line() +
-  geom_errorbar(aes(ymin = LCI, ymax = UCI), color = "dark grey") +
-  geom_point(size = 2) +
-  geom_errorbar(data = xtra.95, aes(x = year, ymin = LCI, ymax = UCI), color = "gold") +
-  geom_errorbar(data = xtra.80, aes(x = year, ymin = LCI, ymax = UCI), color = "firebrick") +
-
-  ylab("Log abundance") +
-  theme(axis.title.x = element_blank())
-
-# save plot
-ggsave("./Figs/imputed_and_predicted_survey_abundance.png", width = 5, height = 3, units = 'in')
-
-
-## alternate model ---------------------------
-
-form2 <- bf(log_abundance_lead1 ~ s(log_abundance) + s(trend))
-
-## fit
-mice_brm2 <- brm_multiple(form2,
-                         data = imputed.data,
-                         cores = 4, chains = 4, iter = 2000,
-                         save_pars = save_pars(all = TRUE),
-                         control = list(adapt_delta = 0.99999, max_treedepth = 16))
-
-saveRDS(mice_brm2, file = "output/mice_brm2.rds")
-
-
-# diagnostics
-mice_brm2 <- readRDS("./output/mice_brm2.rds")
-check_hmc_diagnostics(mice_brm2$fit)
-neff_lowest(mice_brm2$fit)
-rhat_highest(mice_brm2$fit)
-
-bayes_R2(mice_brm2)
-
-plot(conditional_effects(mice_brm2), ask = FALSE)
+sm_abun <- ggplot(abun1, aes(year, imp_log_mean)) +
+  geom_l
