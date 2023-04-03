@@ -95,7 +95,7 @@ print(g1)
 ## estimate FAR -------------------------
 
 # load model object for predicting preindustrial and historical probabilities
-mod <- readRDS("./output/Eastern_Bering_sea_rolling_window_binomial2.rds")
+mod <- readRDS("./Data/Eastern_Bering_Seaannual_sst_rolling_window_binomial2.rds")
 
 bayes_R2(mod)
 
@@ -105,7 +105,7 @@ far_pred <- data.frame()
 # set up sst anomalies
 ersst.temp <- sst %>%
   rename(annual.anomaly.1yr = sst.anomaly) %>%
-  filter(year %in% 1950:2021)
+  filter(year %in% 1950:2022)
   
 ## setup new data
 nd <- data.frame(period = c("historical", "preindustrial"),
