@@ -548,5 +548,27 @@ ggarrange(ggarrange(sm_abun_plot, sm_brm_plot, empty_plot, ncol = 3, labels = c(
 dev.off()
 
 
+##
+
+dat <- dat %>%
+  mutate(trend2_lag2 = lag(trend2_lag1))
 
 
+combined_mod1 <- gam(large_male ~ small_male_lag1 + s(trend2_lag2) + s(trend), dat = dat, na.action = "na.omit")
+summary(combined_mod1)
+plot(combined_mod1, resid = T, se = F, pch = 19, all.terms = T)
+
+## brms version
+
+form <- bf(large_male ~ small_male_lag1 + trend2_lag2 + trend + ar(time = year, p = 1, cov = TRUE))
+
+## fit
+brm <- brm(form,
+           data = dat,
+           cores = 4, chains = 4, iter = 3000,
+           save_pars = save_pars(all = TRUE),
+           control = list(adapt_delta = 0.999, max_treedepth = 12))
+
+saveRDS(brm, file = "output/combined_male_brm1.rds")
+
+plot(conditional_effects(brm), ask = F)
