@@ -17,21 +17,17 @@ trend <- read.csv("./output/dfa_trend.csv")
 
 trend <- trend %>%
   select(t, estimate) %>%
-  rename(year = t, trend = estimate) %>%
-  filter(year <= 2020) # remove 2021 as we have not yet observed the snow crab response
+  rename(year = t, trend = estimate) 
 
 tail(trend) # 2020 is the value we want to predict for
 
 # load ersst values
-ersst <- read.csv("./Data/ersst_time_series.csv")
+ersst <- read.csv("./Data/regional_north_pacific_ersst_time_series.csv") %>%
+  filter(region == "Eastern_Bering_Sea")
 
 # load ersst anomalies
-ersst.anom <- read.csv("./Data/regional_north_pacific_ersst_anomaly_time_series.csv")
-
-unique(ersst.anom$region)
-
-ersst.anom <- ersst.anom %>%
-  dplyr::filter(region == "Eastern_Bering_Sea")
+ersst.anom <- read.csv("./Data/regional_north_pacific_ersst_anomaly_time_series.csv") %>%
+  filter(region == "Eastern_Bering_Sea")
 
 # plot distributions to check
 ggplot(filter(ersst.anom, year %in% 1950:1999), aes(annual.anomaly.unsmoothed)) +
@@ -51,7 +47,6 @@ timing <- read.csv("./Data/model.north.pacific.warming.timing.csv")
 
 # get vector of model names
 models <- unique(cmip.anom$model)
-
 
 # create df to catch outcomes for extreme runs
 extreme.outcomes <- data.frame()
@@ -84,7 +79,6 @@ for(i in 1:length(models)){ # start i loop (models)
 head(extreme.outcomes) 
 
 ## record outcomes using different warming levels from hist.585 ----------------
-
 
 # loop through each model
 for(i in 1:length(models)){ # start i loop (models)
@@ -177,99 +171,20 @@ View(check)
 
 ## fit brms model to estimate probabilities-----------
 
-# model weights for extreme events in different periods - 
-# product of regional weighting (based on ar(1), correlation, bias) and 
-# prediction of observed N. Pac. weighting
-
 # load CMIP6 model weights
-model.weights <- read.csv("./Data/CMIP6_model_weights_by_region_window.csv") 
+model.weights <- read.csv("./Data/normalized_CMIP6_weights.csv") 
 
 # clean up model weights 
 model.weights <- model.weights %>%
-  filter(window == "annual",
-         region == "Eastern_Bering_Sea") %>%
-  select(model, scaled.total.weight) 
+  filter(region == "Eastern_Bering_Sea") %>%
+  select(model, normalized_weight) 
 
-# calculate EBS-specific model warming weights (based on prediction of experienced warming)
-
-ersst <- read.csv("./Data/regional_north_pacific_ersst_time_series.csv")
-
-ersst <- ersst %>%
-  select(year, annual.unsmoothed) %>%
-  mutate(model = "ersst")
-
-models <- read.csv("./Data/CMIP6.sst.time.series.csv")
-
-# combine models and ersst observations into "data"
-data <- models %>% 
-  filter(experiment == "hist_ssp585",
-         region == "Eastern_Bering_Sea",
-         year %in% 1850:2021) %>% # note that for regional warming we will calculate anomalies wrt 1950-1999 (beginning of trustworthy ERSST)
-  select(year, annual.unsmoothed, model)
-
-data <- rbind(data, ersst) 
-
-# calculate 1950:1999 climatology for each model and ersst
-climatology <- data %>%
-  filter(year %in% 1850:1949) %>%
-  group_by(model) %>%
-  summarize(climatology.mean = mean(annual.unsmoothed), climatology.sd = sd(annual.unsmoothed))
-
-# combine climatology and data, calculate anomalies
-data <- left_join(data, climatology) %>%
-  mutate(anomaly = (annual.unsmoothed - climatology.mean) / climatology.sd)
-
-# and pivot longer (ersst vs models)
-ersst <- data %>%
-  filter(model == "ersst") %>%
-  select(year, anomaly) %>%
-  rename(ersst.anomaly = anomaly)
-
-data <- data %>%
-  filter(model != "ersst") %>%
-  left_join(., ersst)
-
-# loop through and fit linear ersst - model regressions to get weights
-regional_warming_weights <- data.frame()
-
-models <- unique(data$model)
-
-
-  for(m in 1:length(models)){ # loop through models
-    # m <- 1
-    
-    temp.dat <- data %>%
-      filter(model == models[m],
-             year %in% 1972:2021)
-    
-    
-    mod <- lm(ersst.anomaly ~ anomaly, data = temp.dat)
-    
-    regional_warming_weights <- rbind(regional_warming_weights,
-                                      data.frame(model = models[m],
-                                                 regional_warming_weight = 1 / abs(1-coefficients(mod)[2]))) # inverse of difference from 1!
-  }
-  
-
-
-
-weights <- left_join(model.weights, regional_warming_weights) %>%
-  mutate(total_weight = scaled.total.weight * regional_warming_weight)
-
-
-# plot to examine
-ggplot(weights, aes(scaled.total.weight, regional_warming_weight)) +
-  geom_point() 
-
-ggplot(weights, aes(total_weight)) +
-  geom_histogram(fill = "grey", color = "black", bins = 20) 
-
-extremes <- left_join(extreme.outcomes, weights) %>%
+extremes <- left_join(extreme.outcomes, model.weights) %>%
   mutate(model_fac = as.factor(model))
 
 ## brms: setup ---------------------------------------------
 
-form <-  bf(count | trials(N) + weights(total_weight, scale = TRUE) ~
+form <-  bf(count | trials(N) + weights(normalized_weight, scale = TRUE) ~
               period + (1 | model_fac))
 
 # fit model
@@ -284,9 +199,6 @@ form <-  bf(count | trials(N) + weights(total_weight, scale = TRUE) ~
   
   saveRDS(extremes_brms, "./output/extremes_binomial.rds")
   
-
-
-
 # evaluate 
 
 model <- readRDS("./output/extremes_binomial.rds")
@@ -318,7 +230,6 @@ plot.dat <- data.frame()
 plot.dat[,c(2:4)] <- 1/plot.dat[,c(2:4)]
 
 # and change values above 10^4 to 10^4
-
 change <- plot.dat[,c(2:4)] > 10^4
 
 plot.dat[,c(2:4)][change] <- 10^4
@@ -346,11 +257,31 @@ return.time <- ggplot(plot.dat, aes(period, prob)) +
   theme(axis.text.x = element_text(angle = 45,
                                    hjust = 1))
 
-# ggsave("./figs/extreme_return_time.png", width = 3, height = 6, units = 'in')    
+ggsave("./figs/extreme_return_time_3.575092_SD.png", width = 3, height = 6, units = 'in')    
 
 ## alternate approach: plot temperature pdfs for warming eras --------------------------------------
 
 ## different approach - plot hindcast and projected pdfs for sst anomalies --------------------------
+
+# load ersst anomalies
+ersst.anom <- read.csv("./Data/regional_north_pacific_ersst_anomaly_time_series.csv") %>%
+  filter(region == "Eastern_Bering_Sea")
+
+# load predicted sst - borealization relationship
+pred.sst.boreal <- read.csv("./output/sst_borealization_predicted_relationship.csv")
+
+# find sst anomaly predicted to correspond with 2020 borealization trend value
+ersst.max <- pred.sst.boreal$sst.anomaly[which.min(abs(pred.sst.boreal$estimate__ - trend$trend[trend$year == 2020]))]
+
+# load CMIP6 anomalies
+cmip.anom <- read.csv("./Data/CMIP6.anomaly.time.series.csv")
+
+# load estimated warming level timing for each model
+timing <- read.csv("./Data/model.north.pacific.warming.timing.csv")
+
+# get vector of model names
+models <- unique(cmip.anom$model)
+
 # create df to catch outcomes for extreme runs
 anomaly.pdfs <- data.frame()
 
@@ -458,95 +389,15 @@ for(i in 1:length(models)){ # start i loop (models)
 } # close i loop (models)
 
 
-# model weights for anomalies in different periods - 
-# product of regional weighting (based on ar(1), correlation, bias) and 
-# prediction of observed regional warming
-
 # load CMIP6 model weights
-model.weights <- read.csv("./Data/CMIP6_model_weights_by_region_window.csv") 
+model.weights <- read.csv("./Data/normalized_CMIP6_weights.csv") 
 
 # clean up model weights 
 model.weights <- model.weights %>%
-  filter(window == "annual",
-         region == "Eastern_Bering_Sea") %>%
-  select(model, scaled.total.weight) 
+  filter(region == "Eastern_Bering_Sea") %>%
+  select(model, normalized_weight) 
 
-# calculate EBS-specific model warming weights (based on prediction of experienced warming)
-
-ersst <- read.csv("./Data/regional_north_pacific_ersst_time_series.csv")
-
-ersst <- ersst %>%
-  select(year, annual.unsmoothed) %>%
-  mutate(model = "ersst")
-
-models <- read.csv("./Data/CMIP6.sst.time.series.csv")
-
-# combine models and ersst observations into "data"
-data <- models %>% 
-  filter(experiment == "hist_ssp585",
-         region == "Eastern_Bering_Sea",
-         year %in% 1850:2021) %>% # note that for regional warming we will calculate anomalies wrt 1950-1999 (beginning of trustworthy ERSST)
-  select(year, annual.unsmoothed, model)
-
-data <- rbind(data, ersst) 
-
-# calculate 1850:1949 climatology for each model and ersst
-climatology <- data %>%
-  filter(year %in% 1850:1949) %>%
-  group_by(model) %>%
-  summarize(climatology.mean = mean(annual.unsmoothed), climatology.sd = sd(annual.unsmoothed))
-
-# combine climatology and data, calculate anomalies
-data <- left_join(data, climatology) %>%
-  mutate(anomaly = (annual.unsmoothed - climatology.mean) / climatology.sd)
-
-# and pivot longer (ersst vs models)
-ersst <- data %>%
-  filter(model == "ersst") %>%
-  select(year, anomaly) %>%
-  rename(ersst.anomaly = anomaly)
-
-data <- data %>%
-  filter(model != "ersst") %>%
-  left_join(., ersst)
-
-# loop through and fit linear ersst - model regressions to get weights
-regional_warming_weights <- data.frame()
-
-models <- unique(data$model)
-
-
-for(m in 1:length(models)){ # loop through models
-  # m <- 1
-  
-  temp.dat <- data %>%
-    filter(model == models[m],
-           year %in% 1972:2021)
-  
-  
-  mod <- lm(ersst.anomaly ~ anomaly, data = temp.dat)
-  
-  regional_warming_weights <- rbind(regional_warming_weights,
-                                    data.frame(model = models[m],
-                                               regional_warming_weight = 1 / abs(1-coefficients(mod)[2]))) # inverse of difference from 1!
-}
-
-
-
-
-weights <- left_join(model.weights, regional_warming_weights) %>%
-  mutate(total_weight = scaled.total.weight * regional_warming_weight)
-
-
-# plot to examine
-ggplot(weights, aes(scaled.total.weight, regional_warming_weight)) +
-  geom_point() 
-
-ggplot(weights, aes(total_weight)) +
-  geom_histogram(fill = "grey", color = "black", bins = 20) 
-
-anomaly.pdfs <- left_join(anomaly.pdfs, weights) 
-
+anomaly.pdfs <- left_join(anomaly.pdfs, model.weights) 
 
 # resample to weight models
 resample.pdf <- data.frame()
@@ -560,9 +411,7 @@ for(i in 1:length(periods)){
   
   resample.pdf <- rbind(resample.pdf,
                         data.frame(period = periods[i],
-                                   anomaly = sample(temp$anomaly, 1000, replace = T, prob = temp$total_weight)))
-  
-  
+                                   anomaly = sample(temp$anomaly, 1000, replace = T, prob = temp$normalized_weight)))
   
 }
 
@@ -571,9 +420,15 @@ plot.order <- data.frame(period = unique(resample.pdf$period),
                          order = 1:5)
 
 
-
 resample.pdf <- left_join(resample.pdf, plot.order) %>%
   mutate(period =  reorder(period, order))
+
+
+sum <- resample.pdf %>%
+  group_by(period) %>%
+  summarize(proportion = sum(anomaly > ersst.max) / n())
+
+sum
 
 # and plot
 
@@ -591,8 +446,6 @@ sst.pdfs <- ggplot(resample.pdf, aes(period, anomaly)) +
                               "1.0° to 1.5°",
                               "1.5° to 2.0°"))
 
-
-# ggsave("./CMIP6/figs/sockeye_anomaly_pdfs.png", width = 3, height = 3, units = 'in')    
 
 ## finally, plot hindcast / observed / projected warming rates
 
@@ -680,7 +533,6 @@ pred.plot <- rbind(pred.plot.245,
 pred.plot$warming <- as.factor(pred.plot$warming)
 
 pos_dodge = position_dodge(width = 0.2)
-
 
 
 time.plot <- ggplot(pred.plot, aes(warming, year, color = source)) +
