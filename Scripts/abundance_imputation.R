@@ -87,6 +87,12 @@ check <- stratum %>%
 
 check
 
+# check samples by station / year
+ff <- function(x) sum(!is.na(x))
+check <- tapply(stratum$CPUE, list(stratum$GIS_STATION, stratum$YEAR), ff)
+
+View(check)
+
 # look at distribution 
 ggplot(stratum, aes(log(CPUE+1))) +
   geom_histogram(bins = 40, fill = "grey", color = "black")
@@ -122,6 +128,7 @@ drop_5th <- drop_0 %>%
 ggplot(drop_5th, aes(mean_log_cpue)) + 
   geom_histogram(bins = 30, fill = "grey", color = "black")
 
+
 male_30_59_drop_5_map <- ggplot(drop_5th, aes(longitude, latitude, color = mean_log_cpue)) +
   geom_point(size = 3, shape = 15) +
   scale_colour_gradient(
@@ -146,6 +153,16 @@ count <- dat %>%
   summarise(count = n())
 
 count
+
+# plot annual means without imputation
+summary <- dat %>%
+  group_by(YEAR) %>%
+  summarise(mean_cpue = mean(log_cpue))
+
+
+ggplot(summary, aes(YEAR, mean_cpue)) +
+  geom_point() +
+  geom_line()
 
 # get into matrix form for mice
 dat <- tapply(dat$log_cpue, list(dat$YEAR, dat$GIS_STATION), mean)
@@ -180,7 +197,7 @@ imp_30_59_drop_5 <- readRDS("./output/abundance_imputations_male_30-59_stratum_d
 
 check <- is.na(complete(imp_30_59_drop_5))
 
-sum(check) # 4!
+sum(check) # 11!
 
 
 # also create df to save mean annual temp and sampling day for each imputed temperature data set
