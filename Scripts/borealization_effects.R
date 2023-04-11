@@ -26,144 +26,324 @@ trend <- trend %>%
 
 # abundance <- read.csv("./Data/imm_abun.csv", row.names = 1)
 
-abun1 <- read.csv("./output/male3059_drop5_df.csv", row.names = 1) %>%
-  mutate(size = "30-59") %>%
-  dplyr::select(-wtd_log_mean, -unwtd_log_mean, -n_stations)
+# abun1 <- read.csv("./output/male3059_drop5_df.csv", row.names = 1) %>%
+#   mutate(size = "30-59") %>%
+#   dplyr::select(-wtd_log_mean, -unwtd_log_mean, -n_stations)
+# 
+# abun2 <- read.csv("./output/male6095_drop5_df.csv", row.names = 1) %>%
+#   mutate(size = "60-95") %>%
+#   dplyr::select(-wtd_log_mean, -unwtd_log_mean, -n_stations)
+# 
+# # add in NAs
+# xtra <- data.frame(year = 2020,
+#                    imp_log_mean = NA,
+#                    imp_sd = NA,
+#                    size = "30-59")
+# 
+# abun1 <- rbind(abun1, xtra) %>%
+#   arrange(year)
+# 
+# xtra <- xtra %>%
+#   mutate(size = "60-95")
+# 
+# abun2 <- rbind(abun2, xtra) %>%
+#   arrange(year)
+# 
+# abun1 <- read.csv("./output/male3059_drop5_df_simple.csv", row.names = 1) %>%
+#   mutate(size = "30-59")
+# 
+# abun2 <- read.csv("./output/male_60-95_drop5_df_simple.csv", row.names = 1) %>%
+#   mutate(size = "60-95")
 
-abun2 <- read.csv("./output/male6095_drop5_df.csv", row.names = 1) %>%
-  mutate(size = "60-95") %>%
-  dplyr::select(-wtd_log_mean, -unwtd_log_mean, -n_stations)
 
-# add in NAs
-xtra <- data.frame(year = 2020,
-                   imp_log_mean = NA,
-                   imp_sd = NA,
-                   size = "30-59")
-
-abun1 <- rbind(abun1, xtra) %>%
+abundance <- read.csv("./output/male_30-95_drop5_df_simple.csv", row.names = 1) %>%
+  rename(log_mean = mean) %>%
   arrange(year)
 
-xtra <- xtra %>%
-  mutate(size = "60-95")
-
-abun2 <- rbind(abun2, xtra) %>%
-  arrange(year)
-
-# clean up and combine
-
-abundance <- rbind(abun1, abun2) %>%
-  rename(log_mean = imp_log_mean) %>%
-  dplyr::select(year, log_mean, size) %>%
-  pivot_longer(cols = c(-year, -size)) %>%
-  dplyr::select(-name) %>%
-  pivot_wider(names_from = size, values_from = value)
+# # clean up and combine
+# 
+# abundance <- rbind(abun1, abun2) %>%
+#   rename(log_mean = mean) %>%
+#   dplyr::select(year, log_mean, size) %>%
+#   pivot_longer(cols = c(-year, -size)) %>%
+#   dplyr::select(-name) %>%
+#   pivot_wider(names_from = size, values_from = value)
 
 dat <- left_join(trend, abundance)
 
-# cross-correlation for age classes: strongest at lag 1
-ccf(as.vector(dat[dat$year %in% 1975:2019,3]), as.vector(dat[dat$year %in% 1975:2019,4]))$acf
+# # cross-correlation for age classes: strongest at lag 1 & 2
+# ccf(as.vector(dat[dat$year %in% 1975:2019,3]), as.vector(dat[dat$year %in% 1975:2019,4]))$acf
+# 
+# # autocorrelation for small size class
+# acf(as.vector(dat[dat$year %in% 1975:2019,3]))$acf
+# 
+# # cross-correlation for borealization index v. small size class - nada
+# ccf(as.vector(dat[dat$year %in% 1975:2019,2]), as.vector(dat[dat$year %in% 1975:2019,3]))$acf
 
-# cross-correlation for borealization index v. small size class - strongest at lag 1!
-ccf(as.vector(dat[dat$year %in% 1975:2019,2]), as.vector(dat[dat$year %in% 1975:2019,3]))$acf
-
-# cross-correlation for borealization index v. large size class - strongest at lag 0!
-ccf(as.vector(dat[dat$year %in% 1975:2019,2]), as.vector(dat[dat$year %in% 1975:2019,4]))$acf
+# cross-correlation for borealization index v. large size class - nada
+# ccf(as.vector(dat[dat$year %in% 1975:2019,2]), as.vector(dat[dat$year %in% 1975:2019,4]))$acf
 
 dat$trend2 <- zoo::rollmean(dat$trend, 2, fill = NA, align = "right")
 dat$trend3 <- zoo::rollmean(dat$trend, 3, fill = NA, align= "right")
 
-str(dat)
-
-# cross-correlation for smoothed borealization index v. small size class - strongest at lag 0
-ccf(as.vector(dat[dat$year %in% 1975:2019,5]), as.vector(dat[dat$year %in% 1975:2019,3]))
-
-# cross-correlation for smo-thed borealization index v. small size class - strongest at lag 0
-ccf(as.vector(dat[dat$year %in% 1975:2019,5]), as.vector(dat[dat$year %in% 1975:2019,4]))
-
+# str(dat)
+# 
+# # cross-correlation for smoothed borealization index v. small size class - nada
+# ccf(as.vector(dat[dat$year %in% 1975:2019,5]), as.vector(dat[dat$year %in% 1975:2019,3]))
+# 
+# # cross-correlation for smo0thed borealization index v. large size class - nada
+# ccf(as.vector(dat[dat$year %in% 1975:2019,5]), as.vector(dat[dat$year %in% 1975:2019,4]))
+# 
 # set up lag trend for plotting
 dat <- dat %>%
   mutate(trend_lag1 = lag(trend, 1),
+         trend2_lag1 = lag(trend2, 1),
+         trend2_lag2 = lag(trend2, 2))
+#   
+# ggplot(dat, aes(trend, `30-59`)) +
+#   geom_text(aes(label = year)) +
+#   geom_smooth(method = "gam", se = F)
+# 
+# ggplot(dat, aes(trend_lag1, `30-59`)) +
+#   geom_text(aes(label = year)) +
+#   geom_smooth(method = "gam", se = F)
+# 
+# ggplot(dat, aes(trend2, `30-59`)) +
+#   geom_text(aes(label = year)) +
+#   geom_smooth(method = "gam", se = F)
+# 
+# ggplot(dat, aes(trend, `60-95`)) +
+#   geom_text(aes(label = year)) +
+#   geom_smooth(method = "gam", se = F)
+# 
+# ggplot(dat, aes(trend_lag1, `60-95`)) +
+#   geom_text(aes(label = year)) +
+#   geom_smooth(method = "gam", se = F)
+# 
+# ggplot(dat, aes(trend2, `60-95`)) +
+#   geom_text(aes(label = year)) +
+#   geom_smooth(method = "gam", se = F)
+# 
+# ggplot(dat, aes(trend2_lag1, `60-95`)) +
+#   geom_text(aes(label = year)) +
+#   geom_smooth(method = "gam", se = F)
+# 
+# ggplot(dat, aes(trend3, `60-95`)) +
+#   geom_text(aes(label = year)) +
+#   geom_smooth(method = "gam", se = F)
+# 
+# plot.dat <- dat %>%
+#   pivot_longer(cols = -year)
+# 
+# # exploratory GAMs - 60-95 size class as the lag of 30-59 + borealization effect
+# dat <- dat %>%
+#   rename(small_male = `30-59`,
+#          large_male = `60-95`) %>%
+#   mutate(small_male_lag1 = lag(small_male, 1),
+#          small_male_lag2 = lag(small_male, 2))
+
+dat <- dat %>%
+  mutate(log_mean_lag1 = lag(log_mean, 1))
+
+ggplot(dat, aes(year, trend)) +
+  geom_point() +
+  geom_line()
+
+# fill in log_mean_lag1 for 2021
+dat$log_mean_lag1[dat$year == 2021] <- mean(dat$log_mean_lag1[dat$year == 2020], dat$log_mean_lag1[dat$year == 2022])
+
+male_mod1 <- gam(log_mean ~ s(log_mean_lag1, k = 4), data = dat)
+summary(male_mod1)
+plot(male_mod1, se = F, resid = T, pch = 19)
+
+male_mod2 <- gam(log_mean ~  log_mean_lag1 + s(trend2_lag1), data = dat)
+summary(male_mod2)
+plot(male_mod2, se = F, resid = T, pch = 19)
+
+male_mod3 <- gam(log_mean ~ log_mean_lag1 + s(trend2), data = dat)
+summary(male_mod3)
+
+male_mod4 <- gam(log_mean ~ log_mean_lag1 + s(trend3), data = dat)
+summary(male_mod4)
+
+male_mod5 <- gam(log_mean ~  log_mean_lag1 + s(trend2_lag2), data = dat)
+summary(male_mod5)
+
+MuMIn::AICc(male_mod1, male_mod2, male_mod3, male_mod4, male_mod5)
+
+# add smoothed year term
+male_mod2a <- gam(log_mean ~  log_mean_lag1 + s(trend2_lag1) + s(year), data = dat)
+summary(male_mod2a)
+plot(male_mod2a, se = T, resid = T, pch = 19)
+
+
+## analyze female abundance -------------------
+
+abundance <- read.csv("./output/female_drop5_df_simple.csv", row.names = 1) %>%
+  rename(log_mean = mean) %>%
+  arrange(year)
+
+# # clean up and combine
+# 
+# abundance <- rbind(abun1, abun2) %>%
+#   rename(log_mean = mean) %>%
+#   dplyr::select(year, log_mean, size) %>%
+#   pivot_longer(cols = c(-year, -size)) %>%
+#   dplyr::select(-name) %>%
+#   pivot_wider(names_from = size, values_from = value)
+
+dat <- left_join(trend, abundance)
+
+
+dat$trend2 <- zoo::rollmean(dat$trend, 2, fill = NA, align = "right")
+dat$trend3 <- zoo::rollmean(dat$trend, 3, fill = NA, align= "right")
+
+
+dat <- dat %>%
+  mutate(trend_lag1 = lag(trend, 1),
+         trend2_lag1 = lag(trend2, 1),
+         trend2_lag2 = lag(trend2, 2))
+
+
+dat <- dat %>%
+  mutate(log_mean_lag1 = lag(log_mean, 1))
+
+ggplot(dat, aes(year, trend)) +
+  geom_point() +
+  geom_line()
+
+# fill in log_mean_lag1 for 2021
+dat$log_mean_lag1[dat$year == 2021] <- mean(dat$log_mean_lag1[dat$year == 2020], dat$log_mean_lag1[dat$year == 2022])
+
+female_mod1 <- gam(log_mean ~ s(log_mean_lag1, k = 4), data = dat)
+summary(female_mod1)
+plot(female_mod1, se = F, resid = T, pch = 19)
+
+female_mod2 <- gam(log_mean ~  log_mean_lag1 + s(trend2_lag1), data = dat)
+summary(female_mod2)
+plot(female_mod2, se = F, resid = T, pch = 19)
+
+female_mod3 <- gam(log_mean ~ log_mean_lag1 + s(trend2), data = dat)
+summary(female_mod3)
+
+female_mod4 <- gam(log_mean ~ log_mean_lag1 + s(trend3), data = dat)
+summary(female_mod4)
+
+female_mod5 <- gam(log_mean ~  log_mean_lag1 + s(trend2_lag2), data = dat)
+summary(female_mod5)
+
+MuMIn::AICc(female_mod1, female_mod2, female_mod3, female_mod4, female_mod5) 
+
+## combine into multivariate brms model ----
+
+abundance_male <- read.csv("./output/male_30-95_drop5_df_simple.csv", row.names = 1) %>%
+  rename(log_mean_male = mean) %>%
+  arrange(year) %>%
+  mutate(log_mean_male_lag1 = lag(log_mean_male, 1)) %>%
+  select(-sd)
+
+abundance_female <- read.csv("./output/female_drop5_df_simple.csv", row.names = 1) %>%
+  rename(log_mean_female = mean) %>%
+  arrange(year) %>%
+  mutate(log_mean_female_lag1 = lag(log_mean_female, 1)) %>%
+  select(-sd)
+
+# fill in missing 2021 lag abundance
+abundance_female$log_mean_female_lag1[abundance_female$year==2021] <- 
+  mean(abundance_female$log_mean_female_lag1[abundance_female$year==2020],
+       abundance_female$log_mean_female_lag1[abundance_female$year==2022])
+
+abundance_male$log_mean_male_lag1[abundance_male$year==2021] <- 
+  mean(abundance_male$log_mean_male_lag1[abundance_male$year==2020],
+       abundance_male$log_mean_male_lag1[abundance_male$year==2022])
+
+# combine with trend
+dat <- left_join(trend, abundance_female) %>%
+  left_join(., abundance_male) %>%
+  mutate(trend2 = zoo::rollmean(trend, 2, fill = NA, align = "right"),
          trend2_lag1 = lag(trend2, 1))
   
-ggplot(dat, aes(trend, `30-59`)) +
-  geom_text(aes(label = year)) +
-  geom_smooth(method = "gam", se = F)
 
-ggplot(dat, aes(trend_lag1, `30-59`)) +
-  geom_text(aes(label = year)) +
-  geom_smooth(method = "gam", se = F)
+head(dat)
 
-ggplot(dat, aes(trend2, `30-59`)) +
-  geom_text(aes(label = year)) +
-  geom_smooth(method = "gam", se = F)
+ggplot(dat, aes(log_mean_female)) +
+  geom_histogram(bins = 12, fill = "grey", color = "black")
 
-ggplot(dat, aes(trend, `60-95`)) +
-  geom_text(aes(label = year)) +
-  geom_smooth(method = "gam", se = F)
+# set up brms model
 
-ggplot(dat, aes(trend_lag1, `60-95`)) +
-  geom_text(aes(label = year)) +
-  geom_smooth(method = "gam", se = F)
+female_form <- bf(log_mean_female ~ log_mean_female_lag1 + s(trend2_lag1) + s(year, k = 4))
+male_form <- bf(log_mean_male ~ log_mean_male_lag1 + s(trend2_lag1) + s(year, k = 4))
 
-ggplot(dat, aes(trend2, `60-95`)) +
-  geom_text(aes(label = year)) +
-  geom_smooth(method = "gam", se = F)
+fit <- brm(female_form + male_form, 
+           data = dat,
+           cores = 4, chains = 4, iter = 5000,
+           save_pars = save_pars(all = TRUE),
+           control = list(adapt_delta = 0.999, max_treedepth = 16))
 
-ggplot(dat, aes(trend2_lag1, `60-95`)) +
-  geom_text(aes(label = year)) +
-  geom_smooth(method = "gam", se = F)
 
-ggplot(dat, aes(trend3, `60-95`)) +
-  geom_text(aes(label = year)) +
-  geom_smooth(method = "gam", se = F)
-
-plot.dat <- dat %>%
-  pivot_longer(cols = -year)
-
-# exploratory GAMs - 60-95 size class as the lag of 30-59 + borealization effect
-dat <- dat %>%
-  rename(small_male = `30-59`,
-         large_male = `60-95`) %>%
-  mutate(small_male_lag1 = lag(small_male, 1))
- 
 # model small males 
-sm_mod1 <- gam(small_male ~ s(trend_lag1, k = 4), dat = dat, na.action = "na.omit")
+sm_mod1 <- gam(small_male ~ s(small_male_lag1), dat = dat, na.action = "na.omit")
 summary(sm_mod1)
 plot(sm_mod1, resid = T, se = F, pch = 19)
 
-sm_mod2 <- gam(small_male ~ s(trend2, k = 4), dat = dat, na.action = "na.omit")
+sm_mod2 <- gam(small_male ~ s(trend_lag1) + s(small_male_lag1), dat = dat, na.action = "na.omit")
 summary(sm_mod2)
 plot(sm_mod2, resid = T, se = F, pch = 19)
 
-sm_mod3 <- gam(small_male ~ s(trend, k = 4), dat = dat, na.action = "na.omit")
+sm_mod3 <- gam(small_male ~ s(trend2) + s(small_male_lag1), dat = dat, na.action = "na.omit")
 summary(sm_mod3)
 plot(sm_mod3, resid = T, se = F, pch = 19)
 
-sm_mod4 <- gam(small_male ~ s(trend2_lag1, k = 4), dat = dat, na.action = "na.omit")
+sm_mod4 <- gam(small_male ~ s(trend)+ s(small_male_lag1), dat = dat, na.action = "na.omit")
 summary(sm_mod4)
 plot(sm_mod4, resid = T, se = F, pch = 19)
+
+sm_mod5 <- gam(small_male ~ s(trend2_lag1)+ s(small_male_lag1), dat = dat, na.action = "na.omit")
+summary(sm_mod5)
+plot(sm_mod5, resid = T, se = F, pch = 19)
+
+sm_mod6 <- gam(small_male ~ s(trend3)+ s(small_male_lag1), dat = dat, na.action = "na.omit")
+summary(sm_mod6)
+plot(sm_mod6, resid = T, se = F, pch = 19)
+
 
 ggplot(dat, aes(trend2_lag1, small_male)) +
   geom_text(aes(label = year)) +
   geom_smooth(method = "gam", se = F)
 
-sm_mod5 <- gam(small_male ~ s(trend3, k = 4), dat = dat, na.action = "na.omit")
-summary(sm_mod5)
-plot(sm_mod5, resid = T, se = F, pch = 19)
 
 dat <- dat %>%
   mutate(trend_lag2 = lag(trend, 2))
 
-sm_mod6 <- gam(small_male ~ s(trend_lag2, k = 4), dat = dat, na.action = "na.omit")
-summary(sm_mod6)
-plot(sm_mod6, resid = T, se = F, pch = 19)
-
-sm_mod7 <- gam(small_male ~ s(trend_lag1, k = 4) + s(trend_lag2, k = 4), dat = dat, na.action = "na.omit")
+sm_mod7 <- gam(small_male ~ s(trend_lag2, k = 4)+ s(small_male_lag1), dat = dat, na.action = "na.omit")
 summary(sm_mod7)
 plot(sm_mod7, resid = T, se = F, pch = 19)
 
+sm_mod8 <- gam(small_male ~ s(trend_lag1, k = 4) + s(trend_lag2, k = 4)+ s(small_male_lag1), dat = dat, na.action = "na.omit")
+summary(sm_mod8)
+plot(sm_mod8, resid = T, se = F, pch = 19)
 
-MuMIn::AICc(sm_mod1, sm_mod2, sm_mod3, sm_mod4, sm_mod5, sm_mod6, sm_mod7) # best model is sm_mod4
+
+MuMIn::AICc(sm_mod1, sm_mod2, sm_mod3, sm_mod4, sm_mod5, sm_mod6, sm_mod7, sm_mod8) # best model is sm_mod3
+
+sm_mod9 <- gam(small_male ~ s(trend), dat = dat, na.action = "na.omit")
+
+sm_mod10 <- gam(small_male ~ s(trend2), dat = dat, na.action = "na.omit")
+
+sm_mod11 <- gam(small_male ~ s(trend3), dat = dat, na.action = "na.omit")
+
+sm_mod12 <- gam(small_male ~ s(trend_lag1), dat = dat, na.action = "na.omit")
+
+sm_mod13 <- gam(small_male ~ s(trend2_lag1), dat = dat, na.action = "na.omit")
+
+sm_mod14 <- gam(small_male ~ s(trend_lag2), dat = dat, na.action = "na.omit")
+
+MuMIn::AICc(sm_mod9, sm_mod10, sm_mod11, sm_mod12, sm_mod13, sm_mod14) # sm_mod13 (trend2_lag1) is best
+
+summary(sm_mod13)
+
+plot(sm_mod13, pch = 19, se = F, resid = T)
+
 
 ## brms versions of small male models --------------------
 
@@ -322,18 +502,78 @@ ggsave("./Figs/borealization_abundance_regression_small_male_no_imputation__no_a
 
 
 ## large male models in gam -----------------------------------------------
+dat <- dat %>%
+  mutate(large_male_lag1 = lag(large_male))
 
-large_mod1 <- gam(large_male ~ s(small_male_lag1, k = 4), dat = dat, na.action = "na.omit")
+large_mod1 <- gam(large_male ~ s(trend), dat = dat, na.action = "na.omit")
+summary(large_mod1)
+
+large_mod2 <- gam(large_male ~ s(trend2), dat = dat, na.action = "na.omit")
+summary(large_mod2)
+
+large_mod3 <- gam(large_male ~ s(trend3), dat = dat, na.action = "na.omit")
+summary(large_mod3)
+
+large_mod4 <- gam(large_male ~ s(trend_lag1), dat = dat, na.action = "na.omit")
+
+large_mod5 <- gam(large_male ~ s(trend2_lag1), dat = dat, na.action = "na.omit")
+
+large_mod6 <- gam(large_male ~ s(trend_lag2), dat = dat, na.action = "na.omit")
+
+MuMIn::AICc(large_mod1, large_mod2, large_mod3, large_mod4, large_mod5, large_mod6)
+
+summary(large_mod6)
+summary(large_mod5)
+
+
 summary(large_mod1)
 plot(large_mod1, resid = T, se = F, pch = 19)
 
-large_mod2 <- gam(large_male ~ s(small_male_lag1, k = 4) + s(trend, k = 4), dat = dat, na.action = "na.omit")
+large_mod2 <- gam(large_male ~ s(large_male_lag1) + s(small_male_lag1), dat = dat, na.action = "na.omit")
 summary(large_mod2)
 plot(large_mod2, resid = T, se = F, pch = 19)
 
-large_mod3 <- gam(large_male ~ s(small_male_lag1, k = 4) + s(trend2, k = 4), dat = dat, na.action = "na.omit")
+large_mod3 <- gam(large_male ~ s(large_male_lag1) + s(small_male_lag1) + s(small_male_lag2), dat = dat, na.action = "na.omit")
 summary(large_mod3)
 plot(large_mod3, resid = T, se = F, pch = 19)
+
+large_mod4 <- gam(large_male ~ s(small_male_lag1) + s(small_male_lag2), dat = dat, na.action = "na.omit")
+summary(large_mod4)
+plot(large_mod4, resid = T, se = F, pch = 19)
+
+# find best way to model autocorrelation
+MuMIn::AICc(large_mod1, large_mod2, large_mod3, large_mod4) # mod4 is best
+
+
+large_mod5 <- gam(large_male ~ s(small_male_lag1) + s(small_male_lag2) +
+                    s(trend), dat = dat, na.action = "na.omit")
+summary(large_mod5)
+plot(large_mod5, resid = T, se = F, pch = 19)
+
+large_mod6 <- gam(large_male ~ s(small_male_lag1) + s(small_male_lag2) +
+                    s(trend2), dat = dat, na.action = "na.omit")
+summary(large_mod6)
+plot(large_mod5, resid = T, se = F, pch = 19)
+
+large_mod7 <- gam(large_male ~ s(small_male_lag1) + s(small_male_lag2) +
+                    s(trend3), dat = dat, na.action = "na.omit")
+summary(large_mod7)
+plot(large_mod7, resid = T, se = F, pch = 19)
+
+large_mod8 <- gam(large_male ~ s(small_male_lag1) + s(small_male_lag2) +
+                    s(trend_lag1), dat = dat, na.action = "na.omit")
+summary(large_mod8)
+plot(large_mod8, resid = T, se = F, pch = 19)
+
+large_mod9 <- gam(large_male ~ s(small_male_lag1) + s(small_male_lag2) +
+                    s(trend2_lag1), dat = dat, na.action = "na.omit")
+summary(large_mod9)
+plot(large_mod9, resid = T, se = F, pch = 19)
+
+large_mod10 <- gam(large_male ~ s(small_male_lag1) + s(small_male_lag2) +
+                    s(trend_lag2), dat = dat, na.action = "na.omit")
+summary(large_mod10)
+plot(large_mod10, resid = T, se = F, pch = 19)
 
 large_mod4 <- gam(large_male ~ s(small_male_lag1, k = 4) + s(trend3, k = 4), dat = dat, na.action = "na.omit")
 summary(large_mod4)
