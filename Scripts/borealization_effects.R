@@ -283,12 +283,24 @@ dat$log_mean_male_lag1 <- as.vector(scale(dat$log_mean_male_lag1))
 
 dat$trend2_lag1 <- as.vector(scale(dat$trend2_lag1))
 
-fit <- brm(female_form + male_form, 
+
+# begin with sex-specific models
+fit_female <- brm(female_form, 
+           data = dat,
+           cores = 4, chains = 4, iter = 2000,
+           save_pars = save_pars(all = TRUE),
+           control = list(adapt_delta = 0.99, max_treedepth = 14))
+
+saveRDS(fit_female, file = "output/fit_female.rds")
+
+
+fit_both <- brm(female_form + male_form, 
            data = dat,
            cores = 4, chains = 4, iter = 5000,
            save_pars = save_pars(all = TRUE),
            control = list(adapt_delta = 0.999, max_treedepth = 16))
 
+saveRDS(fit_both, file = "output/multivariate_brm.rds")
 
 # model small males 
 sm_mod1 <- gam(small_male ~ s(small_male_lag1), dat = dat, na.action = "na.omit")
