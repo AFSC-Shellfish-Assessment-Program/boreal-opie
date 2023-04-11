@@ -274,6 +274,15 @@ ggplot(dat, aes(log_mean_female)) +
 female_form <- bf(log_mean_female ~ log_mean_female_lag1 + s(trend2_lag1) + s(year, k = 4))
 male_form <- bf(log_mean_male ~ log_mean_male_lag1 + s(trend2_lag1) + s(year, k = 4))
 
+# scale all time series 
+dat$log_mean_female <- as.vector(scale(dat$log_mean_female))
+dat$log_mean_female_lag1 <- as.vector(scale(dat$log_mean_female_lag1))
+
+dat$log_mean_male <- as.vector(scale(dat$log_mean_male))
+dat$log_mean_male_lag1 <- as.vector(scale(dat$log_mean_male_lag1))
+
+dat$trend2_lag1 <- as.vector(scale(dat$trend2_lag1))
+
 fit <- brm(female_form + male_form, 
            data = dat,
            cores = 4, chains = 4, iter = 5000,
