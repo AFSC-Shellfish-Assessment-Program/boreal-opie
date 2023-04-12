@@ -18,143 +18,35 @@ theme_set(theme_bw())
 
 trend <- read.csv("./output/dfa_trend.csv")
 
+# add rolling means and lags to figure borealization effects over differ time scales
 trend <- trend %>%
   dplyr::select(t, estimate) %>%
-  rename(year = t, trend = estimate)
-
-# load snow crab abundance
-
-# abundance <- read.csv("./Data/imm_abun.csv", row.names = 1)
-
-# abun1 <- read.csv("./output/male3059_drop5_df.csv", row.names = 1) %>%
-#   mutate(size = "30-59") %>%
-#   dplyr::select(-wtd_log_mean, -unwtd_log_mean, -n_stations)
-# 
-# abun2 <- read.csv("./output/male6095_drop5_df.csv", row.names = 1) %>%
-#   mutate(size = "60-95") %>%
-#   dplyr::select(-wtd_log_mean, -unwtd_log_mean, -n_stations)
-# 
-# # add in NAs
-# xtra <- data.frame(year = 2020,
-#                    imp_log_mean = NA,
-#                    imp_sd = NA,
-#                    size = "30-59")
-# 
-# abun1 <- rbind(abun1, xtra) %>%
-#   arrange(year)
-# 
-# xtra <- xtra %>%
-#   mutate(size = "60-95")
-# 
-# abun2 <- rbind(abun2, xtra) %>%
-#   arrange(year)
-# 
-# abun1 <- read.csv("./output/male3059_drop5_df_simple.csv", row.names = 1) %>%
-#   mutate(size = "30-59")
-# 
-# abun2 <- read.csv("./output/male_60-95_drop5_df_simple.csv", row.names = 1) %>%
-#   mutate(size = "60-95")
-
-
-abundance <- read.csv("./output/male_30-95_drop5_df_simple.csv", row.names = 1) %>%
-  rename(log_mean = mean) %>%
-  arrange(year)
-
-# # clean up and combine
-# 
-# abundance <- rbind(abun1, abun2) %>%
-#   rename(log_mean = mean) %>%
-#   dplyr::select(year, log_mean, size) %>%
-#   pivot_longer(cols = c(-year, -size)) %>%
-#   dplyr::select(-name) %>%
-#   pivot_wider(names_from = size, values_from = value)
-
-dat <- left_join(trend, abundance)
-
-# # cross-correlation for age classes: strongest at lag 1 & 2
-# ccf(as.vector(dat[dat$year %in% 1975:2019,3]), as.vector(dat[dat$year %in% 1975:2019,4]))$acf
-# 
-# # autocorrelation for small size class
-# acf(as.vector(dat[dat$year %in% 1975:2019,3]))$acf
-# 
-# # cross-correlation for borealization index v. small size class - nada
-# ccf(as.vector(dat[dat$year %in% 1975:2019,2]), as.vector(dat[dat$year %in% 1975:2019,3]))$acf
-
-# cross-correlation for borealization index v. large size class - nada
-# ccf(as.vector(dat[dat$year %in% 1975:2019,2]), as.vector(dat[dat$year %in% 1975:2019,4]))$acf
-
-dat$trend2 <- zoo::rollmean(dat$trend, 2, fill = NA, align = "right")
-dat$trend3 <- zoo::rollmean(dat$trend, 3, fill = NA, align= "right")
-
-# str(dat)
-# 
-# # cross-correlation for smoothed borealization index v. small size class - nada
-# ccf(as.vector(dat[dat$year %in% 1975:2019,5]), as.vector(dat[dat$year %in% 1975:2019,3]))
-# 
-# # cross-correlation for smo0thed borealization index v. large size class - nada
-# ccf(as.vector(dat[dat$year %in% 1975:2019,5]), as.vector(dat[dat$year %in% 1975:2019,4]))
-# 
-# set up lag trend for plotting
-dat <- dat %>%
-  mutate(trend_lag1 = lag(trend, 1),
+  rename(year = t, trend = estimate) %>%
+  mutate(trend2 = zoo::rollmean(trend, 2, fill = NA, align = "right"),
+         trend3 = zoo::rollmean(trend, 3, fill = NA, align= "right"),
+         trend_lag1 = lag(trend, 1),
          trend2_lag1 = lag(trend2, 1),
          trend2_lag2 = lag(trend2, 2))
-#   
-# ggplot(dat, aes(trend, `30-59`)) +
-#   geom_text(aes(label = year)) +
-#   geom_smooth(method = "gam", se = F)
-# 
-# ggplot(dat, aes(trend_lag1, `30-59`)) +
-#   geom_text(aes(label = year)) +
-#   geom_smooth(method = "gam", se = F)
-# 
-# ggplot(dat, aes(trend2, `30-59`)) +
-#   geom_text(aes(label = year)) +
-#   geom_smooth(method = "gam", se = F)
-# 
-# ggplot(dat, aes(trend, `60-95`)) +
-#   geom_text(aes(label = year)) +
-#   geom_smooth(method = "gam", se = F)
-# 
-# ggplot(dat, aes(trend_lag1, `60-95`)) +
-#   geom_text(aes(label = year)) +
-#   geom_smooth(method = "gam", se = F)
-# 
-# ggplot(dat, aes(trend2, `60-95`)) +
-#   geom_text(aes(label = year)) +
-#   geom_smooth(method = "gam", se = F)
-# 
-# ggplot(dat, aes(trend2_lag1, `60-95`)) +
-#   geom_text(aes(label = year)) +
-#   geom_smooth(method = "gam", se = F)
-# 
-# ggplot(dat, aes(trend3, `60-95`)) +
-#   geom_text(aes(label = year)) +
-#   geom_smooth(method = "gam", se = F)
-# 
-# plot.dat <- dat %>%
-#   pivot_longer(cols = -year)
-# 
-# # exploratory GAMs - 60-95 size class as the lag of 30-59 + borealization effect
-# dat <- dat %>%
-#   rename(small_male = `30-59`,
-#          large_male = `60-95`) %>%
-#   mutate(small_male_lag1 = lag(small_male, 1),
-#          small_male_lag2 = lag(small_male, 2))
 
-dat <- dat %>%
+# load male snow crab abundance and process
+abundance <- read.csv("./output/male_30-95_drop5_df_simple.csv", row.names = 1) %>%
+  rename(log_mean = mean) %>%
+  arrange(year) %>%
   mutate(log_mean_lag1 = lag(log_mean, 1))
 
-ggplot(dat, aes(year, trend)) +
-  geom_point() +
-  geom_line()
+dat <- left_join(trend, abundance)
 
 # fill in log_mean_lag1 for 2021
 dat$log_mean_lag1[dat$year == 2021] <- mean(dat$log_mean_lag1[dat$year == 2020], dat$log_mean_lag1[dat$year == 2022])
 
+# exploratory models in mgcv
+# using previous-year abundance and borealization index at different lags
+
 male_mod1 <- gam(log_mean ~ s(log_mean_lag1, k = 4), data = dat)
 summary(male_mod1)
 plot(male_mod1, se = F, resid = T, pch = 19)
+
+# previous-year abundance can be a linear term for simplicity
 
 male_mod2 <- gam(log_mean ~  log_mean_lag1 + s(trend2_lag1), data = dat)
 summary(male_mod2)
@@ -169,7 +61,7 @@ summary(male_mod4)
 male_mod5 <- gam(log_mean ~  log_mean_lag1 + s(trend2_lag2), data = dat)
 summary(male_mod5)
 
-MuMIn::AICc(male_mod1, male_mod2, male_mod3, male_mod4, male_mod5)
+MuMIn::AICc(male_mod1, male_mod2, male_mod3, male_mod4, male_mod5) # model 2 is best
 
 # add smoothed year term
 male_mod2a <- gam(log_mean ~  log_mean_lag1 + s(trend2_lag1) + s(year), data = dat)
@@ -179,38 +71,12 @@ plot(male_mod2a, se = T, resid = T, pch = 19)
 
 ## analyze female abundance -------------------
 
-abundance <- read.csv("./output/female_drop5_df_simple.csv", row.names = 1) %>%
+abundance_female <- read.csv("./output/female_drop5_df_simple.csv", row.names = 1) %>%
   rename(log_mean = mean) %>%
-  arrange(year)
-
-# # clean up and combine
-# 
-# abundance <- rbind(abun1, abun2) %>%
-#   rename(log_mean = mean) %>%
-#   dplyr::select(year, log_mean, size) %>%
-#   pivot_longer(cols = c(-year, -size)) %>%
-#   dplyr::select(-name) %>%
-#   pivot_wider(names_from = size, values_from = value)
-
-dat <- left_join(trend, abundance)
-
-
-dat$trend2 <- zoo::rollmean(dat$trend, 2, fill = NA, align = "right")
-dat$trend3 <- zoo::rollmean(dat$trend, 3, fill = NA, align= "right")
-
-
-dat <- dat %>%
-  mutate(trend_lag1 = lag(trend, 1),
-         trend2_lag1 = lag(trend2, 1),
-         trend2_lag2 = lag(trend2, 2))
-
-
-dat <- dat %>%
+  arrange(year) %>%
   mutate(log_mean_lag1 = lag(log_mean, 1))
 
-ggplot(dat, aes(year, trend)) +
-  geom_point() +
-  geom_line()
+dat <- left_join(trend, abundance_female)
 
 # fill in log_mean_lag1 for 2021
 dat$log_mean_lag1[dat$year == 2021] <- mean(dat$log_mean_lag1[dat$year == 2020], dat$log_mean_lag1[dat$year == 2022])
@@ -233,6 +99,18 @@ female_mod5 <- gam(log_mean ~  log_mean_lag1 + s(trend2_lag2), data = dat)
 summary(female_mod5)
 
 MuMIn::AICc(female_mod1, female_mod2, female_mod3, female_mod4, female_mod5) 
+
+# fit best female model in brms---------
+
+female_form <- bf(log_mean ~ log_mean_lag1 + s(trend2_lag1) + s(year, k = 4))
+
+fit_female <- brm(female_form, 
+                  data = dat,
+                  cores = 4, chains = 4, iter = 2000,
+                  save_pars = save_pars(all = TRUE),
+                  control = list(adapt_delta = 0.99, max_treedepth = 14))
+
+saveRDS(fit_female, file = "output/fit_female.rds")
 
 ## combine into multivariate brms model ----
 
@@ -283,15 +161,6 @@ dat$log_mean_male_lag1 <- as.vector(scale(dat$log_mean_male_lag1))
 
 dat$trend2_lag1 <- as.vector(scale(dat$trend2_lag1))
 
-
-# begin with sex-specific models
-fit_female <- brm(female_form, 
-           data = dat,
-           cores = 4, chains = 4, iter = 2000,
-           save_pars = save_pars(all = TRUE),
-           control = list(adapt_delta = 0.99, max_treedepth = 14))
-
-saveRDS(fit_female, file = "output/fit_female.rds")
 
 
 fit_both <- brm(female_form + male_form, 
