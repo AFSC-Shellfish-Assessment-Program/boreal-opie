@@ -24,8 +24,6 @@ sc_strata %>%
   pull(STATION_ID) ->standard
 
 
-
-
 #################################
 #################################
 # males 30-95 mm
@@ -118,99 +116,6 @@ male_30_95_drop_5_map <- ggplot(plot_map, aes(longitude, latitude, color = mean_
   theme(legend.position = c(0.8, 0.8))
 
 male_30_95_drop_5_map 
-
-
-# 
-# # scratch <- sc_catch %>%
-#   filter(HAUL_TYPE %in% c(3,4), 
-#          SEX == 1,
-#          WIDTH >= 60 & WIDTH <= 95,
-#          SHELL_CONDITION <= 2) %>%
-#   group_by(YEAR, GIS_STATION, AREA_SWEPT) %>%
-#   summarise(N_CRAB = sum(SAMPLING_FACTOR, na.rm = T),
-#             CPUE = N_CRAB / mean(AREA_SWEPT)) 
-# 
-# 
-# # join with stratum stations to include 0 catches 
-# stratum <- haul %>%
-#   filter(GIS_STATION %in% use) %>%
-#   rename(YEAR = SURVEY_YEAR)
-# 
-# stratum <- stratum %>%
-#   select(GIS_STATION, YEAR, MID_LONGITUDE, MID_LATITUDE) %>%
-#   left_join(., scratch) 
-# 
-# 
-# ggplot(stratum, aes(MID_LONGITUDE, MID_LATITUDE)) +
-#   geom_point() +
-#   facet_wrap(~YEAR)
-# 
-# # replace NA CPUE with 0
-# change <- is.na(stratum$CPUE)
-# 
-# sum(change)
-# 
-# stratum$CPUE[change] <- 0
-
-# check samples per year
-# check <- stratum %>%
-#   group_by(YEAR) %>%
-#   summarise(count = n())
-# 
-# check
-# 
-# # log transform CPUE
-# stratum$log_cpue <- log(stratum$CPUE + 1)
-# 
-# # plot histogram of mean cpue per station
-# 
-# check <- stratum %>%
-#   group_by(GIS_STATION) %>%
-#   summarise(mean_log_cpue = mean(log_cpue),
-#             latitude = mean(MID_LATITUDE),
-#             longitude = mean(MID_LONGITUDE))
-# 
-# ggplot(check, aes(mean_log_cpue)) + 
-#   geom_histogram(bins = 30, fill = "grey", color = "black")
-# 
-# # remove stations with mean cpue = 0
-# drop_0 <- check %>%
-#   filter(mean_log_cpue > 0)
-# 
-# ggplot(drop_0, aes(mean_log_cpue)) + 
-#   geom_histogram(bins = 30, fill = "grey", color = "black")
-# 
-# # drop catches < 5th quantile
-# drop_5th <- drop_0 %>%
-#   filter(mean_log_cpue > quantile(drop_0$mean_log_cpue, 0.05))
-# 
-# ggplot(drop_5th, aes(mean_log_cpue)) + 
-#   geom_histogram(bins = 30, fill = "grey", color = "black")
-# 
-# male_60_95_drop_5_map <- ggplot(drop_5th, aes(longitude, latitude, color = mean_log_cpue)) +
-#   geom_point(size = 3, shape = 15) +
-#   scale_colour_gradient(
-#     low = "purple",
-#     high = "red",
-#     space = "Lab",
-#     na.value = "grey50",
-#     guide = "colourbar",
-#     aesthetics = "colour"
-#   ) +
-#   theme(legend.position = c(0.8, 0.8))
-# 
-# male_60_95_drop_5_map
-# 
-# # remove mean_log_cpue < 5th quantile from annual catch data
-# dat <- stratum %>%
-#   filter(stratum$GIS_STATION %in% unique(drop_5th$GIS_STATION))
-# 
-# # check stations per year
-# count <- dat %>%
-#   group_by(YEAR) %>%
-#   summarise(count = n())
-# 
-# count
 
 # get into matrix form for mice
 dat <- tapply(dat$log_cpue, list(dat$YEAR, dat$GIS_STATION), mean)
