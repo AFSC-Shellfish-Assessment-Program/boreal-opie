@@ -269,6 +269,39 @@ model.list = list(A="zero", m=1, R="diagonal and unequal") # second-best model
 
 mod = MARSS(dfa.dat, model=model.list, z.score=TRUE, form="dfa", control=cntl.list)
 
+# calculate R^2
+DFA_pred <- print(predict(mod))
+
+R_sq <- cor(DFA_pred$y, DFA_pred$estimate, use = "pairwise")^2 
+R_sq # 0.12
+
+
+DFA_pred <- DFA_pred %>%
+  mutate(year = rep(1972:2022, 12)) 
+
+# get R^2 for each time series
+summarise <- DFA_pred %>%
+  group_by(.rownames) %>%
+  summarise(R_sq = cor(y, estimate, use = "pairwise")^2) %>%
+  mutate(plot_label = paste(.rownames, " (", round(R_sq, 3), ")", sep = ""))
+
+DFA_pred <- left_join(DFA_pred, summarise)
+
+ggplot(DFA_pred) +
+  geom_point(aes(year, y)) +
+  geom_line(aes(year, estimate), color = "blue") +
+  facet_wrap(~.rownames, ncol = 4, scale = "free_y")
+
+ggplot(DFA_pred, aes(estimate, y)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = F) +
+  facet_wrap(~plot_label, ncol = 4, scale = "free") +
+  labs(x = "Estimated", y = "Observed")
+
+ggsave("./figs/DFA_estimated_observed.png", width = 10, height = 6, units = 'in')
+
+# plot loadings and trend
+
 CI <- MARSSparamCIs(mod)
 
 plot.CI <- data.frame(names=rownames(dfa.dat),
