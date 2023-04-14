@@ -1,11 +1,12 @@
 # Calculate immature snow crab abundance in EBS
 # Impute for missing stations
 
-
 # load ----
 library(tidyverse)
 library(Hmisc)
 library(patchwork)
+library(moments)
+
 theme_set(theme_bw())
 
 
@@ -72,8 +73,9 @@ mean_cpue %>%
 
 cpue_plot + logcpue_plot + meanlogcpue_plot
 
-#Cleaning up data for imputation
-#a) Remove stations that have never caught 60-95mm male snow crab 
+## Cleaning up data for imputation
+
+# Remove stations that have never caught 60-95mm male snow crab 
 cpue %>%
   group_by(GIS_STATION) %>%
   summarise(station_mean = mean(CPUE)) %>% 
@@ -148,22 +150,9 @@ imp_30_95_drop_5 <- readRDS("./output/abundance_imputations_male_30_95_stratum_d
 
 
 # are there NAs in complete(imp)?
-
 check <- is.na(complete(imp_30_95_drop_5))
 
 sum(check) # 0
-
-
-
-imputed.dat <- imputed.back.trans.dat <-  data.frame()
-
-# this is clunky but should work!
-
-# create bounds for imputed values 
-# (min = 0, max = max observed)
-
-lower_bound <- 0
-upper_bound <- max(dat, na.rm = T) 
 
 # get weights (area of each stratum) for weighted mean abundance
 # first, strata areas for weighted mean abundance - use 2022, when all stations were sampled
@@ -192,9 +181,16 @@ summary_weights <- weights %>%
 
 weights <- left_join(weights, summary_weights)
 
-
 # set up weighted mean function
 ff <- function(x) weighted.mean(x, weights$weight, na.rm = T)
+
+imputed.dat <- imputed.back.trans.dat <- concentration.dat <-  data.frame()
+
+# create bounds for imputed values 
+# (min = 0, max = max observed)
+
+lower_bound <- 0
+upper_bound <- max(dat, na.rm = T) 
 
 for(i in 1:100){
   
@@ -220,15 +216,28 @@ for(i in 1:100){
                                   data.frame(imputation = i,
                                              year = c(1975:2019, 2021, 2022),
                                              mean = apply(back.temp, 1, ff)))
-}
+  
+  # concentration 
+  conc <- NA
+  
+  for(j in 1:nrow(back.temp)){
+    # j <- 1
+    
+    temp.temp <- as.vector(t(back.temp[j,]))
+    
+    temp.temp <- temp.temp[order(-temp.temp)]
+    
+    conc[j]  <- sum(temp.temp[1:25])/sum(temp.temp)
+    
+  }
+  
+  concentration.dat <- rbind(concentration.dat,
+                                  data.frame(imputation = i,
+                                             year = c(1975:2019, 2021, 2022),
+                                             concentration = conc))
+  
+  }
 
-
-# View(imputed.dat)
-
-# not using dplyr because sd using summarize cannot handle sd = 0
-# plot.dat <- data.frame(year = c(1975:2019, 2021:2022),
-#                        log_mean = tapply(imputed.dat$log_mean, imputed.dat$year, mean),
-#                        sd = tapply(imputed.dat$log_mean, imputed.dat$year, sd))
 
 plot.dat <- data.frame(year = c(1975:2019, 2021:2022),
                        mean = tapply(log(imputed.back.trans.dat$mean), imputed.back.trans.dat$year, mean),
@@ -254,84 +263,30 @@ ggplot(plot.dat, aes(year, mean)) +
   geom_errorbar(aes(ymin = mean - 2*sd, ymax = mean + 2*sd))
 
 
+# plot concentration
+plot.conc <- data.frame(year = c(1975:2019, 2021:2022),
+                       mean = tapply(concentration.dat$concentration, concentration.dat$year, mean),
+                       sd = tapply(concentration.dat$concentration, concentration.dat$year, sd))
+
+# add in NAs
+xtra <- data.frame(year = 2020,
+                   mean = NA,
+                   sd = NA)
+
+plot.conc <- rbind(plot.conc,
+                  xtra)
 
 
 # replace sd = 0 with NA
-check <- plot.dat$sd == 0
-plot.dat$sd[check] <- NA
+check <- plot.conc$sd == 0
+plot.conc$sd[check] <- NA
 
-# summarize raw (non-imputed data) to plot
-# first, get weights
-raw_weights <- sc_strata %>%
-  mutate(STATION = str_remove_all(STATION_ID, "-")) %>%
-  select(YEAR, STATION, DISTRICT, TOTAL_AREA)
-
-weights1 <- distinct(data.frame(YEAR = sc_catch$YEAR, STATION = sc_catch$GIS_STATION)) %>%
-  mutate(STATION = str_remove_all(STATION, "-")) %>%
-  left_join(., raw_weights)
-
-# get proportion of each stratum that is included in the imputation
-summary_weights <- weights1 %>%
-  group_by(YEAR, DISTRICT) %>%
-  summarise(count_sampled = n()) %>%
-  left_join(., sum_area) %>%
-  mutate(weight = (count_sampled / total_count) * total_area) %>%
-  select(DISTRICT, weight)
-
-weights2 <- left_join(weights1, summary_weights)
-
-weights2 %>%
-  select(STATION, YEAR, DISTRICT, weight) %>%
-  distinct() %>%
-  as_tibble() %>%
-  rename(GIS_STATION = STATION) -> new_wts
-
-stratum %>%
-  mutate(GIS_STATION = str_remove_all(GIS_STATION, "-")) -> stratum # remove dash between GIS station to match new_wts
-
-raw.dat <- left_join(stratum, new_wts) 
-
-# replace NA weights with 1
-change <- is.na(raw.dat$weight)
-raw.dat$weight[change] <- 1
-
-plot.raw <- raw.dat %>%
-  mutate(weighted_log_cpue = log_cpue*weight) %>%
-  group_by(YEAR) %>%
-  summarise(sum_weight = sum(weight),
-            sum_weighted_log_cpue = sum(weighted_log_cpue))%>%
-  mutate(log_mean = sum_weighted_log_cpue / sum_weight) %>%
-  rename(year = YEAR) 
-
-unweighted.raw <- raw.dat %>%
-  group_by(YEAR) %>%
-  rename(year = YEAR) %>%
-  summarise(log_mean = mean(log_cpue))
-
-# Plot
-male_60_95_stratum_drop_5 <- ggplot(plot.dat, aes(year, log_mean, color = "black")) +
-  geom_line(data = plot.raw, aes(year, log_mean, color = "red")) +
-  geom_point(data = plot.raw, aes(year, log_mean, color = "red")) + 
-  geom_line(data = unweighted.raw, aes(year, log_mean, color = "blue")) +
-  geom_point(data = unweighted.raw, aes(year, log_mean, color = "blue")) + 
+# plot
+ggplot(plot.conc, aes(year, mean)) +
+  geom_point() +
   geom_line() +
-  scale_colour_manual(name = element_blank(), values = c("black", "red", "blue"), labels = c("Imputed", "Unweighted", "Weighted"))+
-  geom_point(size = 2) +
-  theme(legend.position = "bottom")+
-  geom_errorbar(aes(ymin = log_mean - 2*sd,
-                    ymax = log_mean + 2*sd)) +
-  ggtitle("Male 60-95 mm, stratum > 5th percentile") + 
-  theme(axis.title.x = element_blank())
+  geom_errorbar(aes(ymin = mean - 2*sd, ymax = mean + 2*sd))
 
-male_60_95_stratum_drop_5
-
-# Create csv of imputed cpue, imputed sd, raw weighted cpue, raw unweighted cpue, and # stations sampled by year
-male6095_drop5_df <- cbind(data.frame(year = plot.dat$year, imp_log_mean = plot.dat$log_mean, imp_sd = plot.dat$sd),
-                            plot.raw %>% select(log_mean) %>% rename(wtd_log_mean = log_mean),
-                            unweighted.raw %>% select(log_mean) %>% rename(unwtd_log_mean = log_mean),
-                            count %>% select(count) %>% rename(n_stations = count))
-
-write.csv(male6095_drop5_df , "./output/male6095_drop5_df.csv")
 
 # plot simpler .csv
 write.csv(plot.dat, "./output/male_30-95_drop5_df_simple.csv")
