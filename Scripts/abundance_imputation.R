@@ -238,8 +238,8 @@ for(i in 1:100){
   
   }
 
-
-plot.dat <- data.frame(year = c(1975:2019, 2021:2022),
+# first, back-transformed data
+plot.back.trans <- data.frame(year = c(1975:2019, 2021:2022),
                        mean = tapply(log(imputed.back.trans.dat$mean), imputed.back.trans.dat$year, mean),
                        sd = tapply(log(imputed.back.trans.dat$mean), imputed.back.trans.dat$year, sd))
 
@@ -248,20 +248,43 @@ xtra <- data.frame(year = 2020,
                    mean = NA,
                    sd = NA)
 
-plot.dat <- rbind(plot.dat,
+plot.back.trans <- rbind(plot.back.trans,
                   xtra)
 
 
 # replace sd = 0 with NA
-check <- plot.dat$sd == 0
-plot.dat$sd[check] <- NA
+check <- plot.back.trans$sd == 0
+plot.back.trans$sd[check] <- NA
 
 # plot
-ggplot(plot.dat, aes(year, mean)) +
+ggplot(plot.back.trans, aes(year, mean)) +
   geom_point() +
   geom_line() +
   geom_errorbar(aes(ymin = mean - 2*sd, ymax = mean + 2*sd))
 
+# mean log-transformed data
+plot.mean.log <- data.frame(year = c(1975:2019, 2021:2022),
+                              mean = tapply(imputed.dat$log_mean, imputed.dat$year, mean),
+                              sd = tapply(imputed.dat$log_mean, imputed.dat$year, sd))
+
+# add in NAs
+xtra <- data.frame(year = 2020,
+                   mean = NA,
+                   sd = NA)
+
+plot.mean.log <- rbind(plot.mean.log,
+                         xtra)
+
+
+# replace sd = 0 with NA
+check <- plot.mean.log$sd == 0
+plot.mean.log$sd[check] <- NA
+
+# plot
+ggplot(plot.mean.log, aes(year, mean)) +
+  geom_point() +
+  geom_line() +
+  geom_errorbar(aes(ymin = mean - 2*sd, ymax = mean + 2*sd))
 
 # plot concentration
 plot.conc <- data.frame(year = c(1975:2019, 2021:2022),
@@ -288,8 +311,25 @@ ggplot(plot.conc, aes(year, mean)) +
   geom_errorbar(aes(ymin = mean - 2*sd, ymax = mean + 2*sd))
 
 
-# plot simpler .csv
-write.csv(plot.dat, "./output/male_30-95_drop5_df_simple.csv")
+# combine different imputed time series and save
+
+plot.back.trans <- plot.back.trans %>%
+  rename(log_backtransformed_mean_cpue = mean,
+         log_backtransformed_sd_cpue = sd)
+
+plot.mean.log <- plot.mean.log %>%
+  rename(mean_log_cpue = mean,
+         sd_log_cpue = sd)
+
+plot.conc <- plot.conc %>%
+  rename(mean_concentratin = mean,
+         sd_concentration = sd)
+
+imputed_output <- left_join(plot.back.trans, plot.mean.log) %>%
+  left_join(., plot.conc)
+
+
+write.csv(imputed_output, "./output/male_30-95_imputed_data.csv")
 
 ## immature females ------------
 
@@ -338,8 +378,9 @@ mean_cpue_female %>%
 
 cpue_plot + logcpue_plot + meanlogcpue_plot
 
-#Cleaning up data for imputation
-#a) Remove stations that have never caught 60-95mm male snow crab 
+## Cleaning up data for imputation
+
+# a) Remove stations that have never caught 60-95mm male snow crab 
 cpue_female %>%
   group_by(GIS_STATION) %>%
   summarise(station_mean = mean(CPUE)) %>% 
@@ -384,101 +425,8 @@ female_drop_5_map <- ggplot(plot_map, aes(longitude, latitude, color = mean_log_
 female_drop_5_map 
 
 
-# 
-# # scratch <- sc_catch %>%
-#   filter(HAUL_TYPE %in% c(3,4), 
-#          SEX == 1,
-#          WIDTH >= 60 & WIDTH <= 95,
-#          SHELL_CONDITION <= 2) %>%
-#   group_by(YEAR, GIS_STATION, AREA_SWEPT) %>%
-#   summarise(N_CRAB = sum(SAMPLING_FACTOR, na.rm = T),
-#             CPUE = N_CRAB / mean(AREA_SWEPT)) 
-# 
-# 
-# # join with stratum stations to include 0 catches 
-# stratum <- haul %>%
-#   filter(GIS_STATION %in% use) %>%
-#   rename(YEAR = SURVEY_YEAR)
-# 
-# stratum <- stratum %>%
-#   select(GIS_STATION, YEAR, MID_LONGITUDE, MID_LATITUDE) %>%
-#   left_join(., scratch) 
-# 
-# 
-# ggplot(stratum, aes(MID_LONGITUDE, MID_LATITUDE)) +
-#   geom_point() +
-#   facet_wrap(~YEAR)
-# 
-# # replace NA CPUE with 0
-# change <- is.na(stratum$CPUE)
-# 
-# sum(change)
-# 
-# stratum$CPUE[change] <- 0
-
-# check samples per year
-# check <- stratum %>%
-#   group_by(YEAR) %>%
-#   summarise(count = n())
-# 
-# check
-# 
-# # log transform CPUE
-# stratum$log_cpue <- log(stratum$CPUE + 1)
-# 
-# # plot histogram of mean cpue per station
-# 
-# check <- stratum %>%
-#   group_by(GIS_STATION) %>%
-#   summarise(mean_log_cpue = mean(log_cpue),
-#             latitude = mean(MID_LATITUDE),
-#             longitude = mean(MID_LONGITUDE))
-# 
-# ggplot(check, aes(mean_log_cpue)) + 
-#   geom_histogram(bins = 30, fill = "grey", color = "black")
-# 
-# # remove stations with mean cpue = 0
-# drop_0 <- check %>%
-#   filter(mean_log_cpue > 0)
-# 
-# ggplot(drop_0, aes(mean_log_cpue)) + 
-#   geom_histogram(bins = 30, fill = "grey", color = "black")
-# 
-# # drop catches < 5th quantile
-# drop_5th <- drop_0 %>%
-#   filter(mean_log_cpue > quantile(drop_0$mean_log_cpue, 0.05))
-# 
-# ggplot(drop_5th, aes(mean_log_cpue)) + 
-#   geom_histogram(bins = 30, fill = "grey", color = "black")
-# 
-# male_60_95_drop_5_map <- ggplot(drop_5th, aes(longitude, latitude, color = mean_log_cpue)) +
-#   geom_point(size = 3, shape = 15) +
-#   scale_colour_gradient(
-#     low = "purple",
-#     high = "red",
-#     space = "Lab",
-#     na.value = "grey50",
-#     guide = "colourbar",
-#     aesthetics = "colour"
-#   ) +
-#   theme(legend.position = c(0.8, 0.8))
-# 
-# male_60_95_drop_5_map
-# 
-# # remove mean_log_cpue < 5th quantile from annual catch data
-# dat <- stratum %>%
-#   filter(stratum$GIS_STATION %in% unique(drop_5th$GIS_STATION))
-# 
-# # check stations per year
-# count <- dat %>%
-#   group_by(YEAR) %>%
-#   summarise(count = n())
-# 
-# count
-
 # get into matrix form for mice
 dat_female <- tapply(dat_female$log_cpue, list(dat_female$YEAR, dat_female$GIS_STATION), mean)
-
 
 # examine correlations
 r <- rcorr(as.matrix(dat_female))$r 
@@ -513,10 +461,8 @@ check <- is.na(complete(imp_female_drop_5))
 sum(check) # 6!
 
 
+# summarize imputation data
 
-imputed.dat <- imputed.back.trans.dat <-  data.frame()
-
-# this is clunky but should work!
 
 # create bounds for imputed values 
 # (min = 0, max = max observed)
@@ -555,6 +501,8 @@ weights <- left_join(weights, summary_weights)
 # set up weighted mean function
 ff <- function(x) weighted.mean(x, weights$weight, na.rm = T)
 
+imputed.dat <- imputed.back.trans.dat <- concentration.dat <-  data.frame()
+
 for(i in 1:100){
   
   # i <- 1
@@ -579,162 +527,124 @@ for(i in 1:100){
                                   data.frame(imputation = i,
                                              year = c(1975:2019, 2021, 2022),
                                              mean = apply(back.temp, 1, ff)))
+  # concentration 
+  conc <- NA
+  
+  for(j in 1:nrow(back.temp)){
+    # j <- 1
+    
+    temp.temp <- as.vector(t(back.temp[j,]))
+    
+    temp.temp <- temp.temp[order(-temp.temp)]
+    
+    conc[j]  <- sum(temp.temp[1:25], na.rm = T)/sum(temp.temp, na.rm = T)
+    
+  }
+  
+  concentration.dat <- rbind(concentration.dat,
+                             data.frame(imputation = i,
+                                        year = c(1975:2019, 2021, 2022),
+                                        concentration = conc))
+  
+  
 }
 
 
-# View(imputed.dat)
 
-# not using dplyr because sd using summarize cannot handle sd = 0
-# plot.dat <- data.frame(year = c(1975:2019, 2021:2022),
-#                        log_mean = tapply(imputed.dat$log_mean, imputed.dat$year, mean),
-#                        sd = tapply(imputed.dat$log_mean, imputed.dat$year, sd))
-
-plot.dat <- data.frame(year = c(1975:2019, 2021:2022),
-                       mean = tapply(log(imputed.back.trans.dat$mean), imputed.back.trans.dat$year, mean),
-                       sd = tapply(log(imputed.back.trans.dat$mean), imputed.back.trans.dat$year, sd))
+# first, back-transformed data
+plot.back.trans <- data.frame(year = c(1975:2019, 2021:2022),
+                              mean = tapply(log(imputed.back.trans.dat$mean), imputed.back.trans.dat$year, mean),
+                              sd = tapply(log(imputed.back.trans.dat$mean), imputed.back.trans.dat$year, sd))
 
 # add in NAs
 xtra <- data.frame(year = 2020,
                    mean = NA,
                    sd = NA)
 
-plot.dat <- rbind(plot.dat,
-                  xtra)
+plot.back.trans <- rbind(plot.back.trans,
+                         xtra)
 
 
 # replace sd = 0 with NA
-check <- plot.dat$sd == 0
-plot.dat$sd[check] <- NA
+check <- plot.back.trans$sd == 0
+plot.back.trans$sd[check] <- NA
 
 # plot
-ggplot(plot.dat, aes(year, mean)) +
+ggplot(plot.back.trans, aes(year, mean)) +
+  geom_point() +
+  geom_line() +
+  geom_errorbar(aes(ymin = mean - 2*sd, ymax = mean + 2*sd))
+
+# mean log-transformed data
+plot.mean.log <- data.frame(year = c(1975:2019, 2021:2022),
+                            mean = tapply(imputed.dat$log_mean, imputed.dat$year, mean),
+                            sd = tapply(imputed.dat$log_mean, imputed.dat$year, sd))
+
+# add in NAs
+xtra <- data.frame(year = 2020,
+                   mean = NA,
+                   sd = NA)
+
+plot.mean.log <- rbind(plot.mean.log,
+                       xtra)
+
+
+# replace sd = 0 with NA
+check <- plot.mean.log$sd == 0
+plot.mean.log$sd[check] <- NA
+
+# plot
+ggplot(plot.mean.log, aes(year, mean)) +
+  geom_point() +
+  geom_line() +
+  geom_errorbar(aes(ymin = mean - 2*sd, ymax = mean + 2*sd))
+
+# plot concentration
+plot.conc <- data.frame(year = c(1975:2019, 2021:2022),
+                        mean = tapply(concentration.dat$concentration, concentration.dat$year, mean),
+                        sd = tapply(concentration.dat$concentration, concentration.dat$year, sd))
+
+# add in NAs
+xtra <- data.frame(year = 2020,
+                   mean = NA,
+                   sd = NA)
+
+plot.conc <- rbind(plot.conc,
+                   xtra)
+
+
+# replace sd = 0 with NA
+check <- plot.conc$sd == 0
+plot.conc$sd[check] <- NA
+
+# plot
+ggplot(plot.conc, aes(year, mean)) +
   geom_point() +
   geom_line() +
   geom_errorbar(aes(ymin = mean - 2*sd, ymax = mean + 2*sd))
 
 
+# combine different imputed time series and save
+
+plot.back.trans <- plot.back.trans %>%
+  rename(log_backtransformed_mean_cpue = mean,
+         log_backtransformed_sd_cpue = sd)
+
+plot.mean.log <- plot.mean.log %>%
+  rename(mean_log_cpue = mean,
+         sd_log_cpue = sd)
+
+plot.conc <- plot.conc %>%
+  rename(mean_concentratin = mean,
+         sd_concentration = sd)
+
+imputed_output <- left_join(plot.back.trans, plot.mean.log) %>%
+  left_join(., plot.conc)
 
 
-# replace sd = 0 with NA
-check <- plot.dat$sd == 0
-plot.dat$sd[check] <- NA
-
-# summarize raw (non-imputed data) to plot
-# first, get weights
-raw_weights <- sc_strata %>%
-  mutate(STATION = str_remove_all(STATION_ID, "-")) %>%
-  select(YEAR, STATION, DISTRICT, TOTAL_AREA)
-
-weights1 <- distinct(data.frame(YEAR = sc_catch$YEAR, STATION = sc_catch$GIS_STATION)) %>%
-  mutate(STATION = str_remove_all(STATION, "-")) %>%
-  left_join(., raw_weights)
-
-# get proportion of each stratum that is included in the imputation
-summary_weights <- weights1 %>%
-  group_by(YEAR, DISTRICT) %>%
-  summarise(count_sampled = n()) %>%
-  left_join(., sum_area) %>%
-  mutate(weight = (count_sampled / total_count) * total_area) %>%
-  select(DISTRICT, weight)
-
-weights2 <- left_join(weights1, summary_weights)
-
-weights2 %>%
-  select(STATION, YEAR, DISTRICT, weight) %>%
-  distinct() %>%
-  as_tibble() %>%
-  rename(GIS_STATION = STATION) -> new_wts
-
-stratum %>%
-  mutate(GIS_STATION = str_remove_all(GIS_STATION, "-")) -> stratum # remove dash between GIS station to match new_wts
-
-raw.dat <- left_join(stratum, new_wts) 
-
-# replace NA weights with 1
-change <- is.na(raw.dat$weight)
-raw.dat$weight[change] <- 1
-
-plot.raw <- raw.dat %>%
-  mutate(weighted_log_cpue = log_cpue*weight) %>%
-  group_by(YEAR) %>%
-  summarise(sum_weight = sum(weight),
-            sum_weighted_log_cpue = sum(weighted_log_cpue))%>%
-  mutate(log_mean = sum_weighted_log_cpue / sum_weight) %>%
-  rename(year = YEAR) 
-
-unweighted.raw <- raw.dat %>%
-  group_by(YEAR) %>%
-  rename(year = YEAR) %>%
-  summarise(log_mean = mean(log_cpue))
-
-# Plot
-male_60_95_stratum_drop_5 <- ggplot(plot.dat, aes(year, log_mean, color = "black")) +
-  geom_line(data = plot.raw, aes(year, log_mean, color = "red")) +
-  geom_point(data = plot.raw, aes(year, log_mean, color = "red")) + 
-  geom_line(data = unweighted.raw, aes(year, log_mean, color = "blue")) +
-  geom_point(data = unweighted.raw, aes(year, log_mean, color = "blue")) + 
-  geom_line() +
-  scale_colour_manual(name = element_blank(), values = c("black", "red", "blue"), labels = c("Imputed", "Unweighted", "Weighted"))+
-  geom_point(size = 2) +
-  theme(legend.position = "bottom")+
-  geom_errorbar(aes(ymin = log_mean - 2*sd,
-                    ymax = log_mean + 2*sd)) +
-  ggtitle("Male 60-95 mm, stratum > 5th percentile") + 
-  theme(axis.title.x = element_blank())
-
-male_60_95_stratum_drop_5
-
-# Create csv of imputed cpue, imputed sd, raw weighted cpue, raw unweighted cpue, and # stations sampled by year
-male6095_drop5_df <- cbind(data.frame(year = plot.dat$year, imp_log_mean = plot.dat$log_mean, imp_sd = plot.dat$sd),
-                           plot.raw %>% select(log_mean) %>% rename(wtd_log_mean = log_mean),
-                           unweighted.raw %>% select(log_mean) %>% rename(unwtd_log_mean = log_mean),
-                           count %>% select(count) %>% rename(n_stations = count))
-
-write.csv(male6095_drop5_df , "./output/male6095_drop5_df.csv")
-
-# plot simpler .csv
-write.csv(plot.dat, "./output/female_drop5_df_simple.csv")
+write.csv(imputed_output, "./output/female_imputed_data.csv")
 
 
-## plot the two imputed time series
-
-plot_small <- male3059_drop5_df %>%
-  select(year, imp_log_mean, imp_sd) %>%
-  mutate(Size = "30-59 mm") 
-
-xtra <- data.frame(year = 2020, 
-                   imp_log_mean = NA,
-                   imp_sd = NA,
-                   Size = "30-59 mm")
-
-
-plot_small <- rbind(plot_small, xtra)
-
-plot_large <- male6095_drop5_df %>%
-  select(year, imp_log_mean, imp_sd) %>%
-  mutate(Size = "60-95 mm") 
-
-xtra <- data.frame(year = 2020, 
-                   imp_log_mean = NA,
-                   imp_sd = NA,
-                   Size = "60-95 mm")
-
-
-plot_large <- rbind(plot_large, xtra)
-
-
-plot <- rbind(plot_small, plot_large)
-
-ggplot(plot, aes(year, imp_log_mean)) +
-  geom_point() +
-  geom_line() +
-  geom_errorbar(aes(ymin = imp_log_mean - 2*imp_sd,
-                ymax = imp_log_mean + 2*imp_sd)) +
-  facet_wrap(~Size, ncol = 1, scales = "free_y") +
-  ylab("ln(CPUE + 1)") +
-  theme(axis.title.x = element_blank())
-
-ggsave("./figs/imputed_abundance_time_series.png", width = 4, height = 6, units = 'in')
 
 ## combine all the plots ---------------
 
