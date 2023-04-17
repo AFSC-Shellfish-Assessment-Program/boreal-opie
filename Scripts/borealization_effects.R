@@ -228,6 +228,70 @@ print(female_brm_plot)
 
 ggsave("./figs/female_brm_borealization_plot.png", width = 6, height = 4, units = 'in')
 
+
+## combine conditional plots for best brms models with 
+
+# add labels to brms plots
+male_brm_plot_labeled <- male_brm_plot +
+  annotate("text", x = -1.5, y = 7.5, label = "Male", size = 6)
+
+ggsave("./figs/male_brm_borealization_plot_labelled.png", width = 4.5, height = 3, units = 'in')
+
+female_brm_plot_labeled <- female_brm_plot +
+  annotate("text", x = -1, y = 6.5, label = "Female", size = 6)
+
+ggsave("./figs/female_brm_borealization_plot_labelled.png", width = 4.5, height = 3, units = 'in')
+
+
+male_plot <- read.csv("./output/male_30-95_imputed_data.csv", row.names = 1) %>%
+  select(year, log_backtransformed_mean_cpue, log_backtransformed_sd_cpue) %>%
+  rename(mean = log_backtransformed_mean_cpue,
+         sd = log_backtransformed_sd_cpue) %>%
+  mutate(sex = "Male")
+
+female_plot <- read.csv("./output/female_imputed_data.csv", row.names = 1) %>%
+  select(year, log_backtransformed_mean_cpue, log_backtransformed_sd_cpue) %>%
+  rename(mean = log_backtransformed_mean_cpue,
+         sd = log_backtransformed_sd_cpue) %>%
+  mutate(sex = "Female")
+
+plot_both <- rbind(male_plot, female_plot)
+
+# set palette
+cb <- c("#000000", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
+
+dodge <- position_dodge(width = 0.5)
+alpha = 0.7
+
+
+abundance_plot <- ggplot(plot_both, aes(year, mean, color = sex)) +
+  geom_point(position = dodge) +
+  geom_line(position = dodge) +
+  geom_errorbar(aes(ymin = mean - 2*sd, ymax = mean + 2*sd), position = dodge) +
+  scale_color_manual(values = cb[c(6,2)]) +
+  theme(legend.title = element_blank(),
+        legend.position = c(0.2, 0.2),
+        axis.title.x = element_blank()) +
+  labs(y = "Log (CPUE)")
+  
+abundance_plot
+
+ggsave("./figs/male_female_abundance_plot.png", width = 3.5, height = 2.5, units = 'in')
+
+
+
+# and combine all three panels
+png("./figs/abunandance_brm_plots.png", width = 12, height = 3, units = 'in', res = 300)
+
+ggpubr::ggarrange(abundance_plot,
+          female_brm_plot_labeled,
+          male_brm_plot_labeled,
+          ncol = 3,
+          labels = "auto")
+dev.off()
+
+
+
 ## second-best model for females (using trend2_lag1, as for males)-------
 female_form <- bf(log_mean ~ log_mean_lag1 + s(trend2_lag1) + s(year, k = 4))
 
