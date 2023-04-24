@@ -48,4 +48,8 @@ dat$value_per_boat[dat$Season == 2023] <- 0
 
 ggplot(dat, aes(Season, value_per_boat/1e6)) +
   geom_point() +
-  geom_line()
+  geom_line() +
+  labs(y = "Million $USD per boat") +
+  theme(axis.title.x = element_blank())
+
+ggsave("./figs/value_per_vessel.png", width = 3.5, height = 2.5, units = 'in')
