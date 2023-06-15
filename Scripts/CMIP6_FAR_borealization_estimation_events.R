@@ -40,6 +40,12 @@ for(i in 1:nrow(ersst.anom)){
   
 }
 
+# and save these observed borealization events 
+# drawn from SST-borealization posteriors applied to observed SST values
+
+write.csv(observed.borealization, "./output/observed_borealization_from_posteriors.csv", row.names = F)
+
+
 # load CMIP6 anomalies
 cmip.anom <- read.csv("./data/CMIP6.anomaly.time.series.csv") %>%
   filter(region == "Eastern_Bering_Sea",
