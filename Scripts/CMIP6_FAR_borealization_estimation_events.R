@@ -30,14 +30,14 @@ ersst.anom <- read.csv("./data/regional_north_pacific_ersst_anomaly_time_series.
 observed.borealization <- data.frame()
 
 for(i in 1:nrow(ersst.anom)){
-  
+
   temp <- data.frame(year = ersst.anom$year[i],
                      borealization_index = posterior_predict(sst_boreal_brm,
                                                              newdata = ersst.anom[i,],
-                                                             ndraws = 20))
+                                                             ndraws = 10))
   observed.borealization <- rbind(observed.borealization,
                                   temp)
-  
+
 }
 
 # and save these observed borealization events 
@@ -45,6 +45,7 @@ for(i in 1:nrow(ersst.anom)){
 
 write.csv(observed.borealization, "./output/observed_borealization_from_posteriors.csv", row.names = F)
 
+observed.borealization <- read.csv("./output/observed_borealization_from_posteriors.csv")
 
 # load CMIP6 anomalies
 cmip.anom <- read.csv("./data/CMIP6.anomaly.time.series.csv") %>%
@@ -61,7 +62,7 @@ for(i in 1:nrow(cmip.anom)){
   temp <- data.frame(model = cmip.anom$model[i],
                      borealization_index = posterior_predict(sst_boreal_brm,
                                                              newdata = cmip.anom[i,],
-                                                             ndraws = 4))
+                                                             ndraws = 1)) # reducing to 1 draw each, as we have n = 250 preindustrial observations for each model
   cmip.preind.borealization <- rbind(cmip.preind.borealization,
                                   temp)
   
