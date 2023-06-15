@@ -2,6 +2,7 @@
 ## to estimate historical probability
 
 library(tidyverse)
+library(brms)
 
 theme_set(theme_bw())
 
@@ -42,7 +43,8 @@ observed.borealization <- read.csv("./output/observed_borealization_from_posteri
 # load CMIP6 anomalies
 cmip.anom <- read.csv("./data/CMIP6.anomaly.time.series.csv") %>%
   filter(region == "Eastern_Bering_Sea",
-         experiment == "hist_ssp585") %>% 
+         experiment == "hist_ssp585",
+         year %in% 1940:2040) %>% # (to capture warming that matches period of interest for attribution)
   select(year, model, annual.unsmoothed) %>%
   rename(sst.anomaly = annual.unsmoothed)
 
@@ -52,6 +54,7 @@ cmip.hist.borealization <- data.frame()
 for(i in 1:nrow(cmip.anom)){
   
   temp <- data.frame(model = cmip.anom$model[i],
+                     year = cmip.anom$year[i],
                      borealization_index = posterior_predict(sst_boreal_brm,
                                                              newdata = cmip.anom[i,],
                                                              ndraws = 4))
@@ -85,14 +88,15 @@ predicted.warming <- read.csv("./data/brms_predicted_North_Pac_warming.csv")
 # -limit each model to the relevant warming range in model.warming.trends
 # calculate proportion as big as or larger than ersst anomaly
 
-# create df of historical outcomes
-historical.rolling.window.borealization.outcomes <- data.frame()  
 
-# loop through each region
+
+
+# loop through each model
 for(i in 1:length(models)){ # start i loop (models)
   # i <- 1
 
-  
+  # create df of historical outcomes
+  historical.rolling.window.borealization.outcomes <- data.frame()  
 
   # loop through each model
 
@@ -103,19 +107,17 @@ for(i in 1:length(models)){ # start i loop (models)
   #   ersst.temp <- ersst.anom %>%
   #     filter(region == regions[j],)
   
-  # separate model and region of interest
-  hist.temp <- cmip.anom %>% 
-      filter(experiment == "hist_ssp585",
-             model == models[i],
-             region == regions[j])
+  # separate model of interest
+  hist.temp <- cmip.hist.borealization %>% 
+      filter(model == models[i])
 
   
   # loop through each year of observation
-  for(k in 1:nrow(ersst.temp)){ # start k loop (years)
+  for(k in 1:nrow(observed.borealization)){ # start k loop (years)
     # k <- 5
     
     # define 15-year window
-    window <- (ersst.temp$year[k] - 7) : (ersst.temp$year[k] + 7)
+    window <- (cmip.anom$year[k] - 7) : (cmip.anom$year[k] + 7)
     
     # define range of predicted warming values for this window
     warming.range <- range(predicted.warming$pred_mean[predicted.warming$year %in% window])
@@ -131,60 +133,41 @@ for(i in 1:length(models)){ # start i loop (models)
     
     # record outcome for annual unsmoothed, annual 2-yr running mean, and annual 3-yr running mean
     
-    annual.1yr <- ifelse(hist.temp.use$annual.unsmoothed >= ersst.temp$annual.anomaly.unsmoothed[k], 1, 0)
+    annual.events <- ifelse(hist.temp.use$borealization_index >= observed.borealization$borealization_index[k], 1, 0)
     
-    annual.2yr <- ifelse(hist.temp.use$annual.two.yr.running.mean >= ersst.temp$annual.anomaly.two.yr.running.mean[k], 1, 0)
-    
-    annual.3yr <- ifelse(hist.temp.use$annual.three.yr.running.mean >= ersst.temp$annual.anomaly.three.yr.running.mean[k], 1, 0)
-    
-    # calculate prob for winter unsmoothed, winter 2-yr running mean, and winter 3-yr running mean
-    
-    winter.1yr <- ifelse(hist.temp.use$winter.unsmoothed >= ersst.temp$winter.anomaly.unsmoothed[k], 1, 0)
-    
-    winter.2yr <- ifelse(hist.temp.use$winter.two.yr.running.mean >= ersst.temp$winter.anomaly.two.yr.running.mean[k], 1, 0)
-    
-    winter.3yr <- ifelse(hist.temp.use$winter.three.yr.running.mean >= ersst.temp$winter.anomaly.three.yr.running.mean[k], 1, 0) 
-    
+
     # add to df
-    historical.rolling.window.outcomes <- rbind(historical.rolling.window.outcomes,
+    if(length(annual.events) > 0) { # in case there are no cmip years within the required warming rate
+    
+    historical.rolling.window.borealization.outcomes <- rbind(historical.rolling.window.borealization.outcomes,
                                     data.frame(model = models[i],
                                                period = "historical",
-                                               region = regions[j],
-                                               ersst.year = ersst.temp$year[k],
+                                               ersst.year = observed.borealization$year[k],
                                                
-                                               annual.anomaly.1yr = ersst.temp$annual.anomaly.unsmoothed[k],
-                                               annual.1yr.events = annual.1yr,
-                                               
-                                               annual.anomaly.2yr = ersst.temp$annual.anomaly.two.yr.running.mean[k],
-                                               annual.2yr.events = annual.2yr,
-                                               
-                                               annual.anomaly.3yr = ersst.temp$annual.anomaly.three.yr.running.mean[k],
-                                               annual.3yr.events = annual.3yr,
-                                               
-                                               winter.anomaly.1yr = ersst.temp$winter.anomaly.unsmoothed[k],
-                                               winter.1yr.events = winter.1yr,
-                                               
-                                               winter.anomaly.2yr = ersst.temp$winter.anomaly.two.yr.running.mean[k],
-                                               winter.2yr.events = winter.2yr,
-                                               
-                                               winter.anomaly.3yr = ersst.temp$winter.anomaly.three.yr.running.mean[k],
-                                               winter.3yr.events = winter.3yr))
+                                               borealization_index = observed.borealization$borealization_index[k],
+                                               annual.events = annual.events))
+    
+    print(paste("i = ", i, "; k = ", k, sep = ""))  
+                                             
+    }
     
    } # close k loop (ersst years)
+  
+write.csv(historical.rolling.window.borealization.outcomes, file = paste("./output/", models[i], "_historical_borealization_outcomes_rolling_window.csv", sep = ""), row.names = F)
+#   
   
   } # close i loop (models)
 
 
-} # close j loop (regions)
 
-# break into separate objects for each region and save
-
-for(i in 1:length(regions)){
-
-  temp <- historical.rolling.window.outcomes %>%
-    filter(region == regions[i])
-
-  write.csv(temp, file = paste("./CMIP6/summaries/", regions[i], "_historical_outcomes_rolling_window.csv", sep = ""), row.names = F)
-
-}
-
+# # break into separate objects for each region and save
+# 
+# for(i in 1:length(regions)){
+# 
+#   temp <- historical.rolling.window.outcomes %>%
+#     filter(region == regions[i])
+# 
+#   write.csv(temp, file = paste("./CMIP6/summaries/", regions[i], "_historical_outcomes_rolling_window.csv", sep = ""), row.names = F)
+# 
+# }
+# 
