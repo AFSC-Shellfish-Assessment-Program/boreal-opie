@@ -1,5 +1,5 @@
 ## Load packages
-  library(akgfmaps)
+  #library(akgfmaps)
   library(sf)
   library(ggmap)
   library(rgdal)
@@ -9,8 +9,8 @@
   library(ggpubr)
 
 ## Load map layers
-  map_layers <- akgfmaps::get_base_layers(select.region = "bs.south", set.crs="auto")
-
+  map_layers <- readRDS("./Data/map_layers.rda")
+  
 
 ## Trim survey grid to survey area
   map_layers$survey.grid %>%
@@ -18,9 +18,13 @@
     st_intersection(map_layers$survey.area) -> survey.grid
   
 ## Specify plot boundary, transform to map crs
-  plot.boundary <- akgfmaps::transform_data_frame_crs(data.frame(x = c(-180, -150), 
-                                                                 y = c(54.5, 67)), 
-                                                      out.crs = map_layers$crs) 
+  data.frame(x = c(-180, -150), 
+             y = c(54.5, 67)) %>%
+    sf::st_as_sf(coords = c(x = "x", y = "y"), crs = sf::st_crs(4326)) %>%
+    sf::st_transform(., crs = map_layers$crs) %>%
+    cbind(st_coordinates(.)) %>%
+    as.data.frame() -> plot.boundary
+  
 
 ## Plot 
   ggplot() +
@@ -29,11 +33,10 @@
     geom_sf(data = map_layers$survey.area, fill = NA, linewidth = 1) +
     geom_sf(data = map_layers$akland, fill = "grey80", size=0.1) +
     geom_sf(data = map_layers$survey.area, fill = NA) +
-    
     scale_x_continuous(breaks = c(-180, -175, -170, -165, -160, -155, -150), labels = paste0(c(180, 175, 170, 165, 160, 155, 150), "°W")) + 
     #scale_y_continuous(breaks = c(52, 54, 56, 58, 60, 62, 64, 66, 68, 70), labels = paste0(c(52, 54, 56, 58, 60, 62, 64, 66, 68, 70), "°N")) +
-    coord_sf(xlim = plot.boundary$x,
-             ylim = plot.boundary$y)+
+    coord_sf(xlim = plot.boundary$X,
+             ylim = plot.boundary$Y)+
     theme_bw()+
     theme(panel.border = element_rect(color = "black", fill = NA),
           panel.background = element_rect(fill = NA, color = "black"),
