@@ -207,7 +207,9 @@ resample.pdf <- left_join(resample.pdf, plot.order) %>%
 
 sum <- resample.pdf %>%
   group_by(period) %>%
-  summarize(proportion = sum(borealization_index > 2) / n()) # using 1.5 as a critical value
+  summarize(proportion_high = sum(borealization_index > 2) / n(),
+            proportion_low = sum(borealization_index < -1) / n(),
+            ratio_high_to_low = proportion_high / proportion_low) 
 
 sum
 
@@ -216,11 +218,11 @@ theme_set(theme_bw())
 cb <- c("#000000", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
 
 boreal.pdf.plot <- ggplot(resample.pdf, aes(period, borealization_index)) +
-  geom_violin(fill = cb[6], lty = 0, alpha = 0.5) +
+  geom_hline(yintercept = c(-1,2), color = cb[c(6,7)], lty = 2, alpha = 0.8) +
+  geom_violin(fill = cb[2], lty = 0, alpha = 0.5) +
   coord_flip(ylim = c(-4.5, 4.5)) +
   xlab("North Pacific warming") +
   ylab("Borealization index") +
-  geom_hline(yintercept = 2, lty = 2) +
   scale_x_discrete(labels = c("Preindustrial",
                               "1950 to 0.5°",
                               "0.5° to 1.0°  
