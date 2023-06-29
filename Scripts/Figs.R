@@ -2,11 +2,61 @@
 
 library(tidyverse)
 library(MARSS)
-
+library(sf)
+library(ggmap)
+library(rgdal)
+library(tidyverse)
+library(RColorBrewer)
+library(patchwork)
+library(ggpubr)
 theme_set(theme_bw())
 cb <- c("#000000", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
 
-fig1a <- ggplot() + theme_void()
+## Load map layers
+map_layers <- readRDS("./Data/map_layers.rda")
+
+
+## Trim survey grid to survey area
+map_layers$survey.grid %>%
+  st_transform(crs = st_crs(map_layers$survey.area)) %>%
+  st_intersection(map_layers$survey.area) -> survey.grid
+
+## Specify plot boundary, transform to map crs
+data.frame(x = c(-180, -150), 
+           y = c(54.5, 67)) %>%
+  sf::st_as_sf(coords = c(x = "x", y = "y"), crs = sf::st_crs(4326)) %>%
+  sf::st_transform(., crs = map_layers$crs) %>%
+  cbind(st_coordinates(.)) %>%
+  as.data.frame() -> plot.boundary
+
+
+## Plot 
+fig1a <- ggplot() +
+  geom_sf(data = map_layers$bathymetry, color=alpha("grey70")) +
+  # geom_sf(data = map_layers$survey.grid, fill=NA, color=alpha("grey70"), linewidth = 1)+
+  geom_sf(data = map_layers$survey.area, fill = alpha(cb[6], alpha=0.1), size = 0) +
+  geom_sf(data = map_layers$akland, fill = "grey80", size=0.1) +
+  geom_sf(data = map_layers$survey.area, fill = NA) +
+  scale_x_continuous(breaks = c(-180, -175, -170, -165, -160, -155, -150), labels = paste0(c(180, 175, 170, 165, 160, 155, 150), "°W")) + 
+  #scale_y_continuous(breaks = c(52, 54, 56, 58, 60, 62, 64, 66, 68, 70), labels = paste0(c(52, 54, 56, 58, 60, 62, 64, 66, 68, 70), "°N")) +
+  coord_sf(xlim = plot.boundary$X,
+           ylim = plot.boundary$Y)+
+  theme_bw()+
+  theme(panel.border = element_rect(color = "black", fill = NA),
+        panel.background = element_rect(fill = NA, color = "black"),
+        legend.key = element_rect(fill = NA, color = "grey70"),
+        legend.key.size = unit(0.65,'cm'),
+        legend.background = element_blank(),
+        axis.title = element_blank(),
+        axis.text = element_text(size = 10),
+        legend.text = element_text(size = 10), 
+        legend.title = element_text(size = 10),
+        plot.background = element_rect(fill = "white", color = NA),
+        panel.grid.major = element_blank()) 
+
+
+
+# fig1a <- ggplot() + theme_void()
 
 # abundance (Fig. 1b)
 
@@ -27,6 +77,18 @@ fig1b <- ggplot(abundance, aes(Year, total.abundance)) +
 
 # load DFA model
 mod <- readRDS("./output/DFA_model.rds")
+
+# load DFA data 
+dat <- read.csv("./output/dfa time series.csv")
+
+dfa.dat <- dat %>%
+  dplyr::select(-order) %>%
+  pivot_wider(names_from = name, values_from = value) %>% 
+  arrange(year) %>%
+  dplyr::select(-year) %>%
+  t()
+
+colnames(dfa.dat) <- 1972:2022
 
 # plot loadings and trend
 
