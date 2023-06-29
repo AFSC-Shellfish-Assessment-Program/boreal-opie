@@ -52,7 +52,7 @@ cmip.anom <- read.csv("./data/CMIP6.anomaly.time.series.csv") %>%
 cmip.hist.borealization <- data.frame()
 
 for(i in 1:nrow(cmip.anom)){
-  
+  # i <- 1
   temp <- data.frame(model = cmip.anom$model[i],
                      year = cmip.anom$year[i],
                      borealization_index = posterior_predict(sst_boreal_brm,
@@ -62,6 +62,12 @@ for(i in 1:nrow(cmip.anom)){
                                      temp)
   
 }
+
+# save
+write.csv(cmip.hist.borealization, "./output/cmip_historical_borealization_draws.csv", row.names = F)
+
+
+cmip.hist.borealization <- read.csv("./output/cmip_historical_borealization_draws.csv")
 
 # get vector of model names
 models <- unique(cmip.anom$model)
@@ -89,35 +95,25 @@ predicted.warming <- read.csv("./data/brms_predicted_North_Pac_warming.csv")
 # calculate proportion as big as or larger than ersst anomaly
 
 
-
+  # create df of historical outcomes
+  historical.rolling.window.borealization.outcomes <- data.frame()  
 
 # loop through each model
 for(i in 1:length(models)){ # start i loop (models)
   # i <- 1
 
-  # create df of historical outcomes
-  historical.rolling.window.borealization.outcomes <- data.frame()  
 
-  # loop through each model
-
-  # for(j in 1:length(regions)){ # start j loop (regions)
-  # # j <- 3 
-  #   
-  #   # break out the relevant region from ersst
-  #   ersst.temp <- ersst.anom %>%
-  #     filter(region == regions[j],)
-  
   # separate model of interest
   hist.temp <- cmip.hist.borealization %>% 
       filter(model == models[i])
 
   
-  # loop through each year of observation
-  for(k in 1:nrow(observed.borealization)){ # start k loop (years)
-    # k <- 5
+  # loop through each borealization draws from observed SST
+  for(k in 1:nrow(observed.borealization)){ # start k loop (draws)
+    # k <- 1
     
     # define 15-year window
-    window <- (cmip.anom$year[k] - 7) : (cmip.anom$year[k] + 7)
+    window <- (observed.borealization$year[k] - 7) : (observed.borealization$year[k] + 7)
     
     # define range of predicted warming values for this window
     warming.range <- range(predicted.warming$pred_mean[predicted.warming$year %in% window])
@@ -126,7 +122,6 @@ for(i in 1:length(models)){ # start i loop (models)
     use <- model.warming.trends %>%
       filter(model == models[i],
              warming >= warming.range[1] & warming <= warming.range[2])
-    
     
     hist.temp.use <- hist.temp %>%
       filter(year %in% use$year)
@@ -153,21 +148,20 @@ for(i in 1:length(models)){ # start i loop (models)
     
    } # close k loop (ersst years)
   
-write.csv(historical.rolling.window.borealization.outcomes, file = paste("./output/", models[i], "_historical_borealization_outcomes_rolling_window.csv", sep = ""), row.names = F)
-#   
   
   } # close i loop (models)
 
 
 
-# # break into separate objects for each region and save
-# 
-# for(i in 1:length(regions)){
-# 
-#   temp <- historical.rolling.window.outcomes %>%
-#     filter(region == regions[i])
-# 
-#   write.csv(temp, file = paste("./CMIP6/summaries/", regions[i], "_historical_outcomes_rolling_window.csv", sep = ""), row.names = F)
-# 
-# }
-# 
+# break into separate objects for each model and save
+
+for(i in 1:length(models)){
+
+  temp <- historical.rolling.window.borealization.outcomes %>%
+    filter(model == models[i])
+
+  write.csv(temp, file = paste("./output/historical_borealization_outcomes/",
+                               models[i], "_historical_borealization_outcomes_rolling_window.csv", sep = ""), row.names = F)
+
+}
+
