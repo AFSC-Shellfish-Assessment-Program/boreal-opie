@@ -68,7 +68,7 @@ for(i in 1:nrow(cmip.anom)){
   
 }
 
-nrow(cmip.preind.borealization) # 23,000! 23 models * 250 years * 4 draws
+nrow(cmip.preind.borealization) # 5750! 23 models * 250 years 
 # # load CMIP6 model weights
 # model.weights <- read.csv("./CMIP6/summaries/CMIP6_model_weights_by_region_window.csv") 
 
@@ -105,14 +105,16 @@ for(i in 1:length(models)){ # start i loop (models)
                                          
                                          borealization_index = observed.borealization$borealization_index[k],
                                          annual.event = annual.event))
+    print(paste("i = ", i, "; k = ", k, sep = "")) 
 
+    
       } # close k loop (ersst years)
     
 
   
   } # close i loop (models)
 
-nrow(preindustrial.boreal.outcomes) # 
+nrow(preindustrial.boreal.outcomes) # 4.2M rows!
 
 
 #  and save
