@@ -269,6 +269,9 @@ model.list = list(A="zero", m=1, R="diagonal and unequal") # second-best model
 
 mod = MARSS(dfa.dat, model=model.list, z.score=TRUE, form="dfa", control=cntl.list)
 
+# save 
+saveRDS(mod, "./output/DFA_model.rds")
+
 # calculate R^2
 DFA_pred <- print(predict(mod))
 
@@ -339,7 +342,6 @@ trend.plot <- ggplot(trend, aes(t, estimate)) +
 
 # save
 png("./Figs/borealization_DFA_loadings_trend.png", width = 9, height = 3.5, units = 'in', res = 300)
-
 ggpubr::ggarrange(loadings.plot,
                   trend.plot,
                   ncol = 2,
