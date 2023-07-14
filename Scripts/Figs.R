@@ -60,20 +60,21 @@ fig1a <- ggplot() +
 
 # abundance (Fig. 1b)
 
-abundance <- read.csv("./data/Abundance_Snow_table.csv", row.names = 1) %>%
-  select(Year, total.abundance) %>%
-  filter(Year >=1988)
+abundance <- read.csv("./output/imputed_total_abundance.csv") 
 
-xtra <- data.frame(Year = 2020,
-                   total.abundance = NA)
+# remove SD = 0 for plotting
+change <- abundance$SD == 0
+abundance$SD[change] <- NA
 
-abundance <- rbind(abundance, xtra)
+dodge <- position_dodge(width=0.9)
 
-fig1b <- ggplot(abundance, aes(Year, total.abundance)) +
-  geom_line() +
-  geom_point() +
+fig1b <- ggplot(abundance, aes(year, abundance)) +
+  geom_col(fill = cb[6]) +
+  geom_errorbar(aes(ymin = abundance - 2*SD,
+                    ymax = abundance + 2*SD), position = dodge, width = 0.7) +
   theme(axis.title.x = element_blank()) +
-  labs(y = expression(Snow~crab~abundance~(10^6)))
+  geom_hline(yintercept = 0) +
+  labs(y = expression(Snow~crab~abundance~(10^9))) 
 
 # load DFA model
 mod <- readRDS("./output/DFA_model.rds")
@@ -101,6 +102,8 @@ plot.CI <- data.frame(names=rownames(dfa.dat),
 
 dodge <- position_dodge(width=0.9)
 
+
+plot.CI$names[c(3,4,5,6,8,12)] <- c("Jan-Feb ice", "Mar-Apr ice", "Bloom extent", "Phytoplankton size", "Bottom temp.", "Calanus")
 
 plot.CI$names <- reorder(plot.CI$names, CI$par$Z[1:12])
 
@@ -250,7 +253,12 @@ probs <- read.csv("./output/probabilistic_attribution_stats.csv")
 fig2b <- ggplot(probs, aes(year, FAR)) +
   geom_point() +
   geom_line() +
+  geom_ribbon(aes(ymin = LCI_FAR,
+                  ymax = UCI_FAR),
+              fill = "dark grey", 
+              alpha = 0.5) +
   theme(axis.title.x = element_blank()) +
+  scale_y_continuous(breaks = c(0, 0.5, 1)) +
   ylab("Fraction of attributable risk")
 
 fig2c <- ggplot(probs, aes(year, RR)) +
@@ -260,50 +268,14 @@ fig2c <- ggplot(probs, aes(year, RR)) +
   ylab("Risk ratio")
 
 ## pdfs
-
-borealization.pdfs <- read.csv("./output/borealization_pdfs.csv")
-
-# load CMIP6 model weights
-model.weights <- read.csv("./Data/normalized_CMIP6_weights.csv") 
-
-# clean up model weights 
-model.weights <- model.weights %>%
-  filter(region == "Eastern_Bering_Sea") %>%
-  select(model, normalized_weight) 
-
-borealization.pdfs <- left_join(borealization.pdfs, model.weights) 
-
-# resample to weight models
-resample.pdf <- data.frame()
-
-periods <- unique(borealization.pdfs$period)
-
-for(i in 1:length(periods)){
-  # i <- 1
-  
-  temp <- borealization.pdfs[borealization.pdfs$period == periods[i],]
-  
-  resample.pdf <- rbind(resample.pdf,
-                        data.frame(period = periods[i],
-                                   borealization_index = sample(temp$borealization_index, 1000, replace = T, prob = temp$normalized_weight)))
-  
-}
+resample.pdf <- read.csv("./output/resampled_borealization_pdfs.csv")
 
 # reorder
 plot.order <- data.frame(period = unique(resample.pdf$period),
                          order = 1:5)
-
-
+ 
 resample.pdf <- left_join(resample.pdf, plot.order) %>%
   mutate(period =  reorder(period, order))
-
-
-sum <- resample.pdf %>%
-  group_by(period) %>%
-  summarize(proportion_high = sum(borealization_index > 2) / n(),
-            proportion_low = sum(borealization_index < -1) / n(),
-            ratio_high_to_low = proportion_high / proportion_low) 
-
 
 
 fig2d <- ggplot(resample.pdf, aes(period, borealization_index)) +
@@ -326,5 +298,13 @@ png("./figs/fig2.png", width = 8, height = 7, units = 'in', res = 300)
 
 ggpubr::ggarrange(ggpubr::ggarrange(fig2a, fig2b, fig2c,  ncol = 1, labels = "auto"),
                   fig2d, ncol = 2, widths = c(0.45, 0.55), labels = c("", "d"))
+
+dev.off()
+
+## version without sst-borealization plot
+png("./figs/fig2_three_panel.png", width = 7, height = 5, units = 'in', res = 300)
+
+ggpubr::ggarrange(ggpubr::ggarrange(fig2b, fig2c,  ncol = 1, labels = "auto"),
+                  fig2d, ncol = 2, widths = c(0.5, 0.5), labels = c("", "c"))
 
 dev.off()
