@@ -19,34 +19,6 @@ library(brms)
 # load sst-borealization brms model
 sst_boreal_brm <- readRDS("./output/sst_boreal_brm.rds")
 
-# load ERSST anomalies
-ersst.anom <- read.csv("./data/regional_north_pacific_ersst_anomaly_time_series.csv") %>%
-  filter(region == "Eastern_Bering_Sea",
-         year %in% 1950:2022) %>% # period for attribution runs
-  select(year, annual.anomaly.unsmoothed) %>%
-  rename(sst.anomaly = annual.anomaly.unsmoothed)
-
-# estimate borealization for each SST anomaly from model posteriors
-observed.borealization <- data.frame()
-
-for(i in 1:nrow(ersst.anom)){
-
-  temp <- data.frame(year = ersst.anom$year[i],
-                     borealization_index = posterior_predict(sst_boreal_brm,
-                                                             newdata = ersst.anom[i,],
-                                                             ndraws = 10))
-  observed.borealization <- rbind(observed.borealization,
-                                  temp)
-
-}
-
-# and save these observed borealization events 
-# drawn from SST-borealization posteriors applied to observed SST values
-
-write.csv(observed.borealization, "./output/observed_borealization_from_posteriors.csv", row.names = F)
-
-observed.borealization <- read.csv("./output/observed_borealization_from_posteriors.csv")
-
 # load CMIP6 anomalies
 cmip.anom <- read.csv("./data/CMIP6.anomaly.time.series.csv") %>%
   filter(region == "Eastern_Bering_Sea",
