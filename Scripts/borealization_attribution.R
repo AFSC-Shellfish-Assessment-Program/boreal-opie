@@ -94,69 +94,6 @@ g1 <- ggplot(dat_ce) +
 
 print(g1)
 
-##############
-# fit linear brms model ------------------------------
-
-sst_linear_formula <-  bf(trend ~ sst.anomaly)
-
-## Show default priors
-get_prior(sst_linear_formula, dat)
-
-## fit 
-sst_linear_brm <- brm(sst_linear_formula,
-                      data = dat,
-                      cores = 4, chains = 4, iter = 2000,
-                      save_pars = save_pars(all = TRUE),
-                      control = list(adapt_delta = 0.99, max_treedepth = 10))
-
-saveRDS(sst_linear_brm, file = "output/sst_linear_brm.rds")
-
-# run diagnostics
-sst_linear_brm <- readRDS("./output/sst_linear_brm.rds")
-check_hmc_diagnostics(sst_linear_brm$fit)
-neff_lowest(sst_linear_brm$fit)
-rhat_highest(sst_linear_brm$fit)
-summary(sst_linear_brm)
-bayes_R2(sst_linear_brm)
-
-# # save high-resolution predicted values for expected return time
-# ce1s_1 <- conditional_effects(sst_boreal_brm, effect = "sst.anomaly", re_formula = NA,
-#                               probs = c(0.025, 0.975), resolution = 5000)
-
-# write.csv(ce1s_1$sst.anomaly, "./output/sst_borealization_predicted_relationship.csv", row.names = F)
-
-# plot
-## 95% CI
-ce1s_1 <- conditional_effects(sst_linear_brm, effect = "sst.anomaly", re_formula = NA,
-                              probs = c(0.025, 0.975))
-## 90% CI
-ce1s_2 <- conditional_effects(sst_linear_brm, effect = "sst.anomaly", re_formula = NA,
-                              probs = c(0.05, 0.95))
-## 80% CI
-ce1s_3 <- conditional_effects(sst_linear_brm, effect = "sst.anomaly", re_formula = NA,
-                              probs = c(0.1, 0.9))
-dat_ce <- ce1s_1$sst.anomaly
-dat_ce[["upper_95"]] <- dat_ce[["upper__"]]
-dat_ce[["lower_95"]] <- dat_ce[["lower__"]]
-dat_ce[["upper_90"]] <- ce1s_2$sst.anomaly[["upper__"]]
-dat_ce[["lower_90"]] <- ce1s_2$sst.anomaly[["lower__"]]
-dat_ce[["upper_80"]] <- ce1s_3$sst.anomaly[["upper__"]]
-dat_ce[["lower_80"]] <- ce1s_3$sst.anomaly[["lower__"]]
-# dat_ce[["rug.anom"]] <- c(jitter(unique(dat$sst.anomaly), amount = 0.01),
-# rep(NA, 100-length(unique(dat$sst.anomaly))))
-
-
-g1.linear <- ggplot(dat_ce) +
-  aes(x = effect1__, y = estimate__) +
-  geom_ribbon(aes(ymin = lower_95, ymax = upper_95), fill = "grey90") +
-  geom_ribbon(aes(ymin = lower_90, ymax = upper_90), fill = "grey85") +
-  geom_ribbon(aes(ymin = lower_80, ymax = upper_80), fill = "grey80") +
-  geom_line(size = 0.5, color = "red3") +
-  labs(x = "SST anomaly wrt 1854-1949 (SD)", y = "Borealization index") +
-  geom_text(data = dat, aes(sst.anomaly, trend, label = year), size = 3)
-# geom_rug](aes(x=rug.anom, y=NULL)) 
-
-print(g1.linear)
 
 ## estimate FAR -------------------------
 
