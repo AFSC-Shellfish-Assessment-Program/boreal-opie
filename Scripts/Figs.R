@@ -60,21 +60,34 @@ fig1a <- ggplot() +
 
 # abundance (Fig. 1b)
 
-abundance <- read.csv("./output/imputed_total_abundance.csv") 
+abundance <- read.csv("./output/imputed_male_30-95_imm_female_abundance.csv") 
 
 # remove SD = 0 for plotting
 change <- abundance$SD == 0
 abundance$SD[change] <- NA
 
-dodge <- position_dodge(width=0.9)
+pos_dodge = position_dodge(width = 0.6)
 
-fig1b <- ggplot(abundance, aes(year, abundance)) +
-  geom_col(fill = cb[6]) +
-  geom_errorbar(aes(ymin = abundance - 2*SD,
-                    ymax = abundance + 2*SD), position = dodge, width = 0.7) +
-  theme(axis.title.x = element_blank()) +
+fig1b <- ggplot(abundance, aes(as.numeric(year), abundance, color = sex)) +
   geom_hline(yintercept = 0) +
+  geom_point(position = pos_dodge) +
+  geom_line(position = pos_dodge) + 
+  geom_errorbar(aes(ymin = abundance - 2*SD,
+                    ymax = abundance + 2*SD), width = 0.5, position = pos_dodge) +
+  scale_color_manual(values = cb[c(2,4)]) +
+  theme(axis.title.x = element_blank(),
+        legend.title = element_blank(),
+        legend.position = c(0.6, 0.8)) +
   labs(y = expression(Snow~crab~abundance~(10^9))) 
+
+
+# fig1b <- ggplot(abundance, aes(year, abundance)) +
+#   geom_col(fill = cb[6]) +
+#   geom_errorbar(aes(ymin = abundance - 2*SD,
+#                     ymax = abundance + 2*SD), position = dodge, width = 0.7) +
+#   theme(axis.title.x = element_blank()) +
+#   geom_hline(yintercept = 0) +
+#   labs(y = expression(Snow~crab~abundance~(10^9))) 
 
 # load DFA model
 mod <- readRDS("./output/DFA_model.rds")
