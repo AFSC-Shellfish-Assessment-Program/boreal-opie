@@ -73,11 +73,11 @@ fig1b <- ggplot(abundance, aes(as.numeric(year), abundance, color = sex)) +
   geom_point(position = pos_dodge) +
   geom_line(position = pos_dodge) + 
   geom_errorbar(aes(ymin = abundance - 2*SD,
-                    ymax = abundance + 2*SD), width = 0.5, position = pos_dodge) +
+                    ymax = abundance + 2*SD), width = 1, alpha = 0.4, position = pos_dodge) +
   scale_color_manual(values = cb[c(2,4)]) +
   theme(axis.title.x = element_blank(),
         legend.title = element_blank(),
-        legend.position = c(0.6, 0.8)) +
+        legend.position = c(0.65, 0.85)) +
   labs(y = expression(Snow~crab~abundance~(10^9))) 
 
 
@@ -125,7 +125,7 @@ fig1c <- ggplot(plot.CI, aes(x=names, y=mean)) +
   geom_errorbar(aes(ymax=upCI, ymin=lowCI), position=dodge, width=0.5) +
   ylab("Loading") +
   xlab("") +
-  theme(axis.text.x  = element_text(angle=60, hjust=1,  size=9), legend.title = element_blank(), legend.position = 'top') +
+  theme(axis.text.x  = element_text(angle=60, hjust=1,  size=8), legend.title = element_blank(), legend.position = 'top') +
   geom_hline(yintercept = 0)
 
 # plot trend
@@ -171,7 +171,7 @@ fig1e <- ggplot(dat_ce) +
   geom_ribbon(aes(ymin = lower_80, ymax = upper_80), fill = "grey80") +
   geom_line(size = 1, color = "red3") +
   labs(x = "Borealization index (lag 1-2)", y = "Log CPUE") +
-  annotate("text", x = -1.5, y = 7.5, label = "Male", size = 6)
+  annotate("text", x = -1.5, y = 7.5, label = "Male", size = 5)
 
 ##
 female_brm <- readRDS("./output/fit_female.rds")
@@ -200,7 +200,7 @@ fig1f <- ggplot(dat_ce) +
   geom_ribbon(aes(ymin = lower_80, ymax = upper_80), fill = "grey80") +
   geom_line(size = 1, color = "red3") +
   labs(x = "Borealization index (lag 0-2)", y = "Log CPUE") +
-  annotate("text", x = -1, y = 6.5, label = "Female", size = 6)
+  annotate("text", x = -1, y = 6, label = "Female", size = 5)
 
 
 png("./figs/fig1.png", width = 12, height = 6, units = 'in', res = 300)
@@ -260,6 +260,9 @@ fig2a <- ggplot(dat_ce) +
   labs(x = "SST anomaly wrt 1854-1949 (SD)", y = "Borealization index") +
   geom_text(data = dat, aes(sst.anomaly, trend, label = year), size = 3)
 
+
+# save one-panel version
+ggsave("./Figs/borealization_sst_brms_plot.png", width = 6, height = 4, units = "in")
 
 probs <- read.csv("./output/probabilistic_attribution_stats.csv")
 
