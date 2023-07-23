@@ -266,10 +266,10 @@ probs <- read.csv("./output/probabilistic_attribution_stats.csv")
 fig2b <- ggplot(probs, aes(year, FAR)) +
   geom_point() +
   geom_line() +
-  geom_ribbon(aes(ymin = LCI_FAR,
-                  ymax = UCI_FAR),
-              fill = "dark grey", 
-              alpha = 0.5) +
+  # geom_ribbon(aes(ymin = LCI_FAR,
+  #                 ymax = UCI_FAR),
+  #             fill = "dark grey", 
+  #             alpha = 0.5) +
   theme(axis.title.x = element_blank()) +
   scale_y_continuous(breaks = c(0, 0.5, 1)) +
   ylab("Fraction of attributable risk")
