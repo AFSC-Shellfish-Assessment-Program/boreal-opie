@@ -96,15 +96,27 @@ d8 <- d8 %>%
 
 dat <- rbind(d1, d2, d3, d4, d5, d6, d7, d8)
 
+# add NAs for plot
+plot.dat <- dat %>%
+  pivot_wider(names_from = name,
+              values_from = value) %>%
+  pivot_longer(cols = -year)
+
+# change Calanus for plotting
+change <- plot.dat$name == "Calanus_glacialis"
+plot.dat$name[change] <- "Calanus"
+
 # reorder for plot
-plot.order <- data.frame(name = unique(dat$name),
+plot.order <- data.frame(name = unique(plot.dat$name),
                          order = c(5,4,1,2,6,7,10,3,11,12,8,9))
 
-dat <- left_join(dat, plot.order)
+plot.dat <- left_join(plot.dat, plot.order)
 
-dat$name <- reorder(dat$name, dat$order)
+plot.dat$name <- reorder(plot.dat$name, plot.dat$order)
 
-ggplot(dat, aes(year, value)) +
+
+
+ggplot(plot.dat, aes(year, value)) +
   geom_line() +
   geom_point() +
   facet_wrap(~name, scales = "free_y", ncol = 4) +
