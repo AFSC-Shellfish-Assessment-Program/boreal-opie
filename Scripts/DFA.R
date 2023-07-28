@@ -120,9 +120,10 @@ ggplot(plot.dat, aes(year, value)) +
   geom_line() +
   geom_point() +
   facet_wrap(~name, scales = "free_y", ncol = 4) +
-  theme(axis.title.x = element_blank())
+  theme(axis.title.x = element_blank()) +
+  ylab("Value")
 
-ggsave("./Figs/borealization_time_series.png", width = 12, height = 5, units = 'in')
+ggsave("./Figs/borealization_time_series.png", width = 12, height = 6.5, units = 'in')
 
 # save time series
 write.csv(dat, "./output/dfa time series.csv", row.names = F)
