@@ -78,7 +78,7 @@ fig1b <- ggplot(abundance, aes(as.numeric(year), abundance, color = sex)) +
   theme(axis.title.x = element_blank(),
         legend.title = element_blank(),
         legend.position = c(0.65, 0.85)) +
-  labs(y = expression(Snow~crab~abundance~(10^9))) 
+  labs(y = "Log(CPUE)") 
 
 
 # fig1b <- ggplot(abundance, aes(year, abundance)) +
