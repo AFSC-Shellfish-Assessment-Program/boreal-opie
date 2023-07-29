@@ -148,21 +148,21 @@ library(brms)
 male_brm <- readRDS("./output/fit_male.rds")
 
 ## 95% CI
-ce1s_1 <- conditional_effects(male_brm, effect = "trend2_lag1", re_formula = NA,
+ce1s_1 <- conditional_effects(male_brm, effect = "trend3_lag1", re_formula = NA,
                               probs = c(0.025, 0.975))
 ## 90% CI
-ce1s_2 <- conditional_effects(male_brm, effect = "trend2_lag1", re_formula = NA,
+ce1s_2 <- conditional_effects(male_brm, effect = "trend3_lag1", re_formula = NA,
                               probs = c(0.05, 0.95))
 ## 80% CI
-ce1s_3 <- conditional_effects(male_brm, effect = "trend2_lag1", re_formula = NA,
+ce1s_3 <- conditional_effects(male_brm, effect = "trend3_lag1", re_formula = NA,
                               probs = c(0.1, 0.9))
-dat_ce <- ce1s_1$trend2_lag1
+dat_ce <- ce1s_1$trend3_lag1
 dat_ce[["upper_95"]] <- dat_ce[["upper__"]]
 dat_ce[["lower_95"]] <- dat_ce[["lower__"]]
-dat_ce[["upper_90"]] <- ce1s_2$trend2_lag1[["upper__"]]
-dat_ce[["lower_90"]] <- ce1s_2$trend2_lag1[["lower__"]]
-dat_ce[["upper_80"]] <- ce1s_3$trend2_lag1[["upper__"]]
-dat_ce[["lower_80"]] <- ce1s_3$trend2_lag1[["lower__"]]
+dat_ce[["upper_90"]] <- ce1s_2$trend3_lag1[["upper__"]]
+dat_ce[["lower_90"]] <- ce1s_2$trend3_lag1[["lower__"]]
+dat_ce[["upper_80"]] <- ce1s_3$trend3_lag1[["upper__"]]
+dat_ce[["lower_80"]] <- ce1s_3$trend3_lag1[["lower__"]]
 
 fig1e <- ggplot(dat_ce) +
   aes(x = effect1__, y = estimate__) +
@@ -170,28 +170,28 @@ fig1e <- ggplot(dat_ce) +
   geom_ribbon(aes(ymin = lower_90, ymax = upper_90), fill = "grey85") +
   geom_ribbon(aes(ymin = lower_80, ymax = upper_80), fill = "grey80") +
   geom_line(size = 1, color = "red3") +
-  labs(x = "Borealization index (lag 1-2)", y = "Log CPUE") +
+  labs(x = "Borealization index (lag 1-3)", y = "Log CPUE") +
   annotate("text", x = -1.5, y = 7.5, label = "Male", size = 5)
 
 ##
 female_brm <- readRDS("./output/fit_female.rds")
 
 ## 95% CI
-ce1s_1 <- conditional_effects(female_brm, effect = "trend3", re_formula = NA,
+ce1s_1 <- conditional_effects(female_brm, effect = "trend3_lag1", re_formula = NA,
                               probs = c(0.025, 0.975))
 ## 90% CI
-ce1s_2 <- conditional_effects(female_brm, effect = "trend3", re_formula = NA,
+ce1s_2 <- conditional_effects(female_brm, effect = "trend3_lag1", re_formula = NA,
                               probs = c(0.05, 0.95))
 ## 80% CI
-ce1s_3 <- conditional_effects(female_brm, effect = "trend3", re_formula = NA,
+ce1s_3 <- conditional_effects(female_brm, effect = "trend3_lag1", re_formula = NA,
                               probs = c(0.1, 0.9))
-dat_ce <- ce1s_1$trend3
+dat_ce <- ce1s_1$trend3_lag1
 dat_ce[["upper_95"]] <- dat_ce[["upper__"]]
 dat_ce[["lower_95"]] <- dat_ce[["lower__"]]
-dat_ce[["upper_90"]] <- ce1s_2$trend3[["upper__"]]
-dat_ce[["lower_90"]] <- ce1s_2$trend3[["lower__"]]
-dat_ce[["upper_80"]] <- ce1s_3$trend3[["upper__"]]
-dat_ce[["lower_80"]] <- ce1s_3$trend3[["lower__"]]
+dat_ce[["upper_90"]] <- ce1s_2$trend3_lag1[["upper__"]]
+dat_ce[["lower_90"]] <- ce1s_2$trend3_lag1[["lower__"]]
+dat_ce[["upper_80"]] <- ce1s_3$trend3_lag1[["upper__"]]
+dat_ce[["lower_80"]] <- ce1s_3$trend3_lag1[["lower__"]]
 
 fig1f <- ggplot(dat_ce) +
   aes(x = effect1__, y = estimate__) +
@@ -199,7 +199,7 @@ fig1f <- ggplot(dat_ce) +
   geom_ribbon(aes(ymin = lower_90, ymax = upper_90), fill = "grey85") +
   geom_ribbon(aes(ymin = lower_80, ymax = upper_80), fill = "grey80") +
   geom_line(size = 1, color = "red3") +
-  labs(x = "Borealization index (lag 0-2)", y = "Log CPUE") +
+  labs(x = "Borealization index (lag 1-3)", y = "Log CPUE") +
   annotate("text", x = -1, y = 6, label = "Female", size = 5)
 
 
