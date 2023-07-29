@@ -75,7 +75,9 @@ cpue_plot + logcpue_plot + meanlogcpue_plot
 
 ## Cleaning up data for imputation
 
-# Remove stations that have never caught 60-95mm male snow crab 
+# Remove stations that have never caught 30-95mm male snow crab 
+# and also the lowest 5th percentile of positive stations
+
 cpue %>%
   group_by(GIS_STATION) %>%
   summarise(station_mean = mean(CPUE)) %>% 
@@ -128,7 +130,7 @@ r <- rcorr(as.matrix(dat))$r
 r #Cross-year correlations between each station combination
 
 # choose 15 variables with highest absolute correlation (van Buuren & Oudshoorn recommend 15-25)
-pred <- t(apply(r,1, function(x) rank(1-abs(x))<=25))# T for the 30 strongest correlations for each time series
+pred <- t(apply(r,1, function(x) rank(1-abs(x))<=25))# T for the 25 strongest correlations for each time series
 diag(pred) <- FALSE # and of course, drop self-correlations - make the diagonal FALSE
 
 # plot r used in imputation
@@ -380,7 +382,7 @@ cpue_plot + logcpue_plot + meanlogcpue_plot
 
 ## Cleaning up data for imputation
 
-# a) Remove stations that have never caught 60-95mm male snow crab 
+# a) Remove stations that have never caught female snow crab 
 cpue_female %>%
   group_by(GIS_STATION) %>%
   summarise(station_mean = mean(CPUE)) %>% 
@@ -527,6 +529,7 @@ for(i in 1:100){
                                   data.frame(imputation = i,
                                              year = c(1975:2019, 2021, 2022),
                                              mean = apply(back.temp, 1, ff)))
+  
   # concentration 
   conc <- NA
   
@@ -1178,7 +1181,7 @@ imputed.dat <- imputed.back.trans.dat <- concentration.dat <-  data.frame()
 # (min = 0, max = max observed)
 
 lower_bound <- 0
-upper_bound <- max(dat, na.rm = T) 
+upper_bound <- max(dat$log_cpue, na.rm = T) 
 
 for(i in 1:100){
   
@@ -1243,6 +1246,9 @@ plot.back.trans <- rbind(plot.back.trans,
 # replace sd = 0 with NA
 check <- plot.back.trans$sd == 0
 plot.back.trans$sd[check] <- NA
+
+# save
+write.csv(plot.back.trans, "imputed_total_abundance.csv", row.names = F)
 
 # plot
 ggplot(plot.back.trans, aes(year, mean)) +
