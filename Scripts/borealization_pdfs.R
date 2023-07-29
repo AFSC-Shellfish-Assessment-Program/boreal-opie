@@ -170,6 +170,15 @@ write.csv(borealization.pdfs, "./output/borealization_pdfs.csv", row.names = F)
 
 borealization.pdfs <- read.csv("./output/borealization_pdfs.csv")
 
+# check outcomes per model
+check <- borealization.pdfs %>%
+  group_by(period, model) %>%
+  summarise(count = n())
+
+check # instances differ among models, need to account for this!
+
+borealization.pdfs <- left_join(borealization.pdfs, check)
+
 # load CMIP6 model weights
 model.weights <- read.csv("./Data/normalized_CMIP6_weights.csv") 
 
@@ -178,7 +187,9 @@ model.weights <- model.weights %>%
   filter(region == "Eastern_Bering_Sea") %>%
   select(model, normalized_weight) 
 
-borealization.pdfs <- left_join(borealization.pdfs, model.weights) 
+
+borealization.pdfs <- left_join(borealization.pdfs, model.weights) %>%
+  mutate(total_weight = normalized_weight/count)
 
 # resample to weight models
 resample.pdf <- data.frame()
@@ -192,7 +203,7 @@ for(i in 1:length(periods)){
   
   resample.pdf <- rbind(resample.pdf,
                         data.frame(period = periods[i],
-                                   borealization_index = sample(temp$borealization_index, 1000, replace = T, prob = temp$normalized_weight)))
+                                   borealization_index = sample(temp$borealization_index, 1000, replace = T, prob = temp$total_weight)))
   
 }
 
@@ -204,6 +215,8 @@ plot.order <- data.frame(period = unique(resample.pdf$period),
 resample.pdf <- left_join(resample.pdf, plot.order) %>%
   mutate(period =  reorder(period, order))
 
+# save
+write.csv(resample.pdf, "./output/resampled_borealization_pdfs.csv", row.names = F)
 
 sum <- resample.pdf %>%
   group_by(period) %>%
