@@ -23,15 +23,18 @@ trend <- trend %>%
   rename(year = t, trend = estimate) %>%
   mutate(trend2 = zoo::rollmean(trend, 2, fill = NA, align = "right"),
          trend3 = zoo::rollmean(trend, 3, fill = NA, align= "right"),
+         trend3_lag1 = lag(trend3, 1),
          trend_lag1 = lag(trend, 1),
          trend2_lag1 = lag(trend2, 1),
          trend2_lag2 = lag(trend2, 2))
 
 # load male snow crab abundance and process
-abundance_male <- read.csv("./output/male_30-95_drop5_df_simple.csv", row.names = 1) %>%
-  rename(log_mean = mean) %>%
-  arrange(year) %>%
-  mutate(log_mean_lag1 = lag(log_mean, 1))
+# abundance_male <- read.csv("./output/male_30-95_drop5_df_simple.csv", row.names = 1) %>%
+#   rename(log_mean = mean) %>%
+#   arrange(year) %>%
+#   mutate(log_mean_lag1 = lag(log_mean, 1))
+
+abundance_male <- read.csv("./output/male_imputed_weighted_log_cpue.csv")
 
 acf(abundance_male$log_mean[abundance_male$year %in% 1975:2019])
 
@@ -39,49 +42,52 @@ ggplot(abundance_male, aes(year, log_mean)) +
   geom_point() + 
   geom_line()
 
-dat <- left_join(trend, abundance_male)
+male_dat <- left_join(trend, abundance_male)
+# dat <- left_join(trend, check)
 
 # fill in log_mean_lag1 for 2021
-dat$log_mean_lag1[dat$year == 2021] <- mean(dat$log_mean_lag1[dat$year == 2020], dat$log_mean_lag1[dat$year == 2022])
+male_dat$log_mean_lag1[male_dat$year == 2021] <- 
+  mean(male_dat$log_mean_lag1[male_dat$year == 2020], male_dat$log_mean_lag1[male_dat$year == 2022])
 
 # exploratory models in mgcv
 # using previous-year abundance and borealization index at different lags
 
-male_mod1 <- gam(log_mean ~ s(log_mean_lag1, k = 4), data = dat)
-summary(male_mod1)
-plot(male_mod1, se = F, resid = T, pch = 19)
+male_boreal_mod1 <- gam(log_mean ~  log_mean_lag1 + s(trend2_lag1) + s(year, k = 4), data = male_dat)
+summary(male_boreal_mod1)
 
-# previous-year abundance can be a linear term for simplicity
+male_boreal_mod2 <- gam(log_mean ~ log_mean_lag1 + s(trend2) + s(year, k = 4), data = male_dat)
+summary(male_boreal_mod2)
 
-male_mod2 <- gam(log_mean ~  log_mean_lag1 + s(trend2_lag1), data = dat)
-summary(male_mod2)
-plot(male_mod2, se = F, resid = T, pch = 19)
+male_boreal_mod3 <- gam(log_mean ~ log_mean_lag1 + s(trend3) + s(year, k = 4), data = male_dat)
+summary(male_boreal_mod3)
 
-male_mod3 <- gam(log_mean ~ log_mean_lag1 + s(trend2), data = dat)
-summary(male_mod3)
+male_boreal_mod4 <- gam(log_mean ~  log_mean_lag1 + s(trend2_lag2) + s(year, k = 4), data = male_dat)
+summary(male_boreal_mod4)
 
-male_mod4 <- gam(log_mean ~ log_mean_lag1 + s(trend3), data = dat)
-summary(male_mod4)
+male_boreal_mod5 <- gam(log_mean ~  log_mean_lag1 + s(trend) + s(year, k = 4), data = male_dat)
+summary(male_boreal_mod5)
 
-male_mod5 <- gam(log_mean ~  log_mean_lag1 + s(trend2_lag2), data = dat)
-summary(male_mod5)
+male_boreal_mod6 <- gam(log_mean ~  log_mean_lag1 + s(trend_lag1) + s(year, k = 4), data = male_dat)
+summary(male_boreal_mod6)
 
-MuMIn::AICc(male_mod1, male_mod2, male_mod3, male_mod4, male_mod5) # model 2 is best
+male_boreal_mod7 <- gam(log_mean ~  log_mean_lag1 + s(trend3_lag1) + s(year, k = 4), data = male_dat)
+summary(male_boreal_mod7)
 
-# add smoothed year term to best male model
-male_mod2a <- gam(log_mean ~  log_mean_lag1 + s(trend2_lag1) + s(year), data = dat)
-summary(male_mod2a)
-plot(male_mod2a, se = T, resid = T, pch = 19)
+male.aicc <- MuMIn::AICc(male_boreal_mod1, male_boreal_mod2, male_boreal_mod3, male_boreal_mod4, 
+                           male_boreal_mod5, male_boreal_mod6, male_boreal_mod7)
+
+male.aicc
 
 # fit best male model in brms---------
 
-male_form <- bf(log_mean ~ log_mean_lag1 + s(trend2_lag1) + s(year, k = 4))
+male_form <- bf(log_mean ~ log_mean_lag1 + s(trend3_lag1) + s(year, k = 4))
 
 fit_male <- brm(male_form, 
-                  data = dat,
+                  data = male_dat,
                   cores = 4, chains = 4, iter = 4000,
                   save_pars = save_pars(all = TRUE),
-                  control = list(adapt_delta = 0.999, max_treedepth = 14))
+                  control = list(adapt_delta = 0.999, max_treedepth = 14),
+                seed = 99)
 
 saveRDS(fit_male, file = "output/fit_male.rds")
 
@@ -93,38 +99,38 @@ rhat_highest(male_brm$fit)
 summary(male_brm)
 bayes_R2(male_brm)
 
-check <- plot(conditional_effects(male_brm), ask = FALSE, points = T)
-
-# get vector of points conditioned on year and lagged abundance effects
-new.dat <- data.frame(year = c(1976:2019, 2021, 2022),
-                      log_mean_lag1 = dat$log_mean_lag1[dat$year %in% c(1976:2019, 2021, 2022)],
-                      trend2_lag1 = mean(dat$trend2_lag1[dat$year %in% c(1976:2019, 2021, 2022)]))
-
-pred <- posterior_epred(male_brm, newdata = new.dat)
-
-points_dat <- data.frame(year = c(1976:2019, 2021, 2022),
-                         trend2_lag1 = dat$trend2_lag1[dat$year %in% c(1976:2019, 2021, 2022)],
-                         log_mean = colMeans(pred))
-
+# check <- plot(conditional_effects(male_brm), ask = FALSE, points = T)
+# 
+# # get vector of points conditioned on year and lagged abundance effects
+# new.dat <- data.frame(year = c(1976:2019, 2021, 2022),
+#                       log_mean_lag1 = dat$log_mean_lag1[dat$year %in% c(1976:2019, 2021, 2022)],
+#                       trend2_lag1 = mean(dat$trend2_lag1[dat$year %in% c(1976:2019, 2021, 2022)]))
+# 
+# pred <- posterior_epred(male_brm, newdata = new.dat)
+# 
+# points_dat <- data.frame(year = c(1976:2019, 2021, 2022),
+#                          trend2_lag1 = dat$trend2_lag1[dat$year %in% c(1976:2019, 2021, 2022)],
+#                          log_mean = colMeans(pred))
+# 
 
 # plot male_brm
 
 ## 95% CI
-ce1s_1 <- conditional_effects(male_brm, effect = "trend2_lag1", re_formula = NA,
+ce1s_1 <- conditional_effects(male_brm, effect = "trend3_lag1", re_formula = NA,
                               probs = c(0.025, 0.975))
 ## 90% CI
-ce1s_2 <- conditional_effects(male_brm, effect = "trend2_lag1", re_formula = NA,
+ce1s_2 <- conditional_effects(male_brm, effect = "trend3_lag1", re_formula = NA,
                               probs = c(0.05, 0.95))
 ## 80% CI
-ce1s_3 <- conditional_effects(male_brm, effect = "trend2_lag1", re_formula = NA,
+ce1s_3 <- conditional_effects(male_brm, effect = "trend3_lag1", re_formula = NA,
                               probs = c(0.1, 0.9))
-dat_ce <- ce1s_1$trend2_lag1
+dat_ce <- ce1s_1$trend3_lag1
 dat_ce[["upper_95"]] <- dat_ce[["upper__"]]
 dat_ce[["lower_95"]] <- dat_ce[["lower__"]]
-dat_ce[["upper_90"]] <- ce1s_2$trend2_lag1[["upper__"]]
-dat_ce[["lower_90"]] <- ce1s_2$trend2_lag1[["lower__"]]
-dat_ce[["upper_80"]] <- ce1s_3$trend2_lag1[["upper__"]]
-dat_ce[["lower_80"]] <- ce1s_3$trend2_lag1[["lower__"]]
+dat_ce[["upper_90"]] <- ce1s_2$trend3_lag1[["upper__"]]
+dat_ce[["lower_90"]] <- ce1s_2$trend3_lag1[["lower__"]]
+dat_ce[["upper_80"]] <- ce1s_3$trend3_lag1[["upper__"]]
+dat_ce[["lower_80"]] <- ce1s_3$trend3_lag1[["lower__"]]
 
 male_brm_plot <- ggplot(dat_ce) +
   aes(x = effect1__, y = estimate__) +
@@ -132,7 +138,7 @@ male_brm_plot <- ggplot(dat_ce) +
   geom_ribbon(aes(ymin = lower_90, ymax = upper_90), fill = "grey85") +
   geom_ribbon(aes(ymin = lower_80, ymax = upper_80), fill = "grey80") +
   geom_line(size = 1, color = "red3") +
-  labs(x = "Borealization index (lag 1-2)", y = "Log CPUE") 
+  labs(x = "Borealization index (lag 1-3)", y = "Log CPUE") 
 
 print(male_brm_plot)
 
@@ -145,45 +151,48 @@ abundance_female <- read.csv("./output/female_drop5_df_simple.csv", row.names = 
   arrange(year) %>%
   mutate(log_mean_lag1 = lag(log_mean, 1))
 
-dat <- left_join(trend, abundance_female)
+female_dat <- left_join(trend, abundance_female)
 
 # fill in log_mean_lag1 for 2021
-dat$log_mean_lag1[dat$year == 2021] <- mean(dat$log_mean_lag1[dat$year == 2020], dat$log_mean_lag1[dat$year == 2022])
+female_dat$log_mean_lag1[female_dat$year == 2021] <- mean(female_dat$log_mean_lag1[female_dat$year == 2020], female_dat$log_mean_lag1[female_dat$year == 2022])
 
-female_mod1 <- gam(log_mean ~ s(log_mean_lag1, k = 4), data = dat)
-summary(female_mod1)
-plot(female_mod1, se = F, resid = T, pch = 19)
+female_boreal_mod1 <- gam(log_mean ~  log_mean_lag1 + s(trend2_lag1) + s(year, k = 4), data = female_dat)
+summary(female_boreal_mod1)
 
-female_mod2 <- gam(log_mean ~  log_mean_lag1 + s(trend2_lag1), data = dat)
-summary(female_mod2)
-plot(female_mod2, se = F, resid = T, pch = 19)
+female_boreal_mod2 <- gam(log_mean ~ log_mean_lag1 + s(trend2) + s(year, k = 4), data = female_dat)
+summary(female_boreal_mod2)
 
-female_mod3 <- gam(log_mean ~ log_mean_lag1 + s(trend2), data = dat)
-summary(female_mod3)
+female_boreal_mod3 <- gam(log_mean ~ log_mean_lag1 + s(trend3) + s(year, k = 4), data = female_dat)
+summary(female_boreal_mod3)
 
-female_mod4 <- gam(log_mean ~ log_mean_lag1 + s(trend3), data = dat)
-summary(female_mod4)
-plot(female_mod4, se = F, resid = T, pch = 19)
+female_boreal_mod4 <- gam(log_mean ~  log_mean_lag1 + s(trend2_lag2) + s(year, k = 4), data = female_dat)
+summary(female_boreal_mod4)
 
-female_mod5 <- gam(log_mean ~  log_mean_lag1 + s(trend2_lag2), data = dat)
-summary(female_mod5)
+female_boreal_mod5 <- gam(log_mean ~  log_mean_lag1 + s(trend) + s(year, k = 4), data = female_dat)
+summary(female_boreal_mod5)
 
-MuMIn::AICc(female_mod1, female_mod2, female_mod3, female_mod4, female_mod5)
+female_boreal_mod6 <- gam(log_mean ~  log_mean_lag1 + s(trend_lag1) + s(year, k = 4), data = female_dat)
+summary(female_boreal_mod6)
 
-# add smoothed year effect to best female model
-female_mod4a <- gam(log_mean ~ log_mean_lag1 + s(trend3) + s(year), data = dat)
-summary(female_mod4a)
-plot(female_mod4a, se = F, resid = T, pch = 19)
+female_boreal_mod7 <- gam(log_mean ~  log_mean_lag1 + s(trend3_lag1) + s(year, k = 4), data = female_dat)
+summary(female_boreal_mod7)
+plot(female_boreal_mod7, resid = T, pch = 19, se = T)
+
+female.aicc <- MuMIn::AICc(female_boreal_mod1, female_boreal_mod2, female_boreal_mod3, female_boreal_mod4, 
+                           female_boreal_mod5, female_boreal_mod6, female_boreal_mod7)
+
+female.aicc
 
 # fit best female model in brms---------
 
-female_form <- bf(log_mean ~ log_mean_lag1 + s(trend3) + s(year, k = 4))
+female_form <- bf(log_mean ~ log_mean_lag1 + s(trend3_lag1) + s(year, k = 4))
 
 fit_female <- brm(female_form, 
-                  data = dat,
-                  cores = 4, chains = 4, iter = 4000,
+                  data = female_dat,
+                  cores = 4, chains = 4, iter = 3000,
                   save_pars = save_pars(all = TRUE),
-                  control = list(adapt_delta = 0.999, max_treedepth = 14))
+                  control = list(adapt_delta = 0.9999, max_treedepth = 14),
+                  seed = 99)
 
 saveRDS(fit_female, file = "output/fit_female.rds")
 
@@ -195,26 +204,26 @@ rhat_highest(female_brm$fit)
 summary(female_brm)
 bayes_R2(female_brm)
 
-plot(conditional_effects(female_brm), ask = FALSE, points = T)
+# plot(conditional_effects(female_brm), ask = FALSE, points = T)
 
 # plot female_brm
 
 ## 95% CI
-ce1s_1 <- conditional_effects(female_brm, effect = "trend3", re_formula = NA,
+ce1s_1 <- conditional_effects(female_brm, effect = "trend3_lag1", re_formula = NA,
                               probs = c(0.025, 0.975))
 ## 90% CI
-ce1s_2 <- conditional_effects(female_brm, effect = "trend3", re_formula = NA,
+ce1s_2 <- conditional_effects(female_brm, effect = "trend3_lag1", re_formula = NA,
                               probs = c(0.05, 0.95))
 ## 80% CI
-ce1s_3 <- conditional_effects(female_brm, effect = "trend3", re_formula = NA,
+ce1s_3 <- conditional_effects(female_brm, effect = "trend3_lag1", re_formula = NA,
                               probs = c(0.1, 0.9))
-dat_ce <- ce1s_1$trend3
+dat_ce <- ce1s_1$trend3_lag1
 dat_ce[["upper_95"]] <- dat_ce[["upper__"]]
 dat_ce[["lower_95"]] <- dat_ce[["lower__"]]
-dat_ce[["upper_90"]] <- ce1s_2$trend3[["upper__"]]
-dat_ce[["lower_90"]] <- ce1s_2$trend3[["lower__"]]
-dat_ce[["upper_80"]] <- ce1s_3$trend3[["upper__"]]
-dat_ce[["lower_80"]] <- ce1s_3$trend3[["lower__"]]
+dat_ce[["upper_90"]] <- ce1s_2$trend3_lag1[["upper__"]]
+dat_ce[["lower_90"]] <- ce1s_2$trend3_lag1[["lower__"]]
+dat_ce[["upper_80"]] <- ce1s_3$trend3_lag1[["upper__"]]
+dat_ce[["lower_80"]] <- ce1s_3$trend3_lag1[["lower__"]]
 
 female_brm_plot <- ggplot(dat_ce) +
   aes(x = effect1__, y = estimate__) +
@@ -222,7 +231,7 @@ female_brm_plot <- ggplot(dat_ce) +
   geom_ribbon(aes(ymin = lower_90, ymax = upper_90), fill = "grey85") +
   geom_ribbon(aes(ymin = lower_80, ymax = upper_80), fill = "grey80") +
   geom_line(size = 1, color = "red3") +
-  labs(x = "Borealization index (lag 0-2)", y = "Log CPUE") 
+  labs(x = "Borealization index (lag 1-3)", y = "Log CPUE") 
 
 print(female_brm_plot)
 
