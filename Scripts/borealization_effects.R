@@ -47,7 +47,7 @@ male_dat <- left_join(trend, abundance_male)
 
 # fill in log_mean_lag1 for 2021
 male_dat$log_mean_lag1[male_dat$year == 2021] <- 
-  mean(male_dat$log_mean_lag1[male_dat$year == 2020], male_dat$log_mean_lag1[male_dat$year == 2022])
+  mean(c(male_dat$log_mean_lag1[male_dat$year == 2020], male_dat$log_mean_lag1[male_dat$year == 2022]))
 
 # exploratory models in mgcv
 # using previous-year abundance and borealization index at different lags
@@ -72,6 +72,7 @@ summary(male_boreal_mod6)
 
 male_boreal_mod7 <- gam(log_mean ~  log_mean_lag1 + s(trend3_lag1) + s(year, k = 4), data = male_dat)
 summary(male_boreal_mod7)
+# plot(male_boreal_mod7, resid = T, pch = 19, se = T)
 
 male.aicc <- MuMIn::AICc(male_boreal_mod1, male_boreal_mod2, male_boreal_mod3, male_boreal_mod4, 
                            male_boreal_mod5, male_boreal_mod6, male_boreal_mod7)
@@ -154,7 +155,8 @@ abundance_female <- read.csv("./output/female_drop5_df_simple.csv", row.names = 
 female_dat <- left_join(trend, abundance_female)
 
 # fill in log_mean_lag1 for 2021
-female_dat$log_mean_lag1[female_dat$year == 2021] <- mean(female_dat$log_mean_lag1[female_dat$year == 2020], female_dat$log_mean_lag1[female_dat$year == 2022])
+female_dat$log_mean_lag1[female_dat$year == 2021] <- 
+  mean(c(female_dat$log_mean_lag1[female_dat$year == 2020], female_dat$log_mean_lag1[female_dat$year == 2022]))
 
 female_boreal_mod1 <- gam(log_mean ~  log_mean_lag1 + s(trend2_lag1) + s(year, k = 4), data = female_dat)
 summary(female_boreal_mod1)
@@ -176,7 +178,7 @@ summary(female_boreal_mod6)
 
 female_boreal_mod7 <- gam(log_mean ~  log_mean_lag1 + s(trend3_lag1) + s(year, k = 4), data = female_dat)
 summary(female_boreal_mod7)
-plot(female_boreal_mod7, resid = T, pch = 19, se = T)
+# plot(female_boreal_mod7, resid = T, pch = 19, se = T)
 
 female.aicc <- MuMIn::AICc(female_boreal_mod1, female_boreal_mod2, female_boreal_mod3, female_boreal_mod4, 
                            female_boreal_mod5, female_boreal_mod6, female_boreal_mod7)
@@ -189,7 +191,7 @@ female_form <- bf(log_mean ~ log_mean_lag1 + s(trend3_lag1) + s(year, k = 4))
 
 fit_female <- brm(female_form, 
                   data = female_dat,
-                  cores = 4, chains = 4, iter = 3000,
+                  cores = 4, chains = 4, iter = 4000,
                   save_pars = save_pars(all = TRUE),
                   control = list(adapt_delta = 0.9999, max_treedepth = 14),
                   seed = 99)
