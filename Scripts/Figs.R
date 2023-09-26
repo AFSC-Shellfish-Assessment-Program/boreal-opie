@@ -200,7 +200,7 @@ fig1f <- ggplot(dat_ce) +
   geom_ribbon(aes(ymin = lower_80, ymax = upper_80), fill = "grey80") +
   geom_line(size = 1, color = "red3") +
   labs(x = "Borealization index (lag 1-3)", y = "Log CPUE") +
-  annotate("text", x = -1, y = 6, label = "Female", size = 5)
+  annotate("text", x = -1, y = 5.2, label = "Female", size = 5)
 
 
 png("./figs/fig1.png", width = 12, height = 6, units = 'in', res = 300)
