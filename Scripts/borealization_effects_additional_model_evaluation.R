@@ -111,7 +111,7 @@ min.aicc <- min(boreal.aicc$AICc, temp.aicc$AICc)
 
 # combine to plot
 plot.male.aicc <- rbind(boreal.aicc, temp.aicc) %>%
-  mutate(`Covariate` = rep(c("Boreal index", "Bottom temperature"), each = 7),
+  mutate(`Covariate` = rep(c("Borealization index", "Bottom temperature"), each = 7),
          `Delta AICc` = AICc - min.aicc,
          plot.lags = rep(c("Year -1, -2",
                         "Year 0, -1",
@@ -126,11 +126,11 @@ plot.male.aicc <- plot.male.aicc %>%
   arrange(`Covariate`, desc(`Delta AICc`))
          
 # add plot order (order of delta-AICc for boreal models)
-plot.male.aicc$order <- order(plot.male.aicc$AICc[plot.male.aicc$Covariate == "Boreal index"])
+plot.male.aicc$order <- order(plot.male.aicc$AICc[plot.male.aicc$Covariate == "Borealization index"])
 
 plot.labels <- reorder(plot.male.aicc$plot.lags[1:7], plot.male.aicc$order[1:7])
 
-plot.male.aicc$covariate.order <- if_else(plot.male.aicc$Covariate == "Boreal index", 2, 1)
+plot.male.aicc$covariate.order <- if_else(plot.male.aicc$Covariate == "Borealization index", 2, 1)
 
 plot.male.aicc$Covariate <- reorder(plot.male.aicc$Covariate, plot.male.aicc$covariate.order)
 
@@ -140,7 +140,7 @@ male.plot <- ggplot(plot.male.aicc, aes(order, `Delta AICc`, color = `Covariate`
   scale_x_continuous(breaks = 1:7,
                      labels = plot.male.aicc$plot.lags[7:1]) +
   scale_color_manual(values = cb[c(8,6)]) +
-  xlab("Covariate lag") +
+  labs(x = "Covariate lag", y = expression(Delta~"AICc")) +
   theme(axis.text.x  = element_text(angle=60, hjust=1)) +
   ggtitle("b) Male")
 
@@ -217,7 +217,7 @@ min.aicc <- min(boreal.aicc$AICc, temp.aicc$AICc)
 
 # combine to plot
 plot.female.aicc <- rbind(boreal.aicc, temp.aicc) %>%
-  mutate(`Covariate` = rep(c("Boreal index", "Bottom temperature"), each = 7),
+  mutate(`Covariate` = rep(c("Borealization index", "Bottom temperature"), each = 7),
          `Delta AICc` = AICc - min.aicc,
          plot.lags = rep(c("Year -1, -2",
                            "Year 0, -1",
@@ -231,11 +231,11 @@ plot.female.aicc <- plot.female.aicc %>%
   arrange(`Covariate`, desc(`Delta AICc`))
 
 # add plot order (order of delta-AICc for boreal models)
-plot.female.aicc$order <- order(plot.female.aicc$AICc[plot.female.aicc$Covariate == "Boreal index"])
+plot.female.aicc$order <- order(plot.female.aicc$AICc[plot.female.aicc$Covariate == "Borealization index"])
 
 plot.labels <- reorder(plot.female.aicc$plot.lags[1:7], plot.female.aicc$order[1:7])
 
-plot.female.aicc$covariate.order <- if_else(plot.female.aicc$Covariate == "Boreal index", 2, 1)
+plot.female.aicc$covariate.order <- if_else(plot.female.aicc$Covariate == "Borealization index", 2, 1)
 
 plot.female.aicc$Covariate <- reorder(plot.female.aicc$Covariate, plot.female.aicc$covariate.order)
 
@@ -245,7 +245,7 @@ female.plot <- ggplot(plot.female.aicc, aes(order, `Delta AICc`, color = `Covari
   scale_x_continuous(breaks = 1:7,
                      labels = plot.female.aicc$plot.lags[7:1]) +
   scale_color_manual(values = cb[c(8,6)]) + 
-  xlab("Covariate lag") +
+  labs(x = "Covariate lag", y = expression(Delta~"AICc")) +
   theme(axis.text.x  = element_text(angle=60, hjust=1)) +
   ggtitle("a) Female")
 
