@@ -252,6 +252,9 @@ male_weighted_log_cpue <- rbind(male_weighted_log_cpue,
   arrange(year)  %>%
   mutate(log_mean_lag1 = lag(log_mean, 1))
 
+# save for borealization effects analysis
+write.csv(male_weighted_log_cpue, "./output/male_imputed_weighted_log_cpue.csv", row.names = F)
+
 # summarize and plot
 imputation_summary <- imputed_male_abundance %>%
   group_by(year) %>%
