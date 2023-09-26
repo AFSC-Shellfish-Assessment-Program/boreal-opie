@@ -10,12 +10,12 @@ dat <- read.csv("./output/male3059_drop10_df.csv", row.names = 1)
 trend <- read.csv("./output/dfa_trend.csv")
 
 trend <- trend %>%
-  select(t, estimate) %>%
+  dplyr::select(t, estimate) %>%
   rename(year = t,
          bor_index = estimate)
 
 dat <- dat %>%
-  select(year, imp_log_mean) %>%
+  dplyr::select(year, imp_log_mean) %>%
   left_join(., trend)
 
 
@@ -38,7 +38,7 @@ dat2 <- read.csv("./output/male6095_drop5_df.csv", row.names = 1)
 
 dat2 <- dat2 %>%
   mutate(lead_imp_log_mean = lead(imp_log_mean)) %>%
-  select(year, imp_log_mean, lead_imp_log_mean) %>%
+  dplyr::select(year, imp_log_mean, lead_imp_log_mean) %>%
   rename(log_male_60_95 = imp_log_mean,
          lead_male_60_95 = lead_imp_log_mean)
 
