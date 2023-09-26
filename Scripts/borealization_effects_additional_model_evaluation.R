@@ -50,8 +50,7 @@ abundance_male <- read.csv("./output/male_imputed_weighted_log_cpue.csv")
 male_dat <- left_join(dat, abundance_male)
 
 # fill in log_mean_lag1 for 2021
-male_dat$log_mean_lag1[male_dat$year == 2021] <- mean(male_dat$log_mean_lag1[male_dat$year == 2020], male_dat$log_mean_lag1[male_dat$year == 2022])
-
+male_dat$log_mean_lag1[male_dat$year == 2021] <- mean(c(male_dat$log_mean_lag1[male_dat$year == 2020], male_dat$log_mean_lag1[male_dat$year == 2022]))
 
 # fit models with dfa trend
 
@@ -66,7 +65,7 @@ summary(male_boreal_mod3)
 
 male_boreal_mod4 <- gam(log_mean ~  log_mean_lag1 + s(trend2_lag2) + s(year, k = 4), data = male_dat)
 summary(male_boreal_mod4)
-plot(male_boreal_mod4, resid = T, pch = 19, se = T)
+# plot(male_boreal_mod4, resid = T, pch = 19, se = T)
 
 male_boreal_mod5 <- gam(log_mean ~  log_mean_lag1 + s(trend) + s(year, k = 4), data = male_dat)
 summary(male_boreal_mod5)
@@ -114,7 +113,7 @@ min.aicc <- min(boreal.aicc$AICc, temp.aicc$AICc)
 plot.male.aicc <- rbind(boreal.aicc, temp.aicc) %>%
   mutate(`Covariate` = rep(c("Boreal index", "Bottom temperature"), each = 7),
          `Delta AICc` = AICc - min.aicc,
-         plot.lags = rep(c("Year - 1, - 2",
+         plot.lags = rep(c("Year -1, -2",
                         "Year 0, -1",
                         "Year 0, -1, -2",
                         "Year -2, -3",
@@ -140,7 +139,7 @@ male.plot <- ggplot(plot.male.aicc, aes(order, `Delta AICc`, color = `Covariate`
   geom_line() +
   scale_x_continuous(breaks = 1:7,
                      labels = plot.male.aicc$plot.lags[7:1]) +
-  scale_color_manual(values = cb[c(6,8)]) +
+  scale_color_manual(values = cb[c(8,6)]) +
   xlab("Covariate lag") +
   theme(axis.text.x  = element_text(angle=60, hjust=1)) +
   ggtitle("b) Male")
@@ -157,7 +156,7 @@ abundance_female <- read.csv("./output/female_drop5_df_simple.csv", row.names = 
 female_dat <- left_join(dat, abundance_female)
 
 # fill in log_mean_lag1 for 2021
-female_dat$log_mean_lag1[female_dat$year == 2021] <- mean(female_dat$log_mean_lag1[female_dat$year == 2020], female_dat$log_mean_lag1[female_dat$year == 2022])
+female_dat$log_mean_lag1[female_dat$year == 2021] <- mean(c(female_dat$log_mean_lag1[female_dat$year == 2020], female_dat$log_mean_lag1[female_dat$year == 2022]))
 
 
 # fit models with dfa trend
@@ -245,7 +244,7 @@ female.plot <- ggplot(plot.female.aicc, aes(order, `Delta AICc`, color = `Covari
   geom_line() +
   scale_x_continuous(breaks = 1:7,
                      labels = plot.female.aicc$plot.lags[7:1]) +
-  scale_color_manual(values = cb[c(6,8)]) + 
+  scale_color_manual(values = cb[c(8,6)]) + 
   xlab("Covariate lag") +
   theme(axis.text.x  = element_text(angle=60, hjust=1)) +
   ggtitle("a) Female")
@@ -258,3 +257,97 @@ png("./figs/combined_male_female_temperature_borealization_AICc.png", width = 8,
 ggpubr::ggarrange(female.plot, male.plot, ncol = 2, common.legend = T)
 
 dev.off()
+
+## how robust are the best models to the imputation of 2020 abundance as a covariate? -----------
+
+## begin with males
+
+# use male_dat, loaded above
+
+# create a sequence of possible values for 2020 abundance (2021 lagged value)
+male_range <- male_dat$log_mean_lag1[male_dat$year == 2020] - male_dat$log_mean_lag1[male_dat$year == 2022]
+
+possible_lag1_male_abundance <- seq(from = male_dat$log_mean_lag1[male_dat$year == 2020] - 0.1*male_range,
+                                    to = male_dat$log_mean_lag1[male_dat$year == 2020] - 0.9*male_range,
+                                    length.out = 100)
+
+
+# create object to catch results
+male_out <- data.frame()
+
+for(i in 1:length(possible_lag1_male_abundance)){
+  # i <- 1
+  # reset the imputation
+  male_dat$log_mean_lag1[male_dat$year == 2021] = possible_lag1_male_abundance[i]
+  
+  # fit the best model (#7) to this new version of the data
+  mod <- gam(log_mean ~  log_mean_lag1 + s(trend3_lag1) + s(year, k = 4), data = male_dat)
+  
+  male_out <- rbind(male_out,
+                    data.frame(Sex = "Male",
+                               Rsq = summary(mod)$r.sq,
+                               log_mean_lag1 = possible_lag1_male_abundance[i],
+                               P_lag_cpue = summary(mod)$p.table[2,4],
+                               P_trend3_lag1 = summary(mod)$s.table[1,4],
+                               P_year = summary(mod)$s.table[2,4]))
+  
+}
+
+ggplot(male_out, aes(log_mean_lag1, P_trend3_lag1)) +
+  geom_line()
+
+## females
+
+## begin with males
+
+# use female_dat, loaded above
+
+# create a sequence of possible values for 2020 abundance (2021 lagged value)
+female_range <- female_dat$log_mean_lag1[female_dat$year == 2020] - female_dat$log_mean_lag1[female_dat$year == 2022]
+
+possible_lag1_female_abundance <- seq(from = female_dat$log_mean_lag1[female_dat$year == 2020] - 0.1*female_range,
+                                    to = female_dat$log_mean_lag1[female_dat$year == 2020] - 0.9*female_range,
+                                    length.out = 100)
+
+
+# create object to catch results
+female_out <- data.frame()
+
+for(i in 1:length(possible_lag1_female_abundance)){
+  # i <- 1
+  # reset the imputation
+  female_dat$log_mean_lag1[female_dat$year == 2021] = possible_lag1_female_abundance[i]
+  
+  # fit the best model (#7) to this new version of the data
+  mod <- gam(log_mean ~  log_mean_lag1 + s(trend3_lag1) + s(year, k = 4), data = female_dat)
+  
+  female_out <- rbind(female_out,
+                    data.frame(Sex = "Female",
+                               Rsq = summary(mod)$r.sq,
+                               log_mean_lag1 = possible_lag1_female_abundance[i],
+                               P_lag_cpue = summary(mod)$p.table[2,4],
+                               P_trend3_lag1 = summary(mod)$s.table[1,4],
+                               P_year = summary(mod)$s.table[2,4]))
+  
+}
+
+ggplot(female_out, aes(log_mean_lag1, P_trend3_lag1)) +
+  geom_line()
+
+# combine
+both_out <- rbind(male_out, female_out)
+
+# data frame for denoting actual values
+
+actual <- data.frame(Sex = c("Female", "Male"),
+                     log_mean_lag1 = c(mean(c(female_dat$log_mean_lag1[female_dat$year == 2020], female_dat$log_mean_lag1[female_dat$year == 2022])),
+                                       mean(c(male_dat$log_mean_lag1[male_dat$year == 2020], male_dat$log_mean_lag1[male_dat$year == 2022]))))
+
+ggplot(both_out, aes(log_mean_lag1, P_trend3_lag1)) +
+  geom_line() +
+  facet_wrap(~Sex, scales = "free") +
+  geom_vline(data = actual, aes(xintercept = log_mean_lag1), lty = 2) +
+  labs(x = "Lag1 log(CPUE)",
+       y = "P(borealization index)")
+
+ggsave("./figs/missing_lag1_cpue_imputation_results.png", width = 6, height = 3, units = 'in')
