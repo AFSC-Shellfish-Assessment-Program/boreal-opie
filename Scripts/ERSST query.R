@@ -102,6 +102,10 @@ annual.sst <- tapply(monthly.sst, yr, mean)
 plot.sst <- data.frame(year = 1854:2022,
                        sst = annual.sst)
 
+# save for plotting later
+write.csv(plot.sst, "./output/annual_sst.csv", row.names = F)
+
+
 ggplot(plot.sst, aes(year, annual.sst)) +
   geom_point(size = 1) +
   geom_line() +
