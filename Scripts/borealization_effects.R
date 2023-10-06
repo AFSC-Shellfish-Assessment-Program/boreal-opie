@@ -152,6 +152,11 @@ abundance_female <- read.csv("./output/female_drop5_df_simple.csv", row.names = 
   arrange(year) %>%
   mutate(log_mean_lag1 = lag(log_mean, 1))
 
+# save to plot 
+
+write.csv(abundance_female, "./output/female_imputed_weighted_log_cpue.csv")
+
+
 female_dat <- left_join(trend, abundance_female)
 
 # fill in log_mean_lag1 for 2021
