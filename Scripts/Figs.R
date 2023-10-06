@@ -62,23 +62,30 @@ fig1a <- ggplot() +
 
 abundance <- read.csv("./output/imputed_male_30-95_imm_female_abundance.csv") 
 
+male <- read.csv("./output/male_imputed_weighted_log_cpue.csv") %>%
+  mutate(sex = "Male")
+
+female <- read.csv("./output/female_imputed_weighted_log_cpue.csv", row.names = 1) %>%
+  mutate(sex = "Female")
+
+abundance <- rbind(male, female)
+
 # remove SD = 0 for plotting
-change <- abundance$SD == 0
-abundance$SD[change] <- NA
+change <- abundance$sd == 0
+abundance$sd[change] <- NA
 
 pos_dodge = position_dodge(width = 0.6)
 
-fig1b <- ggplot(abundance, aes(as.numeric(year), abundance, color = sex)) +
-  geom_hline(yintercept = 0) +
+fig1b <- ggplot(abundance, aes(as.numeric(year), log_mean, color = sex)) +
   geom_point(position = pos_dodge) +
   geom_line(position = pos_dodge) + 
-  geom_errorbar(aes(ymin = abundance - 2*SD,
-                    ymax = abundance + 2*SD), width = 1, alpha = 0.4, position = pos_dodge) +
+  geom_errorbar(aes(ymin = log_mean - 2*sd,
+                    ymax = log_mean + 2*sd), width = 1, alpha = 0.4, position = pos_dodge) +
   scale_color_manual(values = cb[c(2,4)]) +
   theme(axis.title.x = element_blank(),
         legend.title = element_blank(),
-        legend.position = c(0.65, 0.85)) +
-  labs(y = expression(Snow~crab~abundance~(10^9))) 
+        legend.position = c(0.2, 0.2)) +
+  labs(y = "Log mean catch per unit effort") 
 
 
 # fig1b <- ggplot(abundance, aes(year, abundance)) +
