@@ -218,6 +218,9 @@ resample.pdf <- left_join(resample.pdf, plot.order) %>%
 # save
 write.csv(resample.pdf, "./output/resampled_borealization_pdfs.csv", row.names = F)
 
+# load 
+resample.pdf <- read.csv("./output/resampled_borealization_pdfs.csv")
+
 sum <- resample.pdf %>%
   group_by(period) %>%
   summarize(proportion_high = sum(borealization_index > 2) / n(),
