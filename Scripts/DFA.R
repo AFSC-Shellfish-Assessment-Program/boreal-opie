@@ -123,7 +123,7 @@ ggplot(plot.dat, aes(year, value)) +
   theme(axis.title.x = element_blank()) +
   ylab("Value")
 
-ggsave("./Figs/borealization_time_series.png", width = 12, height = 6.5, units = 'in')
+ggsave("./Figs/borealization_time_series.png", width = 10, height = 6, units = 'in')
 
 # save time series
 write.csv(dat, "./output/dfa time series.csv", row.names = F)
