@@ -99,6 +99,7 @@ print(g1)
 
 # load model object for predicting preindustrial and historical probabilities
 mod <- readRDS("./Data/Eastern_Bering_Seaannual_sst_rolling_window_binomial2.rds")
+summary(mod)
 
 bayes_R2(mod)
 
