@@ -166,7 +166,7 @@
     
     # clean up
     means <- means %>%
-      select(year, JanFeb_ice, MarApr_ice)
+      dplyr::select(year, JanFeb_ice, MarApr_ice)
     
     # save ERA5
     write.csv(means, "./Data/ice.csv", row.names = F)
