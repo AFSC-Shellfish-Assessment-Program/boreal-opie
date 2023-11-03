@@ -177,7 +177,7 @@ fig1e <- ggplot(dat_ce) +
   geom_ribbon(aes(ymin = lower_90, ymax = upper_90), fill = "grey85") +
   geom_ribbon(aes(ymin = lower_80, ymax = upper_80), fill = "grey80") +
   geom_line(size = 1, color = "red3") +
-  labs(x = "Borealization index (lag 1-3)", y = "Log CPUE") +
+  labs(x = "Borealization index (lag 1-3)", y = "Log catch per unit effort") +
   annotate("text", x = -1.5, y = 7.5, label = "Male", size = 5)
 
 ##
@@ -206,7 +206,7 @@ fig1f <- ggplot(dat_ce) +
   geom_ribbon(aes(ymin = lower_90, ymax = upper_90), fill = "grey85") +
   geom_ribbon(aes(ymin = lower_80, ymax = upper_80), fill = "grey80") +
   geom_line(size = 1, color = "red3") +
-  labs(x = "Borealization index (lag 1-3)", y = "Log CPUE") +
+  labs(x = "Borealization index (lag 1-3)", y = "Log catch per unit effort") +
   annotate("text", x = -1, y = 5.2, label = "Female", size = 5)
 
 
