@@ -38,6 +38,6 @@ ggplot(plot, aes(year, value, color = name)) +
   scale_color_manual(values = cb[c(2,4,6)]) +
   theme(axis.title.x = element_blank(),
         legend.title = element_blank()) +
-  ylab("kt")
+  ylab(expression(Biomass ~(10^3~t)))
 
 ggsave("./figs/biomass_bycatch.png", width = 6, height = 4, units = 'in')
