@@ -30,7 +30,7 @@ d2 <- d2 %>%
 
 dat <- rbind(d1, d2) %>%
   pivot_wider(names_from = name, values_from = value) %>% 
-  select(-year)
+  dplyr::select(-year)
 
 # clean up dat names for imputation
 names(dat) <- c("Jan.Feb.ice", "Mar.Apr.ice", "Bottom.temp")
