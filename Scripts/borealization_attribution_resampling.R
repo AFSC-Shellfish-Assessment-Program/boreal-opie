@@ -9,6 +9,7 @@ theme_set(theme_bw())
 # load observed borealization events 
 # load DFA model
 mod <- readRDS("./output/DFA_model.rds")
+summary(mod)
 
 # calculate DFA trend (borealization index)
 observed.borealization <- data.frame(year=1972:2022,
@@ -25,7 +26,7 @@ cmip.anom <- read.csv("./data/CMIP6.anomaly.time.series.csv") %>%
     filter(region == "Eastern_Bering_Sea",
            experiment == "piControl") %>% 
     select(year, model, annual.unsmoothed) %>%
-    rename(sst.anomaly = annual.unsmoothed)
+    dplyr::rename(sst.anomaly = annual.unsmoothed)
 
 # load brms model
 sst_boreal_brm <- readRDS("./output/sst_boreal_brm.rds")
@@ -58,7 +59,10 @@ weights <- read.csv("./data/normalized_CMIP6_weights.csv")
 weights <- weights %>%
     filter(region == "Eastern_Bering_Sea") %>%
    select(model, normalized_weight) %>%
-   rename(model_weight = normalized_weight)
+   dplyr::rename(model_weight = normalized_weight)
+
+# save for paper
+write.csv(weights, "./output/model_weights.csv", row.names = F)
 
 
 # load brms estimate of warming trend for each model
@@ -154,7 +158,36 @@ outcomes <- read.csv("./output/borealization_outcomes_for_attribution.csv")
 
 # join with model weights
 outcomes <- left_join(outcomes, weights) %>%
-    mutate(total_weight = model_weight/n)
+    mutate(total_weight = model_weight/n) 
+
+
+# examine sample size for each (preindustrial/historical)
+outcomes.summary <- outcomes %>%
+    group_by(period) %>%
+    dplyr::summarise(count = n())
+
+outcomes.summary
+
+
+historical.summary <- outcomes %>%
+    filter(period == "historical") %>%
+    group_by(year) %>%
+    dplyr::summarise(count = n())
+
+historical.summary
+
+preindustrial.summary <- outcomes %>%
+    filter(period == "preindustrial") %>%
+    group_by(year) %>%
+    dplyr::summarise(count = n())
+
+preindustrial.summary
+
+
+# dividing weight by n - all models have same n for preindustrial
+# outcomes, so no effect; but different n for historical windows, so
+# need to account for this in weights when resampling data to avoid
+# over-weighting models with more historical observations in a given window
 
 # resample and calculate FAR!
 
@@ -165,6 +198,7 @@ resampled_FAR <- data.frame()
 # now resample
 periods <- unique(outcomes$period)
 
+set.seed(99)
 for(y in 1972:2022){
     # y <- 1972
     for(x in 1:1000){ # go through 1000 iterations
@@ -198,6 +232,8 @@ for(y in 1972:2022){
      resampled_FAR <- rbind(resampled_FAR,
                             data.frame(year = y,
                                        draw = x,
+                                       preind_prob = preind_prob,
+                                       hist_prob = hist_prob,
                                        FAR = 1 - (preind_prob/hist_prob)))
      
      
@@ -217,6 +253,8 @@ temp <- resampled_FAR %>%
 
 attribution_stats <- rbind(attribution_stats,
                            data.frame(year = y,
+                                      preind_prob = mean(temp$preind_prob),
+                                      hist_prob = mean(temp$hist_prob),
                                       FAR = mean(temp$FAR),
                                       LCI_FAR = quantile(temp$FAR, 0.025), 
                                       UCI_FAR = quantile(temp$FAR, 0.975)))
@@ -235,12 +273,29 @@ attribution_stats <- attribution_stats %>%
            LCI_RR = 1/(1-LCI_FAR),
            UCI_RR = 1/(1-UCI_FAR))
 
+
 ggplot(attribution_stats, aes(year, RR)) + # no error ribbon b/c UCI is undefined if FAR = 1
     geom_point() +
     geom_line() 
 
 
+# hist prob
+ggplot(attribution_stats, aes(year, hist_prob)) + # no error ribbon b/c UCI is undefined if FAR = 1
+    geom_point() +
+    geom_line() 
+
+
+# preind prob
+ggplot(attribution_stats, aes(year, preind_prob)) + # no error ribbon b/c UCI is undefined if FAR = 1
+    geom_point() +
+    geom_line() 
+
+
+ggplot(attribution_stats, aes(year, preind_prob/hist_prob)) + # no error ribbon b/c UCI is undefined if FAR = 1
+    geom_point() +
+    geom_line() 
+
 # save 
 
 write.csv(attribution_stats, "./output/probabilistic_attribution_stats.csv", row.names = F)
-
+ 
