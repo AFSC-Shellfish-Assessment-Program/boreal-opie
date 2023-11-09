@@ -128,7 +128,7 @@ ggsave("./Figs/borealization_time_series.png", width = 10, height = 6, units = '
 # save time series
 write.csv(dat, "./output/dfa time series.csv", row.names = F)
 
-dfa.dat <- dat %>%
+dfa.dat <- plot.dat %>%
   dplyr::select(-order) %>%
   pivot_wider(names_from = name, values_from = value) %>% 
   arrange(year) %>%
@@ -146,11 +146,6 @@ min(cors)
 
 plot <- as.data.frame(t(dfa.dat))
 
-cors <- cor(t(dfa.dat), use = "p")
-diag(cors) <- 0
-
-max(cors)
-min(cors) 
 
 
 png("./Figs/time_series_corrplot.png", width = 6, height = 5.5, units = 'in', res = 300)
