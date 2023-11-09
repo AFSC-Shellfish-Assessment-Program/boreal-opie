@@ -10,7 +10,8 @@ library(RColorBrewer)
 library(patchwork)
 library(ggpubr)
 theme_set(theme_bw())
-cb <- c("#000000", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
+
+cb <- c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
 
 ## Load map layers
 map_layers <- readRDS("./Data/map_layers.rda")
@@ -298,24 +299,50 @@ plot.order <- data.frame(period = unique(resample.pdf$period),
                          order = 1:5)
  
 resample.pdf <- left_join(resample.pdf, plot.order) %>%
-  mutate(period =  reorder(period, order))
+  mutate(period = reorder(period, order))
 
+# build plot with different color for borealization < -1 and > 2
+p <- ggplot() + 
+  geom_violin(data = resample.pdf,aes(x = period,y = borealization_index), adjust = 1.5)
 
-fig2d <- ggplot(resample.pdf, aes(period, borealization_index)) +
-  geom_hline(yintercept = c(-1,2), color = cb[c(6,7)], lty = 2, alpha = 0.8) +
-  geom_violin(fill = cb[2], lty = 0, alpha = 0.5) +
-  coord_flip(ylim = c(-4.5, 4.5)) +
+p_build <- ggplot2::ggplot_build(p)$data
+
+#This comes directly from the source of geom_violin
+p_build <- transform(p_build,
+                     xminv = x - violinwidth * (x - xmin),
+                     xmaxv = x + violinwidth * (xmax - x))
+
+p_build <- rbind(plyr::arrange(transform(p_build, x = xminv), y),
+                 plyr::arrange(transform(p_build, x = xmaxv), -y))
+
+#Add our fill variable
+p_build$fill_group <- ifelse(p_build$y < -1,'Arctic',
+                             ifelse(p_build$y > 2, 'Boreal', 'Middle'))
+
+#This is necessary to ensure that instead of trying to draw
+# 5 polygons, we're telling ggplot to draw 15 polygons
+p_build$group1 <- with(p_build,interaction(factor(group),factor(fill_group)))
+
+unique(p_build$group1)
+
+fig2d <- ggplot() + 
+  geom_polygon(data = p_build,
+               aes(x = x,y = y,group = group1,fill = fill_group, lty = NULL), alpha = 0.5) +
+  coord_flip(ylim = c(-4.5, 5)) +
+  scale_fill_manual(values = c(cb[3], "red", cb[1])) +
   xlab("North Pacific warming") +
   ylab("Borealization index") +
-  scale_x_discrete(labels = c("Preindustrial",
-                              "1950 to 0.5°",
-                              "0.5° to 1.0°",
-                              "1.0° to 1.5°",
-                              "1.5° to 2.0°")) +
-  scale_y_continuous(breaks = seq(-4,4, by = 2))
-
+  scale_x_continuous(labels = c("Preindustrial",
+                                "1950 to 0.5°",
+                                "0.5° to 1.0°",
+                                "1.0° to 1.5°",
+                                "1.5° to 2.0°"), breaks = c(1:5)) +
+  scale_y_continuous(breaks = seq(-4,4, by = 2)) +
+  # geom_hline(yintercept = c(-1,2), color = c(cb[3], "red"), lty = 2, lwd = 0.8) +
+  theme(legend.position = "none")
 
 fig2d
+
 
 png("./figs/fig2.png", width = 8, height = 7, units = 'in', res = 300)
 
