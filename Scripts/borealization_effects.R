@@ -49,6 +49,9 @@ male_dat <- left_join(trend, abundance_male)
 male_dat$log_mean_lag1[male_dat$year == 2021] <- 
   mean(c(male_dat$log_mean_lag1[male_dat$year == 2020], male_dat$log_mean_lag1[male_dat$year == 2022]))
 
+# and save
+write.csv(male_dat, "male_dat.csv", row.names = F)
+
 # exploratory models in mgcv
 # using previous-year abundance and borealization index at different lags
 
