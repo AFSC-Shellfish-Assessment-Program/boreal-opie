@@ -153,7 +153,12 @@ fig1d <- ggplot(trend, aes(t, estimate)) +
 ##
 library(brms)
 
+# load model object
 male_brm <- readRDS("./output/fit_male.rds")
+
+# load data file (for plotting partial residuals)
+male_dat <- read.csv("male_dat.csv")
+
 
 ## 95% CI
 ce1s_1 <- conditional_effects(male_brm, effect = "trend3_lag1", re_formula = NA,
