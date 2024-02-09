@@ -156,9 +156,15 @@ library(brms)
 # load model object
 male_brm <- readRDS("./output/fit_male.rds")
 
-# load data file (for plotting partial residuals)
+
+# load data file (for plotting)
 male_dat <- read.csv("male_dat.csv")
 
+## predict y with no boreal effect
+nd = male_brm$data
+nd$trend3_lag1 = 0
+pr = as.data.frame(predict(male_brm, newdata = nd))
+pr$trend3_lag1 = male_brm$data$trend3_lag1
 
 ## 95% CI
 ce1s_1 <- conditional_effects(male_brm, effect = "trend3_lag1", re_formula = NA,
@@ -182,12 +188,25 @@ fig1e <- ggplot(dat_ce) +
   geom_ribbon(aes(ymin = lower_95, ymax = upper_95), fill = "grey90") +
   geom_ribbon(aes(ymin = lower_90, ymax = upper_90), fill = "grey85") +
   geom_ribbon(aes(ymin = lower_80, ymax = upper_80), fill = "grey80") +
+  geom_point(data = male_dat, aes(x = trend3_lag1, y = log_mean), color = "grey45") +
+  geom_point(data = pr, aes(x = trend3_lag1, y = Estimate), color = "grey45", shape = 1) +
   geom_line(size = 1, color = "red3") +
   labs(x = "Borealization index (lag 1-3)", y = "Log catch per unit effort") +
   annotate("text", x = -1.5, y = 7.5, label = "Male", size = 5)
+print(fig1e)
+
 
 ##
 female_brm <- readRDS("./output/fit_female.rds")
+
+# load data file (for plotting)
+female_dat <- read.csv("female_dat.csv")
+
+## predict y with no boreal effect
+nd = female_brm$data
+nd$trend3_lag1 = 0
+pr = as.data.frame(predict(female_brm, newdata = nd))
+pr$trend3_lag1 = female_brm$data$trend3_lag1
 
 ## 95% CI
 ce1s_1 <- conditional_effects(female_brm, effect = "trend3_lag1", re_formula = NA,
@@ -211,9 +230,12 @@ fig1f <- ggplot(dat_ce) +
   geom_ribbon(aes(ymin = lower_95, ymax = upper_95), fill = "grey90") +
   geom_ribbon(aes(ymin = lower_90, ymax = upper_90), fill = "grey85") +
   geom_ribbon(aes(ymin = lower_80, ymax = upper_80), fill = "grey80") +
+  geom_point(data = female_dat, aes(x = trend3_lag1, y = log_mean), color = "grey45") +
+  geom_point(data = pr, aes(x = trend3_lag1, y = Estimate), color = "grey45", shape = 1) +
   geom_line(size = 1, color = "red3") +
   labs(x = "Borealization index (lag 1-3)", y = "Log catch per unit effort") +
   annotate("text", x = -1, y = 5.2, label = "Female", size = 5)
+print(fig1f)
 
 
 png("./figs/fig1.png", width = 12, height = 6, units = 'in', res = 300)

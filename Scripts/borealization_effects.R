@@ -166,6 +166,9 @@ female_dat <- left_join(trend, abundance_female)
 female_dat$log_mean_lag1[female_dat$year == 2021] <- 
   mean(c(female_dat$log_mean_lag1[female_dat$year == 2020], female_dat$log_mean_lag1[female_dat$year == 2022]))
 
+# and save
+write.csv(female_dat, "female_dat.csv", row.names = F)
+
 female_boreal_mod1 <- gam(log_mean ~  log_mean_lag1 + s(trend2_lag1) + s(year, k = 4), data = female_dat)
 summary(female_boreal_mod1)
 
