@@ -351,7 +351,7 @@ fig2d
 
 
 ## version of Fig. 2 without sst-borealization plot
-png("./figs/fig2_three_panel.png", width = 7, height = 5, units = 'in', res = 300)
+png("./figs/fig2.png", width = 7, height = 5, units = 'in', res = 300)
 
 ggpubr::ggarrange(ggpubr::ggarrange(fig2b, fig2c,  ncol = 1, labels = "auto"),
                   fig2d, ncol = 2, widths = c(0.5, 0.5), labels = c("", "c"))
