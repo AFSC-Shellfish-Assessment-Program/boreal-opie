@@ -1,4 +1,4 @@
-# all the script required to make Figs 1 & 2 for proposed ms.
+# all the script required to make Figs 1 & 2 for the  paper
 
 library(tidyverse)
 library(MARSS)
@@ -9,6 +9,7 @@ library(tidyverse)
 library(RColorBrewer)
 library(patchwork)
 library(ggpubr)
+library(brms)
 theme_set(theme_bw())
 
 cb <- c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
@@ -151,7 +152,7 @@ fig1d <- ggplot(trend, aes(t, estimate)) +
   geom_ribbon(aes(x=t, ymin=conf.low, ymax=conf.high), linetype=2, alpha=0.1, fill=cb[6]) + xlab("") + ylab("Borealization index")
 
 ##
-library(brms)
+
 
 # load model object
 male_brm <- readRDS("./output/fit_male.rds")
@@ -274,7 +275,7 @@ fig2a <- ggplot(dat_ce) +
   geom_text(data = dat, aes(sst.anomaly, trend, label = year), size = 3)
 
 
-# save one-panel version
+# save one-panel version (Extended data Fig. 3)
 ggsave("./Figs/borealization_sst_brms_plot.png", width = 6, height = 4, units = "in")
 
 probs <- read.csv("./output/probabilistic_attribution_stats.csv")
@@ -349,14 +350,7 @@ fig2d <- ggplot() +
 fig2d
 
 
-png("./figs/fig2.png", width = 8, height = 7, units = 'in', res = 300)
-
-ggpubr::ggarrange(ggpubr::ggarrange(fig2a, fig2b, fig2c,  ncol = 1, labels = "auto"),
-                  fig2d, ncol = 2, widths = c(0.45, 0.55), labels = c("", "d"))
-
-dev.off()
-
-## version without sst-borealization plot
+## version of Fig. 2 without sst-borealization plot
 png("./figs/fig2_three_panel.png", width = 7, height = 5, units = 'in', res = 300)
 
 ggpubr::ggarrange(ggpubr::ggarrange(fig2b, fig2c,  ncol = 1, labels = "auto"),
