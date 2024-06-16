@@ -40,4 +40,4 @@ ggplot(plot, aes(year, value, color = name)) +
         legend.title = element_blank()) +
   ylab(expression(Biomass ~(10^3~t)))
 
-ggsave("./figs/biomass_bycatch.png", width = 6, height = 4, units = 'in')
+ggsave("./figs/Extended_Data_Fig_6.png", width = 6, height = 4, units = 'in')
