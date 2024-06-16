@@ -25,7 +25,7 @@
     # load and process SST data
     # nc <- nc_open("~temp")
     
-    nc <- nc_open("./Data/nceiErsstv5_b990_926e_15da.nc")
+    # nc <- nc_open("./Data/nceiErsstv5_b990_926e_15da.nc")
     
     # full time series
     nc <- nc_open("./Data/nceiErsstv5_845b_f996_87bc.nc")
@@ -102,9 +102,6 @@ annual.sst <- tapply(monthly.sst, yr, mean)
 plot.sst <- data.frame(year = 1854:2022,
                        sst = annual.sst)
 
-# save for plotting later
-write.csv(plot.sst, "./output/annual_sst.csv", row.names = F)
-
 
 ggplot(plot.sst, aes(year, annual.sst)) +
   geom_point(size = 1) +
@@ -114,140 +111,6 @@ ggplot(plot.sst, aes(year, annual.sst)) +
   theme(axis.title.x = element_blank()) +
   ylab("Mean SST (°C)")
 
-ggsave("./figs/annual_sst_ts.png", width = 4, height = 3, units = "in")
+ggsave("./figs/Extended_Data_Fig_1.png", width = 4, height = 3, units = "in")
 
 
-# create a function to compute monthly anomalies
-monthly.anomalies <- function(x) tapply(x, m, mean) 
-
-# short year and month vectors for 1950-2021
-yr.1950.2022 <- yr[yr %in% 1950:2022]
-m.1950.2022 <- m[yr %in% 1950:2022]
-
-# and define winter year
-winter.year <- if_else(m.1950.2022  %in% c("Nov", "Dec"), as.numeric(as.character(yr.1950.2022)) +1, as.numeric(as.character(yr.1950.2022)))
-winter.year <- winter.year[m.1950.2022  %in% c("Nov", "Dec", "Jan", "Feb", "Mar")]
-
-# process
-  # first, calculate monthly anomalies
-  mu <- apply(ebs.sst, 2, monthly.anomalies)	# compute monthly means for each time series (cell)
-  mu <- mu[rep(1:12, length(m)/12),]  # replicate means matrix for each year at each location
-  mu <- rbind(mu, mu[1:3,]) # add trailing months (Jan-Mar 2022)
-
-  anom <- ebs.sst - mu   # compute matrix of anomalies
-  
-  # calculate weighted monthly means
-  monthly.anom <- apply(anom, 1, weighted.cell.mean)
-
-  
-      
-  # make data frame for plotting
-  obs.plot <- data.frame(monthly.anom = monthly.anom,
-                         date = lubridate::parse_date_time(x = paste(yr,as.numeric(m),"01"),orders="ymd",tz="America/Anchorage"))
-
-  ggplot(obs.plot, aes(date, monthly.anom)) +
-    geom_line(lwd = 0.02) +
-    ylab("Monthly anomaly") +
-    theme(axis.title.x = element_blank())
-  
-  # looks good
-
-  
-  ## now create time series of annual means
-  ## unsmoothed, and two- and three-year running means
-  
-  time.series <- anomaly.time.series <- data.frame()
- 
-  # calculate monthly mean temp weighted by area for 1950-2022
-  monthly.sst <- apply(ebs.sst[yr %in% 1950:2022,], 1, weighted.cell.mean) 
-  
-  # calculate annual means
-  temp.annual <- tapply(monthly.sst, yr[yr %in% 1950:2022], mean) 
-  
-  # drop trailing year (2022 is incomplete)
-  trailing <- max(names(temp.annual))
-  temp.annual[names(temp.annual) %in% trailing] <- NA
-  
-  temp.2yr <- rollmean(temp.annual, 2, fill = NA, align = "left") # for salmon - year of and year after ocean entry
-  
-  temp.3yr <- rollmean(temp.annual, 3, fill = NA, align = "center") # for salmon - year before, year of, and year after ocean entry
-
-  # calculate winter means
-  temp.winter.monthly.sst <- monthly.sst[m.1950.2022 %in% c("Nov", "Dec", "Jan", "Feb", "Mar")]
-
-  temp.winter <- tapply(temp.winter.monthly.sst, winter.year, mean)
-  
-  # change leading year to NA b/c incomplete
-  leading <- min(names(temp.winter))
-
-  temp.winter[names(temp.winter) %in% leading] <- NA
-  
-  temp.winter.2yr <- rollmean(temp.winter, 2, fill = NA, align = "left")
-  
-  temp.winter.3yr <- rollmean(temp.winter, 3, fill = NA, align = "center")
-  
-  
-  # combine into data frame of time series
-  time.series <- rbind(time.series,
-                            data.frame(year = 1950:2022,
-                                       annual.unsmoothed = temp.annual[names(temp.annual) %in% 1950:2022],
-                                       annual.two.yr.running.mean = temp.2yr[names(temp.annual) %in% 1950:2022],
-                                       annual.three.yr.running.mean = temp.3yr[names(temp.annual) %in% 1950:2022],
-                                       winter.unsmoothed = temp.winter[names(temp.winter) %in% 1950:2022],
-                                       winter.two.yr.running.mean = temp.winter.2yr[names(temp.winter) %in% 1950:2022],
-                                       winter.three.yr.running.mean = temp.winter.3yr[names(temp.winter) %in% 1950:2022]))
-
-  ## now calculate the data as anomalies wrt 1950-1999
-  # calculate annual anomalies
-  annual.climatology.mean <- mean(temp.annual[names(temp.annual) %in% 1950:1999])
-    
-  annual.climatology.sd <- sd(temp.annual[names(temp.annual) %in% 1950:1999])
-  
-  temp.annual.anom <- (temp.annual - annual.climatology.mean) / annual.climatology.sd
-  
-  temp.anom.2yr <- rollmean(temp.annual.anom, 2, fill = NA, align = "left") # for salmon - year of and year after ocean entry
-  
-  temp.anom.3yr <- rollmean(temp.annual.anom, 3, fill = NA, align = "center") # for salmon - year before, year of, and year after ocean entry
-  
-  # calculate winter anomalies
-  winter.climatology.mean <- mean(temp.winter[names(temp.winter) %in% 1950:1999], na.rm = T)
-  
-  winter.climatology.sd <- sd(temp.winter[names(temp.winter) %in% 1950:1999], na.rm = T)
-  
-  temp.winter.anom <- (temp.winter - winter.climatology.mean) / winter.climatology.sd
-  
-  temp.winter.anom.2yr <- rollmean(temp.winter.anom, 2, fill = NA, align = "left")
-  
-  temp.winter.anom.3yr <- rollmean(temp.winter.anom, 3, fill = NA, align = "center")
-  
-  # combine into data frame of time series by region
-  anomaly.time.series <- rbind(anomaly.time.series,
-                            data.frame(year = 1950:2021,
-                                       annual.anomaly.unsmoothed = temp.annual.anom[names(temp.annual.anom) %in% 1950:2021],
-                                       annual.anomaly.two.yr.running.mean = temp.anom.2yr[names(temp.annual.anom) %in% 1950:2021],
-                                       annual.anomaly.three.yr.running.mean = temp.anom.3yr[names(temp.annual.anom) %in% 1950:2021],
-                                       winter.anomaly.unsmoothed = temp.winter.anom[names(temp.winter.anom) %in% 1950:2021],
-                                       winter.anomaly.two.yr.running.mean = temp.winter.anom.2yr[names(temp.winter.anom) %in% 1950:2021],
-                                       winter.anomaly.three.yr.running.mean = temp.winter.anom.3yr[names(temp.winter.anom) %in% 1950:2021]))
-  
-    
-
-
-
-# plot
-
-plot.dat <- time.series %>%
-  select(year,
-         annual.unsmoothed,
-         winter.unsmoothed) %>%
-  pivot_longer(cols = -year)
-
-ggplot(plot.dat, aes(year, value)) +
-  geom_line() +
-  geom_point() +
-  facet_wrap(~name, scale = "free_y", ncol = 1) 
-  
-  
-# and save 
-write.csv(time.series, "./Data/ersst_time_series.csv", row.names = F)
-write.csv(anomaly.time.series, "./Data/ersst_anomaly_time_series.csv", row.names = F)
