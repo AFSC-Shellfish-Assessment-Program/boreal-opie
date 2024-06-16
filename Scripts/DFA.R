@@ -123,7 +123,8 @@ ggplot(plot.dat, aes(year, value)) +
   theme(axis.title.x = element_blank()) +
   ylab("Value")
 
-ggsave("./Figs/borealization_time_series.png", width = 10, height = 6, units = 'in')
+# save as Extended Data Fig. 4
+ggsave("./Figs/Extended_Data_Fig_4.png", width = 10, height = 6, units = 'in')
 
 # save time series
 write.csv(dat, "./output/dfa time series.csv", row.names = F)
@@ -146,11 +147,9 @@ min(cors)
 
 plot <- as.data.frame(t(dfa.dat))
 
-
-
-png("./Figs/time_series_corrplot.png", width = 6, height = 5.5, units = 'in', res = 300)
+# plot correlations
 corrplot(cors, method = "sq", col.lim = c(-0.865, 0.865), col = oceColorsPalette(64), tl.col = "black", cl.cex = 0.7, order = "FPC")
-dev.off()
+
 
 # set up forms of R matrices
 levels.R = c("diagonal and equal",
@@ -164,7 +163,7 @@ cntl.list = list(minit=200, maxit=20000, allow.degen=FALSE, conv.test.slope.tol=
 
 # fit models & store results
 for(R in levels.R) {
-  for(m in 1:2) {  # find best single-trend model
+  for(m in 1:2) {  # considering either 1- or 2-trend model
     
     dfa.model = list(A="zero", R=R, m=m)
     
@@ -194,7 +193,7 @@ write.csv(model.data, "./output/dfa_model_selection_table.csv",
           row.names = F)
 
 ## fit the best model --------------------------------------------------
-model.list = list(A="zero", m=2, R="diagonal and unequal") # best model 
+model.list = list(A="zero", m=2, R="diagonal and unequal") # best model is two-trend
 
 # not sure that these changes to control list are needed for this best model, but using them again!
 cntl.list = list(minit=200, maxit=20000, allow.degen=FALSE, conv.test.slope.tol=0.1, abstol=0.0001)
@@ -231,8 +230,8 @@ plot.CI
 
 dodge <- position_dodge(width=0.9)
 
+plot.CI$names <- reorder(plot.CI$names, plot.CI$mean)
 
-plot.CI$names <- reorder(plot.CI$names, CI$par$Z[1:24])
 
 plot.CI$trend <- rep(c("T1", "T2"), each = 12)
 
@@ -269,23 +268,18 @@ ggpubr::ggarrange(loadings.plot,
                   labels = "auto")
 
 dev.off()
-# only two loadings can be distinguished from 0! 
+# only one loading can be distinguished from 0! 
+# reject this model and fit second-best model (1 trend diagonal and unequal)
 
-# fit the second-best model (1 trend diagonal and unequal)
-
-model.list = list(A="zero", m=1, R="diagonal and unequal") # second-best model 
+model.list = list(A="zero", m=1, R="diagonal and unequal") # second-best model - this is the borealization index
 
 mod = MARSS(dfa.dat, model=model.list, z.score=TRUE, form="dfa", control=cntl.list)
 
 # save 
 saveRDS(mod, "./output/DFA_model.rds")
 
-# calculate R^2
+# plot fits to data
 DFA_pred <- print(predict(mod))
-
-R_sq <- cor(DFA_pred$y, DFA_pred$estimate, use = "pairwise")^2 
-R_sq # 0.12
-
 
 DFA_pred <- DFA_pred %>%
   mutate(year = rep(1972:2022, 12)) 
@@ -298,20 +292,15 @@ summarise <- DFA_pred %>%
 
 DFA_pred <- left_join(DFA_pred, summarise)
 
-ggplot(DFA_pred) +
-  geom_point(aes(year, y)) +
-  geom_line(aes(year, estimate), color = "blue") +
-  facet_wrap(~.rownames, ncol = 4, scale = "free_y")
-
 ggplot(DFA_pred, aes(estimate, y)) +
   geom_point() +
   geom_smooth(method = "lm", se = F) +
   facet_wrap(~plot_label, ncol = 4, scale = "free") +
   labs(x = "Estimated", y = "Observed")
 
-ggsave("./figs/DFA_estimated_observed.png", width = 10, height = 6, units = 'in')
+ggsave("./figs/Extended_Data_Fig_5.png", width = 10, height = 6, units = 'in')
 
-# plot loadings and trend
+# process loadings and trend
 
 CI <- MARSSparamCIs(mod)
 
@@ -325,13 +314,6 @@ dodge <- position_dodge(width=0.9)
 
 plot.CI$names <- reorder(plot.CI$names, CI$par$Z[1:12])
 
-loadings.plot <- ggplot(plot.CI, aes(x=names, y=mean)) +
-  geom_bar(position=dodge, stat="identity", fill=cb[6]) +
-  geom_errorbar(aes(ymax=upCI, ymin=lowCI), position=dodge, width=0.5) +
-  ylab("Loading") +
-  xlab("") +
-  theme(axis.text.x  = element_text(angle=60, hjust=1,  size=9), legend.title = element_blank(), legend.position = 'top') +
-  geom_hline(yintercept = 0)
 
 # plot trend
 trend <- data.frame(t=1972:2022,
@@ -340,23 +322,6 @@ trend <- data.frame(t=1972:2022,
                         conf.high=as.vector(mod$states)+1.96*as.vector(mod$states.se))
 
 
-trend.plot <- ggplot(trend, aes(t, estimate)) +
-  theme_bw() +
-  geom_line(color=cb[6]) +
-  geom_hline(yintercept = 0) +
-  geom_point(color=cb[6]) +
-  geom_ribbon(aes(x=t, ymin=conf.low, ymax=conf.high), linetype=2, alpha=0.1, fill=cb[6]) + xlab("") + ylab("Borealization index")
-
-
-# save
-png("./Figs/borealization_DFA_loadings_trend.png", width = 9, height = 3.5, units = 'in', res = 300)
-ggpubr::ggarrange(loadings.plot,
-                  trend.plot,
-                  ncol = 2,
-                  widths = c(0.45, 0.55),
-                  labels = "auto")
-
-dev.off()
 
 # and save loadings and trend
 write.csv(plot.CI, "./Output/dfa_loadings.csv", row.names = F)
