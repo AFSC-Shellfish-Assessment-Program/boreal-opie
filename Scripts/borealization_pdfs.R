@@ -3,17 +3,6 @@
 library(tidyverse)
 library(brms)
 
-## STEP 1 ----------------------------------------------------
-# calculate ERSST anomalies wrt 1854-1949 for each region
-# this was done ERSST summaries.R"
-
-## STEP 2 -----------------------
-# calculate anomaly wrt 1850-1949 for each model preindustrial and hist_ssp585
-# this was done in "CMIP6 processing.R"
-
-## STEP 3 ---------------------------------------------
-# Record the positive and negative outcomes for each preindustrial run
-# for each model-anomaly combination (>= this anomaly or not)
 
 # load sst-borealization brms model
 sst_boreal_brm <- readRDS("./output/sst_boreal_brm.rds")
@@ -218,44 +207,11 @@ for(i in 1:length(periods)){
   data.frame(period = periods[i],
   borealization_index = temp_borealization_index))
 
-  # temp_density <- density(temp_borealization_index)
-  # 
-  # resample_density <- rbind(resample_density,
-  #                           data.frame(period = periods[i],
-  #                                      draw = j,
-  #                                      x = temp_density$x,
-  #                                      y = temp_density$y))
   
   # } # close j loop (density estimates)
 
 } # close i loop (periods)
 
-# # place x values in common set of bins to compare across draws
-# bin.min <- round(min(resample_density$x),2)-0.005
-# bin.max <- round(max(resample_density$x),2)+0.005
-# 
-# bins <- seq(from = bin.min,
-#             to = bin.max, 
-#             by = 0.01)
-# 
-# resample_density <- resample_density %>%
-#   mutate(binned_x = cut(x, breaks = bins))
-#   
-# 
-# sum_density
-# 
-# mean_density <- resample_density %>%
-#   mutate(x = round(x, 2)) %>%
-#   group_by(period, x) %>%
-#   dplyr::summarise(y = mean(y))
-
-# reorder
-plot.order <- data.frame(period = unique(resample.pdf$period),
-                         order = 1:5)
-
-
-resample.pdf <- left_join(resample.pdf, plot.order) %>%
-  mutate(period =  reorder(period, order))
 
 
 # save
@@ -264,6 +220,7 @@ write.csv(resample.pdf, "./output/resampled_borealization_pdfs.csv", row.names =
 # load 
 resample.pdf <- read.csv("./output/resampled_borealization_pdfs.csv")
 
+# get summary statistics (proportion of years < -1 or > 2 by era)
 sum <- resample.pdf %>%
   group_by(period) %>%
   summarize(proportion_high = sum(borealization_index > 2) / n(),
@@ -272,45 +229,3 @@ sum <- resample.pdf %>%
 
 sum
 
-# quick plot
-quick_plot <- data.frame(warming = c(0.75, 1.25, 1.75, 0.25, 0),
-                         prob_change = sum$proportion_high/min(sum$proportion_high))
-
-ggplot(quick_plot, aes(warming, prob_change)) +
-  geom_line() +
-  geom_point()
-
-# and plot
-theme_set(theme_bw())
-cb <- c("#000000", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
-
-# reorder periods
-resample.pdf <- left_join(resample.pdf, plot.order) %>%
-  mutate(period =  reorder(period, order))
-
-boreal.pdf.plot <- ggplot(resample.pdf, aes(period, borealization_index)) +
-  geom_hline(yintercept = c(-1,2), color = cb[c(6,7)], lty = 2, alpha = 0.8) +
-  geom_violin(fill = cb[2], lty = 0, alpha = 0.5) +
-  coord_flip(ylim = c(-4.5, 4.5)) +
-  xlab("North Pacific warming") +
-  ylab("Borealization index") +
-  scale_x_discrete(labels = c("Preindustrial",
-                              "1950 to 0.5°",
-                              "0.5° to 1.0°  
-                              (~2003 - 2019)",
-                              "1.0° to 1.5°  ,
-                              (~2019 - 2038)",
-                              "1.5° to 2.0°  
-                              (~2038 - 2060)")) +
-  scale_y_continuous(breaks = seq(-4,4, by = 2))
-
-
-boreal.pdf.plot
-
-ggsave("./figs/borealization_pdfs.png", width = 6, height = 7, units = 'in')
-
-
-summary <- resample.pdf %>%
-  group_by(period) %>%
-  summarise(mean = mean(borealization_index))
-summary
