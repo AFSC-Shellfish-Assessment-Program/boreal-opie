@@ -262,7 +262,7 @@ fig2a <- ggplot(dat_ce) +
 
 
 # save one-panel version (Extended data Fig. 3)
-ggsave("./Figs/borealization_sst_brms_plot.png", width = 6, height = 4, units = "in")
+ggsave("./Figs/Extended_Data_Fig_3.png", width = 6, height = 4, units = "in")
 
 probs <- read.csv("./output/probabilistic_attribution_stats.csv")
 
