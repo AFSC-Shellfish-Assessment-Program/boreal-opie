@@ -57,13 +57,7 @@ fig1a <- ggplot() +
         panel.grid.major = element_blank()) 
 
 
-
-# fig1a <- ggplot() + theme_void()
-
 # abundance (Fig. 1b)
-
-abundance <- read.csv("./output/imputed_male_30-95_imm_female_abundance.csv") 
-
 male <- read.csv("./output/male_imputed_weighted_log_cpue.csv") %>%
   mutate(sex = "Male")
 
@@ -89,14 +83,6 @@ fig1b <- ggplot(abundance, aes(as.numeric(year), log_mean, color = sex)) +
         legend.position = c(0.2, 0.2)) +
   labs(y = "Log mean catch per unit effort") 
 
-
-# fig1b <- ggplot(abundance, aes(year, abundance)) +
-#   geom_col(fill = cb[6]) +
-#   geom_errorbar(aes(ymin = abundance - 2*SD,
-#                     ymax = abundance + 2*SD), position = dodge, width = 0.7) +
-#   theme(axis.title.x = element_blank()) +
-#   geom_hline(yintercept = 0) +
-#   labs(y = expression(Snow~crab~abundance~(10^9))) 
 
 # load DFA model
 mod <- readRDS("./output/DFA_model.rds")
