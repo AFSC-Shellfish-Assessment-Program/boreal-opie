@@ -115,6 +115,8 @@ plot.dat <- left_join(plot.dat, plot.order)
 plot.dat$name <- reorder(plot.dat$name, plot.dat$order)
 
 
+# save as Extended Data Fig. 4
+tiff("./Figs/Extended_Data_Fig_4.tiff", width = 10, height = 6, units = 'in', res = 300)
 
 ggplot(plot.dat, aes(year, value)) +
   geom_line() +
@@ -123,8 +125,10 @@ ggplot(plot.dat, aes(year, value)) +
   theme(axis.title.x = element_blank()) +
   ylab("Value")
 
-# save as Extended Data Fig. 4
-ggsave("./Figs/Extended_Data_Fig_4.png", width = 10, height = 6, units = 'in')
+dev.off()
+
+
+
 
 # save time series
 write.csv(dat, "./output/dfa time series.csv", row.names = F)
