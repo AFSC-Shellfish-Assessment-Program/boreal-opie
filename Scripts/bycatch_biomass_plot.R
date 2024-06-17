@@ -31,13 +31,16 @@ plot <- data %>%
          `Trawl bycatch` = trawl_bycatch) %>%
   pivot_longer(cols = -year)
 
+tiff("./figs/Extended_Data_Fig_6.tiff", width = 6, height = 4, units = 'in', res = 300)
 
 ggplot(plot, aes(year, value, color = name)) +
   geom_point() +
   geom_line() +
   scale_color_manual(values = cb[c(2,4,6)]) +
   theme(axis.title.x = element_blank(),
-        legend.title = element_blank()) +
+        legend.title = element_blank(),
+        legend.position = c(0.5, 0.85)) +
   ylab(expression(Biomass ~(10^3~t)))
 
-ggsave("./figs/Extended_Data_Fig_6.png", width = 6, height = 4, units = 'in')
+dev.off()
+
