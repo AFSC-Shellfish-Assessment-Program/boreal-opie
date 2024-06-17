@@ -102,6 +102,7 @@ annual.sst <- tapply(monthly.sst, yr, mean)
 plot.sst <- data.frame(year = 1854:2022,
                        sst = annual.sst)
 
+tiff("./figs/Extended_Data_Fig_1.tiff", width = 4, height = 3, units = "in", res = 300)
 
 ggplot(plot.sst, aes(year, annual.sst)) +
   geom_point(size = 1) +
@@ -111,6 +112,6 @@ ggplot(plot.sst, aes(year, annual.sst)) +
   theme(axis.title.x = element_blank()) +
   ylab("Mean SST (°C)")
 
-ggsave("./figs/Extended_Data_Fig_1.png", width = 4, height = 3, units = "in")
+dev.off()
 
 
