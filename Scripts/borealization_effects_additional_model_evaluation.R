@@ -75,7 +75,7 @@ summary(male_boreal_mod6)
 
 male_boreal_mod7 <- gam(log_mean ~  log_mean_lag1 + s(trend3_lag1) + s(year, k = 4), data = male_dat)
 summary(male_boreal_mod7)
-plot(male_boreal_mod7, resid = T, pch = 19, se = T)
+# plot(male_boreal_mod7, resid = T, pch = 19, se = T)
 
 boreal.aicc <- MuMIn::AICc(male_boreal_mod1, male_boreal_mod2, male_boreal_mod3, male_boreal_mod4, 
                            male_boreal_mod5, male_boreal_mod6, male_boreal_mod7)
@@ -252,7 +252,7 @@ female.plot <- ggplot(plot.female.aicc, aes(order, `Delta AICc`, color = `Covari
 female.plot
 
 # combine
-png("./figs/combined_male_female_temperature_borealization_AICc.png", width = 8, height = 4, units = 'in', res = 300)
+png("./figs/Extended_Data_Fig_2.png", width = 8, height = 4, units = 'in', res = 300)
 
 ggpubr::ggarrange(female.plot, male.plot, ncol = 2, common.legend = T)
 
@@ -297,8 +297,6 @@ ggplot(male_out, aes(log_mean_lag1, P_trend3_lag1)) +
   geom_line()
 
 ## females
-
-## begin with males
 
 # use female_dat, loaded above
 
@@ -350,4 +348,5 @@ ggplot(both_out, aes(log_mean_lag1, P_trend3_lag1)) +
   labs(x = "Lag1 log(CPUE)",
        y = "P(borealization index)")
 
-ggsave("./figs/missing_lag1_cpue_imputation_results.png", width = 6, height = 3, units = 'in')
+ggsave("./figs/Extended_Data_Fig_7.png", width = 6, height = 3, units = 'in')
+
