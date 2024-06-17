@@ -296,13 +296,15 @@ summarise <- DFA_pred %>%
 
 DFA_pred <- left_join(DFA_pred, summarise)
 
+tiff("./figs/Extended_Data_Fig_5.tiff", width = 10, height = 6, units = 'in', res = 300)
+
 ggplot(DFA_pred, aes(estimate, y)) +
   geom_point() +
   geom_smooth(method = "lm", se = F) +
   facet_wrap(~plot_label, ncol = 4, scale = "free") +
   labs(x = "Estimated", y = "Observed")
 
-ggsave("./figs/Extended_Data_Fig_5.png", width = 10, height = 6, units = 'in')
+dev.off()
 
 # process loadings and trend
 
