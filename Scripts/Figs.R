@@ -309,7 +309,7 @@ p_build <- rbind(plyr::arrange(transform(p_build, x = xminv), y),
 
 #Add our fill variable
 p_build$fill_group <- ifelse(p_build$y < -1,'Arctic',
-                             ifelse(p_build$y > 2, 'Boreal', 'Middle'))
+                             ifelse(p_build$y > 2, 'Boreal', 'Neither'))
 
 #This is necessary to ensure that instead of trying to draw
 # 5 polygons, we're telling ggplot to draw 15 polygons
@@ -329,9 +329,15 @@ fig2d <- ggplot() +
                                 "0.5° to 1.0°",
                                 "1.0° to 1.5°",
                                 "1.5° to 2.0°"), breaks = c(1:5)) +
-  scale_y_continuous(breaks = seq(-4,4, by = 2)) +
+  scale_y_continuous(breaks = seq(-4,4, by = 2)) + 
+  theme(legend.title = element_blank(),
+        legend.position = c(0.87, 0.1),
+        legend.text = element_text(size = 7.5),
+        legend.key.size = unit(4, 'mm'),
+        legend.margin = margin(t = 0, r = 0, b = 1, l = 1, unit = "pt"))
+# +
   # geom_hline(yintercept = c(-1,2), color = c(cb[3], "red"), lty = 2, lwd = 0.8) +
-  theme(legend.position = "none")
+  # theme(legend.position = "none")
 
 fig2d
 
