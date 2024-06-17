@@ -202,8 +202,8 @@ fig1f <- ggplot(dat_ce) +
   annotate("text", x = -1, y = 5.2, label = "Female", size = 5)
 
 
-png("./figs/Fig_1.png", width = 12, height = 6, units = 'in', res = 300)
 
+pdf("./figs/Fig_1.pdf", width = 12, height = 6)
 ggpubr::ggarrange(fig1a, fig1b, fig1c, fig1d, fig1e, fig1f,
                   ncol = 3, nrow = 2,
                   labels = "auto")
@@ -330,7 +330,7 @@ fig2d <- ggplot() +
                                 "1.5° to 2.0°"), breaks = c(1:5)) +
   scale_y_continuous(breaks = seq(-4,4, by = 2)) + 
   theme(legend.title = element_blank(),
-        legend.position = c(0.87, 0.1),
+        legend.position = c(0.83, 0.22),
         legend.text = element_text(size = 7.5),
         legend.key.size = unit(4, 'mm'),
         legend.margin = margin(t = 0, r = 0, b = 1, l = 1, unit = "pt"))
@@ -342,8 +342,8 @@ fig2d
 
 
 ## version of Fig. 2 without sst-borealization plot
-png("./figs/Fig_2.png", width = 7, height = 5, units = 'in', res = 300)
 
+pdf("./figs/Fig_2.pdf", width = 7, height = 5)
 ggpubr::ggarrange(ggpubr::ggarrange(fig2b, fig2c,  ncol = 1, labels = "auto"),
                   fig2d, ncol = 2, widths = c(0.5, 0.5), labels = c("", "c"))
 
