@@ -252,7 +252,7 @@ female.plot <- ggplot(plot.female.aicc, aes(order, `Delta AICc`, color = `Covari
 female.plot
 
 # combine
-png("./figs/Extended_Data_Fig_2.png", width = 8, height = 4, units = 'in', res = 300)
+tiff("./figs/Extended_Data_Fig_2.tiff", width = 8, height = 4, units = 'in', res = 300)
 
 ggpubr::ggarrange(female.plot, male.plot, ncol = 2, common.legend = T)
 
@@ -341,6 +341,8 @@ actual <- data.frame(Sex = c("Female", "Male"),
                      log_mean_lag1 = c(mean(c(female_dat$log_mean_lag1[female_dat$year == 2020], female_dat$log_mean_lag1[female_dat$year == 2022])),
                                        mean(c(male_dat$log_mean_lag1[male_dat$year == 2020], male_dat$log_mean_lag1[male_dat$year == 2022]))))
 
+tiff("./figs/Extended_Data_Fig_7.tiff", width = 6, height = 3, units = 'in', res = 300)
+
 ggplot(both_out, aes(log_mean_lag1, P_trend3_lag1)) +
   geom_line() +
   facet_wrap(~Sex, scales = "free") +
@@ -348,5 +350,6 @@ ggplot(both_out, aes(log_mean_lag1, P_trend3_lag1)) +
   labs(x = "Lag1 log(CPUE)",
        y = "P(borealization index)")
 
-ggsave("./figs/Extended_Data_Fig_7.png", width = 6, height = 3, units = 'in')
+dev.off()
+
 
