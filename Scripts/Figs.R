@@ -91,7 +91,6 @@ mod <- readRDS("./output/DFA_model.rds")
 dat <- read.csv("./output/dfa time series.csv")
 
 dfa.dat <- dat %>%
-  dplyr::select(-order) %>%
   pivot_wider(names_from = name, values_from = value) %>% 
   arrange(year) %>%
   dplyr::select(-year) %>%
@@ -143,8 +142,8 @@ fig1d <- ggplot(trend, aes(t, estimate)) +
 # load model object
 male_brm <- readRDS("./output/fit_male.rds")
 
-# load data file (for plotting partial residuals)
-male_dat <- read.csv("male_dat.csv")
+# # load data file (for plotting partial residuals)
+# male_dat <- read.csv("male_dat.csv")
 
 
 ## 95% CI
@@ -203,7 +202,7 @@ fig1f <- ggplot(dat_ce) +
   annotate("text", x = -1, y = 5.2, label = "Female", size = 5)
 
 
-png("./figs/fig1.png", width = 12, height = 6, units = 'in', res = 300)
+png("./figs/Fig_1.png", width = 12, height = 6, units = 'in', res = 300)
 
 ggpubr::ggarrange(fig1a, fig1b, fig1c, fig1d, fig1e, fig1f,
                   ncol = 3, nrow = 2,
@@ -343,7 +342,7 @@ fig2d
 
 
 ## version of Fig. 2 without sst-borealization plot
-png("./figs/fig2.png", width = 7, height = 5, units = 'in', res = 300)
+png("./figs/Fig_2.png", width = 7, height = 5, units = 'in', res = 300)
 
 ggpubr::ggarrange(ggpubr::ggarrange(fig2b, fig2c,  ncol = 1, labels = "auto"),
                   fig2d, ncol = 2, widths = c(0.5, 0.5), labels = c("", "c"))
