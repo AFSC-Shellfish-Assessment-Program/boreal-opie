@@ -5,15 +5,6 @@
 
 # Author: Erin Fedewa
 
-#NOTES: 
-#Looks like there's some missing station data prior to 1993, may be 
-  #worth imputing CPUE's
-#This dataset only includes 1982+, data request in for earlier yrs, and CPUE's
-  #for missing stations will need to be imputed 
-#Need to follow up on median CPUE approach and instead calculate station-level 
-  #cod biomass...though maybe our approach for defining cod-snow crab habitat  
-  #overlap needs some rethinking 
-
 # load ----
 library(tidyverse)
 theme_set(theme_bw())
