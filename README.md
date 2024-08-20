@@ -12,40 +12,40 @@ If you have any questions or find any errors, please contact the lead author: mi
 # Scripts
 The following brief descriptions serve as a guide to the different scripts used in the analysis.
 
-BCS Prevalence.r -- Processes visual bitter crab syndrome (BCS) detection data from the bottom trawl survey for use in the borealization index.
+*BCS Prevalence.r* -- Processes visual bitter crab syndrome (BCS) detection data from the bottom trawl survey for use in the borealization index.
 
-borealization_attribution_resampling.R -- Calculates preindustrial and historical probabilities for estimation the Fraction of Attributable Risk (FAR) and Risk Ratio (RR).
+*borealization_attribution_resampling.R* -- Calculates preindustrial and historical probabilities for estimation the Fraction of Attributable Risk (FAR) and Risk Ratio (RR).
 
-borealization_effects.R -- Evaluates the statistical relationship between southeast Bering Sea borealization and snow crab abundance.
+*borealization_effects.R* -- Evaluates the statistical relationship between southeast Bering Sea borealization and snow crab abundance.
 
-borealization_effects_additional_model_evaluation.R -- Conducts model evaluation presented in Extended Data Figs. 2 & 7.
+*borealization_effects_additional_model_evaluation.R* -- Conducts model evaluation presented in Extended Data Figs. 2 & 7.
 
-borealization_pdfs.R -- Calculates probability densities for borealization index at different levels of North Pacific warming.
+*borealization_pdfs.R* -- Calculates probability densities for borealization index at different levels of North Pacific warming.
 
-bottom_temp_imputation.R -- Imputes missing 2020 bottom temperature values for model evaluation presented in Extended Data Fig. 2.
+*bottom_temp_imputation.R* -- Imputes missing 2020 bottom temperature values for model evaluation presented in Extended Data Fig. 2.
 
-bycatch_biomass_plot.R -- Creates Extended Data Fig. 6.
+*bycatch_biomass_plot.R* -- Creates Extended Data Fig. 6.
 
-chla_processing.R -- Processes phytoplankton size ratio data for inclusion in borealization index.
+*chla_processing.R* -- Processes phytoplankton size ratio data for inclusion in borealization index.
 
-DFA.R -- Creates borealization index using a Dynamic Factor Analysis model.
+*DFA.R* -- Creates borealization index using a Dynamic Factor Analysis model.
 
-ERSST query.R -- Creates Extended Data Fig. 1.
+*ERSST query.R* -- Creates Extended Data Fig. 1.
 
-estimate_bottom_temp.R -- Uses multiple imputation to fill in missing station values for bottom temperature and corrects bottom temperature estimates for annual differences in seasonal timing of sampling.
+*estimate_bottom_temp.R* -- Uses multiple imputation to fill in missing station values for bottom temperature and corrects bottom temperature estimates for annual differences in seasonal timing of sampling.
 
-Figs.R -- Creates Figs. 1 & 2.
+*Figs.R* -- Creates Figs. 1 & 2.
 
-Groundfish_biomass.R -- Processes groundfish data for inclusion in borealization index.
+*Groundfish_biomass.R* -- Processes groundfish data for inclusion in borealization index.
 
-ice_query.R -- Processes ERA5 ice cover data for inclusion in borealization index.
+*ice_query.R* -- Processes ERA5 ice cover data for inclusion in borealization index.
 
-Imm_Area.R -- Calculates core range for immature snow crab.
+*Imm_Area.R* -- Calculates core range for immature snow crab.
 
-imputed_male_female_abundance_Fig1.R -- Uses multiple imputation to estimate missing station values for snow crab abundance for plotting in Fig. 1 and use in "borealization_effects.R".
+*imputed_male_female_abundance_Fig1.R* -- Uses multiple imputation to estimate missing station values for snow crab abundance for plotting in Fig. 1 and use in "borealization_effects.R".
 
-sst_borealization.R -- Creates Bayesian operating model of SST-borealization index relationship for use in attribution.
+*sst_borealization.R* -- Creates Bayesian operating model of SST-borealization index relationship for use in attribution.
 
-stan_utils.R -- Runs diagnostics for Bayesian regression models.
+*stan_utils.R* -- Runs diagnostics for Bayesian regression models.
 
-zooplankton_processing.R -- Processes Calanus and Pseudocalanus data for inclusion in borealization index.
+*zooplankton_processing.R* -- Processes *Calanus* and *Pseudocalanus* data for inclusion in borealization index.
